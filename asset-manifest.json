@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "/Lyra-s-Claude-Exporter/static/css/main.f4d218d1.css",
-    "main.js": "/Lyra-s-Claude-Exporter/static/js/main.40bb002d.js",
+    "main.css": "/Lyra-s-Claude-Exporter/static/css/main.7561eaf8.css",
+    "main.js": "/Lyra-s-Claude-Exporter/static/js/main.07e5651b.js",
     "index.html": "/Lyra-s-Claude-Exporter/index.html",
-    "main.f4d218d1.css.map": "/Lyra-s-Claude-Exporter/static/css/main.f4d218d1.css.map",
-    "main.40bb002d.js.map": "/Lyra-s-Claude-Exporter/static/js/main.40bb002d.js.map"
+    "main.7561eaf8.css.map": "/Lyra-s-Claude-Exporter/static/css/main.7561eaf8.css.map",
+    "main.07e5651b.js.map": "/Lyra-s-Claude-Exporter/static/js/main.07e5651b.js.map"
   },
   "entrypoints": [
-    "static/css/main.f4d218d1.css",
-    "static/js/main.40bb002d.js"
+    "static/css/main.7561eaf8.css",
+    "static/js/main.07e5651b.js"
   ]
 }
