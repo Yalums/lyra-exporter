@@ -1,1 +1,117 @@
-<!doctype html><html lang="en"><head><script>!function(){var e=sessionStorage.redirect;delete sessionStorage.redirect,e&&e!==location.href&&history.replaceState(null,null,e)}()</script><meta charset="utf-8"/><link rel="icon" href="./favicon.ico"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="theme-color" content="#4DAB9A"/><meta name="description" content="Claude聊天记录管理工具 - 整理、搜索和导出Claude对话"/><link rel="apple-touch-icon" href="./logo192.png"/><link rel="manifest" href="./manifest.json"/><title>Claude聊天记录管理 | Lyra's Exporter</title><meta name="author" content="Lyra (Yalums)"/><meta name="copyright" content="© 2025 Lyra's Exporter. All Rights Reserved."/><script defer="defer" src="./static/js/main.7854bf03.js"></script><link href="./static/css/main.74b97ff9.css" rel="stylesheet"></head><body><noscript>You need to enable JavaScript to run this app.</noscript><div id="root"></div></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+    <script>
+        !function(){var e=sessionStorage.redirect;delete sessionStorage.redirect,e&&e!==location.href&&history.replaceState(null,null,e)}()
+    </script>
+    <meta charset="utf-8"/>
+    <link rel="icon" href="./favicon.ico"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="theme-color" content="#4DAB9A"/>
+    <meta name="description" content="Claude聊天记录管理工具 - 整理、搜索和导出Claude对话"/>
+    <link rel="apple-touch-icon" href="./logo192.png"/>
+    <link rel="manifest" href="./manifest.json"/>
+    <title>Claude聊天记录管理 | Lyra's Exporter</title>
+    <meta name="author" content="Lyra (Yalums)"/>
+    <meta name="copyright" content="© 2025 Lyra's Exporter. All Rights Reserved."/>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer="defer" src="./static/js/main.7854bf03.js"></script>
+    <link href="./static/css/main.74b97ff9.css" rel="stylesheet">
+    <style>
+        /* 自定义一些细微样式调整 (可选) */
+        body {
+            font-family: 'Inter', sans-serif; /* Tailwind 默认会尝试使用系统字体，这里可以指定一个更现代的字体 Inter */
+        }
+        /* 确保弹窗在最上层，如果你的应用有更高 z-index 的元素，可能需要调整 */
+        #lyraCustomPopupOverlay {
+            z-index: 9999;
+        }
+    </style>
+</head>
+<body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+
+    <div id="lyraCustomPopupOverlay" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden p-4">
+        <div id="lyraCustomPopup" class="bg-white p-6 sm:p-8 rounded-xl shadow-2xl max-w-md w-full transform transition-all scale-95 opacity-0">
+            <div class="flex justify-between items-start mb-4">
+                <h2 class="text-xl sm:text-2xl font-semibold text-gray-800">完全开源、界面更友好的重写版本上线了！</h2>
+                <button id="closeLyraCustomPopup" class="text-gray-400 hover:text-gray-600 transition-colors text-2xl sm:text-3xl leading-none -mt-1 -mr-1">&times;</button>
+            </div>
+            <p class="text-gray-700 mb-6 text-sm sm:text-base">
+                在新版本，您将获得：<br/>1. 移动端的优化适配(可以从分享菜单添加到主屏幕来完全离线使用)<br/>2. 所有代码完全开源<br/>3. 支持一次性导出导入全部Claude对话<br/>4. 增加对 Gemini、NotebookLM 对话格式的支持<br/>5. 更现代化的页面交互<br/>6. 便于记忆的网址
+            </p>
+            <a id="downloadLyraDesktopAppButton"
+               href="https://yalums.github.io/lyra-exporter/"
+               target="_blank"
+               rel="noopener noreferrer"
+               class="block w-full bg-teal-500 hover:bg-teal-600 text-white font-semibold py-3 px-4 rounded-lg text-center transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-opacity-50 mb-3">
+                前往新版本
+            </a>
+            <button id="dismissLyraPopupButton" class="block w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-lg text-center transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-opacity-50">
+                已了解，不再提示
+            </button>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('load', function() {
+            const popupOverlay = document.getElementById('lyraCustomPopupOverlay');
+            const popupDialog = document.getElementById('lyraCustomPopup');
+            const closeButton = document.getElementById('closeLyraCustomPopup');
+            const downloadButton = document.getElementById('downloadLyraDesktopAppButton');
+            const dismissButton = document.getElementById('dismissLyraPopupButton');
+            // 使用一个独特的 localStorage key，并加上版本号，方便以后如果需要再弹新版提示
+            const popupShownKey = 'lyraExporterDesktopPopupShown_v1.0';
+
+            // 检查是否已经显示过弹窗
+            if (!localStorage.getItem(popupShownKey)) {
+                if (popupOverlay && popupDialog) {
+                    popupOverlay.classList.remove('hidden');
+                    // 添加一点动画效果
+                    setTimeout(() => {
+                        popupDialog.classList.remove('scale-95', 'opacity-0');
+                        popupDialog.classList.add('scale-100', 'opacity-100');
+                    }, 50); // 短暂延迟以触发过渡
+                }
+            }
+
+            function hidePopupAndSetFlag() {
+                if (popupOverlay && popupDialog) {
+                    popupDialog.classList.remove('scale-100', 'opacity-100');
+                    popupDialog.classList.add('scale-95', 'opacity-0');
+                    setTimeout(() => {
+                        popupOverlay.classList.add('hidden');
+                    }, 300); // 等待动画完成再隐藏 overlay
+                }
+                localStorage.setItem(popupShownKey, 'true');
+            }
+
+            if (closeButton) {
+                closeButton.addEventListener('click', hidePopupAndSetFlag);
+            }
+
+            if (downloadButton) {
+                // 用户点击下载按钮后，也视为已处理，不再提示
+                downloadButton.addEventListener('click', function() {
+                    // 允许默认行为（打开链接）
+                    hidePopupAndSetFlag();
+                });
+            }
+
+            if (dismissButton) {
+                dismissButton.addEventListener('click', hidePopupAndSetFlag);
+            }
+
+            // 点击弹窗外部的遮罩层也可以关闭弹窗
+            if (popupOverlay) {
+                popupOverlay.addEventListener('click', function(event) {
+                    if (event.target === popupOverlay) { // 确保是点击遮罩本身，而不是弹窗内部
+                        hidePopupAndSetFlag();
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
