@@ -1,25 +1,27 @@
 {
-  "short_name": "Lyra's Exporter",
-  "name": "Claude聊天记录管理工具",
+  "short_name": "Lyra Exporter",
+  "name": "Claude聊天记录管理 | Lyra's Exporter",
+  "description": "Claude和Gemini聊天记录管理工具 - 整理、搜索和导出对话数据",
   "icons": [
     {
       "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
+      "sizes": "256x256",
       "type": "image/x-icon"
     },
     {
-      "src": "logo192.png",
+      "src": "logo1024.png",
       "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "logo512.png",
-      "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "1024x1024",
+      "purpose": "any maskable"
     }
   ],
-  "start_url": ".",
+  "start_url": "./",
   "display": "standalone",
-  "theme_color": "#4DAB9A",
-  "background_color": "#ffffff"
+  "theme_color": "#F2F0E9",
+  "background_color": "#F2F0E9",
+  "orientation": "any",
+  "scope": "./",
+  "lang": "zh-CN",
+  "categories": ["productivity", "utilities"],
+  "screenshots": []
 }
