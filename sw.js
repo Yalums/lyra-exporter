@@ -1,22 +1,10 @@
-const CACHE_NAME = 'lyra-exporter-v4';
-// 只缓存关键资源，避免缓存不存在的文件
-const urlsToCache = [
-  './',
-  './manifest.json'
-];
+const CACHE_NAME = 'lyra-exporter-v5';
 
-// 安装 Service Worker
+// 安装 Service Worker - 不预缓存任何文件
 self.addEventListener('install', event => {
   console.log('[SW] 安装新版本:', CACHE_NAME);
-  // 跳过等待，立即激活
+  // 立即激活，不等待
   self.skipWaiting();
-  
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        return cache.addAll(urlsToCache);
-      })
-  );
 });
 
 // 激活事件 - 清理旧缓存
