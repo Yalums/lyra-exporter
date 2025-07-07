@@ -1,10 +1,8 @@
-const CACHE_NAME = 'lyra-exporter-v3';
+const CACHE_NAME = 'lyra-exporter-v4';
+// 只缓存关键资源，避免缓存不存在的文件
 const urlsToCache = [
-  '/',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
-  '/manifest.json',
-  '/logo1024.png'
+  './',
+  './manifest.json'
 ];
 
 // 安装 Service Worker
@@ -42,7 +40,7 @@ self.addEventListener('activate', event => {
   );
 });
 
-// 获取请求 - 网络优先策略
+// 获取请求 - 网络优先策略，适配 GitHub Pages
 self.addEventListener('fetch', event => {
   // 对于开发环境，总是从网络获取
   if (event.request.url.includes('localhost') || event.request.url.includes('127.0.0.1')) {
@@ -54,14 +52,22 @@ self.addEventListener('fetch', event => {
     return;
   }
   
-  // 生产环境使用缓存
+  // GitHub Pages 生产环境 - 网络优先，缓存备用
   event.respondWith(
-    caches.match(event.request)
+    fetch(event.request)
       .then(response => {
-        if (response) {
-          return response;
+        // 如果网络请求成功，缓存响应（只缓存 GET 请求）
+        if (event.request.method === 'GET' && response && response.status === 200) {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseToCache);
+          });
         }
-        return fetch(event.request);
+        return response;
+      })
+      .catch(() => {
+        // 网络失败时，尝试从缓存返回
+        return caches.match(event.request);
       })
   );
 });
