@@ -1,17 +1,15 @@
 {
   "files": {
-    "main.css": "/lyra-exporter/static/css/main.106bfd0c.css",
-    "main.js": "/lyra-exporter/static/js/main.7fab40b7.js",
+    "main.css": "/lyra-exporter/static/css/main.499e5a2f.css",
+    "main.js": "/lyra-exporter/static/js/main.d36d26e9.js",
     "static/js/22.0a713db3.chunk.js": "/lyra-exporter/static/js/22.0a713db3.chunk.js",
-    "static/js/509.746a964a.chunk.js": "/lyra-exporter/static/js/509.746a964a.chunk.js",
     "index.html": "/lyra-exporter/index.html",
-    "main.106bfd0c.css.map": "/lyra-exporter/static/css/main.106bfd0c.css.map",
-    "main.7fab40b7.js.map": "/lyra-exporter/static/js/main.7fab40b7.js.map",
-    "22.0a713db3.chunk.js.map": "/lyra-exporter/static/js/22.0a713db3.chunk.js.map",
-    "509.746a964a.chunk.js.map": "/lyra-exporter/static/js/509.746a964a.chunk.js.map"
+    "main.499e5a2f.css.map": "/lyra-exporter/static/css/main.499e5a2f.css.map",
+    "main.d36d26e9.js.map": "/lyra-exporter/static/js/main.d36d26e9.js.map",
+    "22.0a713db3.chunk.js.map": "/lyra-exporter/static/js/22.0a713db3.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.106bfd0c.css",
-    "static/js/main.7fab40b7.js"
+    "static/css/main.499e5a2f.css",
+    "static/js/main.d36d26e9.js"
   ]
 }
