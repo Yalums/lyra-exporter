@@ -11,7 +11,6 @@ import ConversationGrid from './components/ConversationGrid';
 import ConversationTimeline from './components/ConversationTimeline';
 import ConversationFilter from './components/ConversationFilter';
 import ThemeSwitcher from './components/ThemeSwitcher';
-import Toast from './components/Toast';
 
 // 自定义Hooks导入
 import { useFileManager } from './hooks/useFileManager';
@@ -51,8 +50,6 @@ function App() {
   const [showMessageDetail, setShowMessageDetail] = useState(false);
   const [operatedFiles, setOperatedFiles] = useState(new Set());
   const [scrollPositions, setScrollPositions] = useState({});
-  // Toast 状态
-  const [toasts, setToasts] = useState([]);
   // 新增 error 状态
   const [error, setError] = useState(null);
   const [exportOptions, setExportOptions] = useState({
@@ -68,22 +65,6 @@ function App() {
   
   const fileInputRef = useRef(null);
   const contentAreaRef = useRef(null);
-
-  // Toast 管理函数
-  const showToast = useCallback((message, type = 'info', duration = 3000) => {
-    const id = Date.now() + Math.random();
-    const newToast = { id, message, type, duration };
-    setToasts(prev => [...prev, newToast]);
-    
-    // 自动清理
-    setTimeout(() => {
-      setToasts(prev => prev.filter(toast => toast.id !== id));
-    }, duration + 300); // 加上动画时间
-  }, []);
-
-  const removeToast = useCallback((id) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
-  }, []);
 
   // 使用统一的UUID管理 - 传入files参数
   const currentFileUuid = useFileUuid(viewMode, selectedFileIndex, selectedConversationUuid, processedData, files);
@@ -162,7 +143,7 @@ function App() {
     });
     
     return cards;
-  }, [files, currentFileIndex, processedData?.format, viewMode, filteredConversations, fileMetadata]);
+  }, [files, currentFileIndex, processedData, viewMode, filteredConversations, fileMetadata]);
 
   // 搜索功能 - 搜索卡片和消息
   const searchTarget = useMemo(() => {
@@ -183,7 +164,7 @@ function App() {
       }
     }
     return [];
-  }, [viewMode, allCards, selectedConversationUuid, selectedFileIndex, currentFileIndex, processedData?.format, processedData?.chat_history]);
+  }, [viewMode, allCards, selectedConversationUuid, selectedFileIndex, currentFileIndex, processedData]);
 
   const { query, filteredMessages, actions: searchActions } = useSearch(searchTarget);
 
@@ -202,7 +183,7 @@ function App() {
       }
     }
     return [];
-  }, [viewMode, selectedFileIndex, currentFileIndex, processedData?.format, processedData?.chat_history, selectedConversationUuid]);
+  }, [viewMode, selectedFileIndex, currentFileIndex, processedData, selectedConversationUuid]);
 
   const { sortedMessages, hasCustomSort, actions: sortActions } = useMessageSort(
     timelineMessages, 
@@ -546,17 +527,14 @@ function App() {
         
         console.log('[Lyra Exporter] 成功加载来自 Lyra Fetch 的数据:', filename);
         
-        // 显示成功提示
-        showToast(`成功加载来自 Lyra Fetch 的数据: ${filename}`, 'success', 4000);
         setError(null);
         
       } catch (error) {
         console.error('[Lyra Exporter] 处理 Lyra Fetch 数据时出错:', error);
-        showToast('加载数据失败: ' + error.message, 'error', 5000);
         setError('加载数据失败: ' + error.message);
       }
     }
-  }, [fileActions, showToast]);
+  }, [fileActions]);
 
   // postMessage 监听器 - 依赖稳定的处理函数
   useEffect(() => {
@@ -599,7 +577,7 @@ function App() {
         }
       }
     }
-  }, [files.length, currentFileIndex]); // 只监听必要的依赖
+  }, [files.length, currentFileIndex, error, files, processedData, viewMode]);
 
   // 导出功能 - 修改部分
   const handleExport = async () => {
@@ -903,7 +881,7 @@ function App() {
       }
     }
     return null;
-  }, [viewMode, selectedFileIndex, selectedConversationUuid, processedData?.format, processedData?.views?.conversationList, processedData?.meta_info?.title, processedData?.chat_history?.length, files, currentFileIndex, fileMetadata, starActions, shouldUseStarSystem]);
+  }, [viewMode, selectedFileIndex, selectedConversationUuid, processedData, files, currentFileIndex, fileMetadata, starActions, shouldUseStarSystem]);
 
   return (
     <div className="app-redesigned">
@@ -1195,17 +1173,6 @@ function App() {
             </div>
           )}
           <ThemeSwitcher />
-
-          {/* Toast 提示 */}
-          {toasts.map(toast => (
-            <Toast
-              key={toast.id}
-              message={toast.message}
-              type={toast.type}
-              duration={toast.duration}
-              onClose={() => removeToast(toast.id)}
-            />
-          ))}
 
           {/* 导出面板 */}
           {showExportPanel && (

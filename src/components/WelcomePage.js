@@ -321,7 +321,7 @@ const WelcomePage = ({ handleLoadClick }) => {
         </h1>
         
         <p className="text-lg text-gray-700 mb-8 max-w-3xl mx-auto">
-          欢迎使用Lyra's Exporter，Laumss 和 Claude 一起制作的对话管理工具。她支持批量加载多对话，帮你保存灵感时刻，让每一次对话的价值得到延续。
+          欢迎使用这个对话记录管理工具，支持批量加载多对话，帮你保存灵感时刻，让每一次对话的价值得到延续。
         </p>
       </div>
       
