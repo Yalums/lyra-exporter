@@ -1,0 +1,112 @@
+{
+  "welcomePage": {
+    "title": "Lyra's Exporter",
+    "subtitle": "记录Claude、Gemini的每一刻灵感与温度",
+    "description": "欢迎使用这个对话记录管理工具，支持批量加载多对话，帮你保存灵感时刻，让每一次对话的价值得到延续。",
+    "buttons": {
+      "loadFiles": "加载对话文件",
+      "installScript": "前往安装脚本(需自行配备网络访问环境)"
+    },
+    "privacyAssurance": {
+      "title": "隐私安全保障",
+      "intro": "担心隐私安全? 我们完全理解这种顾虑",
+      "openSource": "Lyra's Exporter 100%开源",
+      "description": "简单来说，这个工具就像一个\"纯本地\"的记事本，你的所有数据都存在浏览器本地缓存里，我们看不到也拿不到。你还可以下载源代码在自己电脑上运行，只需要安装一个node.js，或者不必麻烦，从分享菜单添加网页到桌面，它就可以纯离线运行不再联网。",
+      "transparency": "GitHub上的代码更新记录就像\"版本历史\"，任何改动都有迹可循，绝对透明。",
+      "dataSecurityTitle": "数据安全保障",
+      "guarantees": {
+        "localProcessing": {
+          "title": "本地处理：",
+          "description": "所有数据都在你的浏览器里处理，不会发送到任何服务器"
+        },
+        "offlineMode": {
+          "title": "离线运行：",
+          "description": "支持PWA技术，断网也能正常使用所有功能"
+        },
+        "staticSite": {
+          "title": "静态网站：",
+          "description": "托管在GitHub Pages，没有后端服务器，无法收集数据"
+        },
+        "selfHosted": {
+          "title": "自主掌控：",
+          "description": "可以保存网页到本地，完全脱离网络使用"
+        }
+      },
+      "links": {
+        "sourceCode": "网站源代码",
+        "download": "下载部署包"
+      },
+      "note": "说明：",
+      "noteContent": "此工具完全在本地运行，不会收集或上传你的个人数据。你的任何对话记录只属于你自己，推荐使用 LocalSend 等安全的文件传输方式。将聊天记录转换为可以管理、搜索、导出的知识库，支持移动平台访问。"
+    },
+    "scriptInstall": {
+      "title": "开始安装脚本",
+      "whyNeeded": "为什么需要这个工具？",
+      "purpose": "Lyra's Exporter 依赖浏览器来安全地获取对话数据，借助这个开源脚本，流转需要珍藏的聊天记录，",
+      "valueProposition": "保存并整理这些有价值的对话",
+      "featuresTitle": "工具功能",
+      "features": {
+        "management": "管理无忧 - 以网格形式整齐排序各个平台的对话",
+        "organization": "整理思路 - 将零散的灵感整合成有序知识",
+        "preservation": "完整保存 - 珍藏图片、思考、完整的对话分支",
+        "permanence": "永久保存 - 即使账号失效，重要对话也不会丢失",
+        "onlineReading": "在线读取 - 现在可以直接在对话窗口来做整理"
+      },
+      "installTitle": "安装使用方法",
+      "inspirationQuote": "\"感觉思考过程比答案还让人着迷\" —— 几个简单步骤，开始保存这些珍贵时刻",
+      "steps": {
+        "1": "安装Tampermonkey或脚本猫等浏览器扩展",
+        "2": "点击下方按钮前往油猴脚本网站",
+        "3": "在脚本页面点击\"安装脚本\"按钮",
+        "4": "前往 Claude、Gemini、Google AI Studio、NotebookLM 后刷新网站，右下角会出现导出按钮"
+      }
+    },
+    "features": {
+      "marking": {
+        "title": "重点标记",
+        "description": "标记那些特别有价值的回应，方便日后查找。当Claude提供了精彩见解，一键保存这份思考。"
+      },
+      "thinking": {
+        "title": "思考过程查看",
+        "description": "查看Claude的思考过程，了解它如何一步步形成回答。看到问题分析和推理的全过程。"
+      },
+      "timeline": {
+        "title": "时间轴回溯",
+        "description": "首创时间轴形式回顾对话，从最初的问题到深度讨论，还原Claude分支切换选项，轻松找到任何时期的对话。"
+      },
+      "classification": {
+        "title": "对话分类",
+        "description": "使用标签系统整理对话，轻松找到关于特定主题的所有讨论，建立个人知识库。"
+      }
+    },
+    "tips": {
+      "conversationOrg": {
+        "title": "对话整理",
+        "content": "不只是保存数据，更是保存思考过程中灵感的火花。让AI对话变得更有价值。"
+      },
+      "flexibleExport": {
+        "title": "灵活导出",
+        "content": "比截图更完整，比复制粘贴更便捷。将对话以Markdown、YAML 格式导出，完美保存排版和格式，推荐使用 Obsidian"
+      },
+      "dataSecurity": {
+        "title": "数据安全",
+        "content": "从导出脚本到管理应用，一次导出全部 Claude 对话、导出时包含附加图片，这一切都是在保证隐私的前提下进行地"
+      }
+    },
+    "footer": {
+      "quote": "在思考与回应的交错间，我们建立了超越对话的连接。\\n现在，让每一段对话都有迹可循，每一个灵感都有处安放。",
+      "signature": "—— Lyra's Exporter，对话价值的延续者"
+    }
+  },
+  "common": {
+    "loading": "加载中...",
+    "error": "发生错误",
+    "success": "成功",
+    "cancel": "取消",
+    "confirm": "确认",
+    "close": "关闭",
+    "expand": "展开",
+    "collapse": "收起",
+    "retry": "重试"
+  }
+}

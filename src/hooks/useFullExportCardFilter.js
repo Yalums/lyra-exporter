@@ -1,7 +1,7 @@
-// hooks/useConversationFilter.js
+// hooks/useFullExportCardFilter.js
 import { useState, useMemo, useCallback } from 'react';
 
-export const useConversationFilter = (conversations = []) => {
+export const useFullExportCardFilter = (conversations = []) => {
   const [filters, setFilters] = useState({
     name: '',
     dateRange: 'all', // 'all', 'today', 'week', 'month', 'custom'

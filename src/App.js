@@ -4,12 +4,13 @@ import './styles/themes.css';
 import './styles/UniversalTimeline.css';
 import './styles/message-gfm.css';
 
+import { useI18n } from './hooks/useI18n.js';
 // 组件导入
 import WelcomePage from './components/WelcomePage';
 import MessageDetail from './components/MessageDetail';
-import ConversationGrid from './components/ConversationGrid';
+import ConversationGrid from './components/ConversationCardView';
 import ConversationTimeline from './components/ConversationTimeline';
-import ConversationFilter from './components/ConversationFilter';
+import FullExportCardFilter from './components/FullExportCardFilter';
 import ThemeSwitcher from './components/ThemeSwitcher';
 
 // 自定义Hooks导入
@@ -17,14 +18,18 @@ import { useFileManager } from './hooks/useFileManager';
 import { useMarkSystem } from './hooks/useMarkSystem';
 import { useSearch } from './hooks/useSearch';
 import { useMessageSort } from './hooks/useMessageSort';
-import { useConversationFilter } from './hooks/useConversationFilter';
+import { useFullExportCardFilter } from './hooks/useFullExportCardFilter';
 import { useFileUuid, generateFileCardUuid, generateConversationCardUuid, parseUuid } from './hooks/useFileUuid';
 import { useStarSystem } from './hooks/useStarSystem';
 
-// 工具导入 import { STORAGE_KEYS } from './utils/constants'; 但是好像重来都没有使用过所以给注释掉了
+// 工具模块导入 - 消除重复代码
+import { handleExport as exportHandler, DEFAULT_EXPORT_CONFIG } from './utils/exportModule';
+import { createPostMessageHandler } from './utils/messageHandler';
+import { getAllMarksStats, calculateViewStats, getSearchResultStats } from './utils/statsCalculator';
+import { STORAGE_KEYS } from './utils/constants';
 
 function App() {
-  // 使用自定义hooks
+  // ==================== Hooks和状态管理 ====================
   const { 
     files, 
     currentFile, 
@@ -36,7 +41,7 @@ function App() {
     actions: fileActions 
   } = useFileManager();
   
-  // 星标系统 - 只在 claude_full_export 格式时启用
+  // 星标系统
   const shouldUseStarSystem = processedData?.format === 'claude_full_export';
   const { starredConversations, actions: starActions } = useStarSystem(shouldUseStarSystem);
   
@@ -44,33 +49,30 @@ function App() {
   const [selectedMessageIndex, setSelectedMessageIndex] = useState(null);
   const [activeTab, setActiveTab] = useState('content');
   const [showExportPanel, setShowExportPanel] = useState(false);
-  const [viewMode, setViewMode] = useState('conversations'); // 'conversations' | 'timeline'
+  const [viewMode, setViewMode] = useState('conversations');
   const [selectedFileIndex, setSelectedFileIndex] = useState(null);
   const [selectedConversationUuid, setSelectedConversationUuid] = useState(null);
+  const [selectedConversation, setSelectedConversation] = useState(null); // 不确定是不是这个，先加上
   const [showMessageDetail, setShowMessageDetail] = useState(false);
   const [operatedFiles, setOperatedFiles] = useState(new Set());
   const [scrollPositions, setScrollPositions] = useState({});
-  // 新增 error 状态
   const [error, setError] = useState(null);
   const [exportOptions, setExportOptions] = useState({
-    scope: 'current', // 'current' | 'operated' | 'all'
-    includeCompleted: false, // 改为false，表示是否"仅"导出已完成
-    excludeDeleted: true,
-    includeThinking: true,
-    includeArtifacts: true,
-    includeTools: true,
-    includeCitations: true,
-    includeTimestamps: false
-  });
+  ...DEFAULT_EXPORT_CONFIG,
+  scope: 'current',
+  includeCompleted: false
+});
   
   const fileInputRef = useRef(null);
   const contentAreaRef = useRef(null);
 
-  // 使用统一的UUID管理 - 传入files参数
+  // UUID管理
   const currentFileUuid = useFileUuid(viewMode, selectedFileIndex, selectedConversationUuid, processedData, files);
   const { marks, stats, actions: markActions } = useMarkSystem(currentFileUuid);
 
-  // 创建原始对话列表（用于筛选）- 更新以包含星标状态
+  // ==================== 数据计算和派生状态 ====================
+  
+  // 原始对话列表（用于筛选）
   const rawConversations = useMemo(() => {
     if (viewMode === 'conversations' && processedData?.format === 'claude_full_export') {
       return processedData.views?.conversationList?.map(conv => ({
@@ -80,46 +82,40 @@ function App() {
         fileName: files[currentFileIndex]?.name || 'unknown',
         fileFormat: processedData.format,
         uuid: generateConversationCardUuid(currentFileIndex, conv.uuid, files[currentFileIndex]),
-        // 计算最终的星标状态
-        is_starred: conv.is_starred || false // 先使用原生状态，后续在组件内判断
+        is_starred: conv.is_starred || false
       })) || [];
     }
     return [];
-  }, [viewMode, processedData?.format, processedData?.views?.conversationList, currentFileIndex, files]);
+  }, [viewMode, processedData, currentFileIndex, files]);
 
-  // 对话筛选功能（仅用于claude_full_export格式）
+  // 对话筛选
   const {
     filters,
     filteredConversations,
     availableProjects,
     filterStats,
     actions: filterActions
-  } = useConversationFilter(rawConversations);
+  } = useFullExportCardFilter(rawConversations);
 
-  // 创建统一的卡片列表（包含文件和对话）
+  // 卡片列表
   const allCards = useMemo(() => {
-    const cards = [];
-    
-    // 如果当前文件是claude_full_export格式，展示筛选后的对话卡片
     if (viewMode === 'conversations' && processedData?.format === 'claude_full_export') {
-      // 直接返回筛选后的对话卡片
       return [...filteredConversations];
     }
     
-    // 为每个文件创建一个文件卡片
+    // 文件卡片模式
+    const cards = [];
     files.forEach((file, fileIndex) => {
       const isCurrentFile = fileIndex === currentFileIndex;
       const fileData = isCurrentFile ? processedData : null;
       const metadata = fileMetadata[file.name] || {};
       
-      // 优先使用当前加载的数据，其次使用元数据
       const format = fileData?.format || metadata.format || 'unknown';
       const messageCount = fileData?.chat_history?.length || metadata.messageCount || 0;
       const conversationCount = fileData?.format === 'claude_full_export' ? 
         (fileData?.views?.conversationList?.length || 0) : 
         (metadata.conversationCount || (fileData ? 1 : 0));
       
-      // 获取模型信息
       const model = fileData?.meta_info?.model || metadata.model || (format === 'claude' ? '' : 'Claude');
       
       cards.push({
@@ -145,19 +141,16 @@ function App() {
     return cards;
   }, [files, currentFileIndex, processedData, viewMode, filteredConversations, fileMetadata]);
 
-  // 搜索功能 - 搜索卡片和消息
+  // 搜索目标数据
   const searchTarget = useMemo(() => {
     if (viewMode === 'conversations') {
       return allCards;
     } else if (viewMode === 'timeline' && selectedFileIndex !== null) {
-      // 获取选中对话的消息
       if (selectedFileIndex === currentFileIndex && processedData) {
         if (processedData.format === 'claude_full_export' && selectedConversationUuid) {
-          // 只提取conversation UUID，避免依赖整个processedData
-          const messages = processedData.chat_history?.filter(msg => 
+          return processedData.chat_history?.filter(msg => 
             msg.conversation_uuid === selectedConversationUuid && !msg.is_conversation_header
           ) || [];
-          return messages;
         } else {
           return processedData.chat_history || [];
         }
@@ -168,10 +161,9 @@ function App() {
 
   const { query, filteredMessages, actions: searchActions } = useSearch(searchTarget);
 
-  // 消息排序 - 仅在时间线模式下使用
+  // 时间线消息
   const timelineMessages = useMemo(() => {
     if (viewMode === 'timeline' && selectedFileIndex !== null) {
-      // 直接从原始数据获取消息，避免依赖searchTarget
       if (selectedFileIndex === currentFileIndex && processedData) {
         if (processedData.format === 'claude_full_export' && selectedConversationUuid) {
           return processedData.chat_history?.filter(msg => 
@@ -190,19 +182,67 @@ function App() {
     currentFileUuid
   );
 
-  // 检查是否为claude_full_export格式的对话网格模式
-  const isFullExportConversationMode = viewMode === 'conversations' && 
-    processedData?.format === 'claude_full_export';
+  // 当前对话信息
+  const currentConversation = useMemo(() => {
+    if (viewMode === 'timeline' && selectedFileIndex !== null) {
+      if (selectedConversationUuid && processedData?.format === 'claude_full_export') {
+        const conversation = processedData.views?.conversationList?.find(
+          conv => conv.uuid === selectedConversationUuid
+        );
+        if (conversation && files[selectedFileIndex]) {
+          const convUuid = generateConversationCardUuid(selectedFileIndex, conversation.uuid, files[selectedFileIndex]);
+          return {
+            ...conversation,
+            uuid: convUuid,
+            is_starred: shouldUseStarSystem ? 
+              starActions.isStarred(convUuid, conversation.is_starred) :
+              conversation.is_starred
+          };
+        }
+        return null;
+      } else {
+        const file = files[selectedFileIndex];
+        if (file) {
+          const metadata = fileMetadata[file.name] || {};
+          const isCurrentFile = selectedFileIndex === currentFileIndex;
+          const fileData = isCurrentFile ? processedData : null;
+          
+          return {
+            type: 'file',
+            uuid: generateFileCardUuid(selectedFileIndex, file),
+            name: fileData?.meta_info?.title || metadata.title || file.name.replace('.json', ''),
+            fileName: file.name,
+            fileIndex: selectedFileIndex,
+            isCurrentFile,
+            format: fileData?.format || metadata.format || 'unknown',
+            model: fileData?.meta_info?.model || metadata.model || '',
+            messageCount: fileData?.chat_history?.length || metadata.messageCount || 0,
+            created_at: metadata.created_at || (file.lastModified ? new Date(file.lastModified).toISOString() : null),
+            platform: metadata.platform || 'claude'
+          };
+        }
+      }
+    }
+    return null;
+  }, [viewMode, selectedFileIndex, selectedConversationUuid, processedData, files, currentFileIndex, fileMetadata, starActions, shouldUseStarSystem]);
 
-  // 文件处理
+  const isFullExportConversationMode = viewMode === 'conversations' && processedData?.format === 'claude_full_export';
+
+  // ==================== 事件处理函数 ====================
+  
+  // 使用消息处理器模块
+  const handlePostMessage = useCallback(
+    createPostMessageHandler(fileActions, setError),
+    [fileActions]
+  );
+
   const handleFileLoad = (e) => {
     const fileList = Array.from(e.target.files);
     fileActions.loadFiles(fileList);
   };
 
-  // 卡片选择处理（文件卡片或对话卡片）
   const handleCardSelect = (card) => {
-    // 保存当前滚动位置
+    // 保存滚动位置
     if (contentAreaRef.current && viewMode === 'conversations') {
       const key = currentFile ? `file-${currentFileIndex}` : 'main';
       setScrollPositions(prev => ({
@@ -212,27 +252,21 @@ function App() {
     }
     
     if (card.type === 'file') {
-      // 点击文件卡片
       if (card.fileIndex !== currentFileIndex) {
         fileActions.switchFile(card.fileIndex);
       }
       
-      // 根据文件格式决定跳转逻辑
       if (card.fileData?.format === 'claude_full_export') {
-        // claude_full_export 格式：切换到对话网格模式
         setViewMode('conversations');
         setSelectedFileIndex(null);
         setSelectedConversationUuid(null);
       } else {
-        // 其他格式：直接进入时间线模式
         setSelectedFileIndex(card.fileIndex);
         setSelectedConversationUuid(null);
         setViewMode('timeline');
       }
     } else if (card.type === 'conversation') {
-      // 点击对话卡片
       const parsed = parseUuid(card.uuid);
-      // 需要从卡片信息中获取fileIndex，因为parseUuid现在返回的是fileHash
       const fileIndex = card.fileIndex;
       const conversationUuid = parsed.conversationUuid;
       
@@ -240,18 +274,15 @@ function App() {
       setSelectedConversationUuid(conversationUuid);
       setViewMode('timeline');
       
-      // 如果需要切换文件，先切换到对应文件
       if (fileIndex !== currentFileIndex) {
         fileActions.switchFile(fileIndex);
       }
     }
   };
 
-  // 文件关闭处理
   const handleFileRemove = (fileIndex) => {
     fileActions.removeFile(fileIndex);
     
-    // 如果关闭的是当前文件或选中的文件，重置状态
     if (fileIndex === currentFileIndex || fileIndex === selectedFileIndex) {
       setViewMode('conversations');
       setSelectedFileIndex(null);
@@ -259,7 +290,6 @@ function App() {
     }
   };
 
-  // 返回对话列表
   const handleBackToConversations = () => {
     setViewMode('conversations');
     setSelectedFileIndex(null);
@@ -275,519 +305,64 @@ function App() {
     }, 0);
   };
 
-  // 消息选择处理
   const handleMessageSelect = (messageIndex) => {
     setSelectedMessageIndex(messageIndex);
     setShowMessageDetail(true);
   };
 
-  // 搜索处理
-  const handleSearch = (searchText) => {
-    searchActions.search(searchText);
-  };
-
-  // 标记处理
   const handleMarkToggle = (messageIndex, markType) => {
     markActions.toggleMark(messageIndex, markType);
     
-    // 记录有操作的文件
     if (currentFileUuid) {
       setOperatedFiles(prev => new Set(prev).add(currentFileUuid));
     }
   };
 
-  // 星标切换处理
   const handleStarToggle = (conversationUuid, nativeIsStarred) => {
     starActions.toggleStar(conversationUuid, nativeIsStarred);
   };
 
-  // 获取所有文件的标记统计（改进版）
-  const getAllMarksStats = useCallback(() => {
-    let totalCompleted = 0;
-    let totalImportant = 0;
-    let totalDeleted = 0;
-    
-    // 遍历所有文件获取标记数据
-    files.forEach((file, index) => {
-      // 普通文件的标记
-      const fileUuid = generateFileCardUuid(index, file);
-      const storageKey = `marks_${fileUuid}`;
-      
-      try {
-        const savedData = localStorage.getItem(storageKey);
-        if (savedData) {
-          const parsed = JSON.parse(savedData);
-          const completedCount = (parsed.completed || []).length;
-          const importantCount = (parsed.important || []).length;
-          const deletedCount = (parsed.deleted || []).length;
-          
-          totalCompleted += completedCount;
-          totalImportant += importantCount;
-          totalDeleted += deletedCount;
-        }
-      } catch (error) {
-        console.error(`获取文件 ${file.name} 的标记失败:`, error);
-      }
-      
-      // 如果是claude_full_export格式，还需要检查每个对话的标记
-      if (index === currentFileIndex && processedData?.format === 'claude_full_export') {
-        const conversations = processedData.views?.conversationList || [];
-        
-        conversations.forEach(conv => {
-          const convUuid = generateConversationCardUuid(index, conv.uuid, file);
-          const convStorageKey = `marks_${convUuid}`;
-          
-          try {
-            const savedData = localStorage.getItem(convStorageKey);
-            if (savedData) {
-              const parsed = JSON.parse(savedData);
-              const completedCount = (parsed.completed || []).length;
-              const importantCount = (parsed.important || []).length;
-              const deletedCount = (parsed.deleted || []).length;
-              
-              totalCompleted += completedCount;
-              totalImportant += importantCount;
-              totalDeleted += deletedCount;
-            }
-          } catch (error) {
-            console.error(`获取对话 ${conv.name} 的标记失败:`, error);
-          }
-        });
-      }
-    });
-    
-    return {
-      completed: totalCompleted,
-      important: totalImportant,
-      deleted: totalDeleted,
-      total: totalCompleted + totalImportant + totalDeleted
-    };
-  }, [files, processedData, currentFileIndex]);
-
-  // 获取统计数据 - 更新以包含星标统计
-  const getStats = () => {
-    const allMarksStats = getAllMarksStats();
-    
-    if (viewMode === 'conversations') {
-      const fileCards = allCards.filter(card => card.type === 'file');
-      const conversationCards = allCards.filter(card => card.type === 'conversation');
-      
-      if (conversationCards.length > 0) {
-        // 在claude_full_export的对话网格模式
-        const starStats = starActions.getStarStats(conversationCards);
-        return {
-          totalMessages: conversationCards.reduce((sum, conv) => sum + (conv.messageCount || 0), 0),
-          conversationCount: conversationCards.length,
-          fileCount: files.length,
-          markedCount: allMarksStats.total,
-          starredCount: shouldUseStarSystem ? starStats.totalStarred : 0
-        };
-      } else {
-        // 在文件网格模式 - 统计当前已加载文件的真实数据
-        let totalMessages = 0;
-        let totalConversations = 0;
-        
-        files.forEach((file, index) => {
-          if (index === currentFileIndex && processedData) {
-            // 使用当前文件的真实数据
-            totalMessages += processedData.chat_history?.length || 0;
-            totalConversations += processedData.format === 'claude_full_export' ? 
-              (processedData.views?.conversationList?.length || 0) : 1;
-          } else {
-            // 对于未加载的文件，使用预估数据
-            const fileCard = fileCards.find(card => card.fileIndex === index);
-            totalMessages += fileCard?.messageCount || 0;
-            totalConversations += fileCard?.conversationCount || 0;
-          }
-        });
-        
-        return {
-          totalMessages,
-          conversationCount: totalConversations,
-          fileCount: files.length,
-          markedCount: allMarksStats.total,
-          starredCount: 0 // 文件模式没有星标
-        };
-      }
-    } else {
-      // 在时间线模式 - 使用当前文件的标记统计
-      const messages = Array.isArray(sortedMessages) ? sortedMessages : timelineMessages;
-      return {
-        totalMessages: messages.length,
-        conversationCount: 1,
-        fileCount: files.length,
-        markedCount: stats.total, // 使用当前文件的标记统计
-        starredCount: (shouldUseStarSystem && currentConversation?.is_starred) ? 1 : 0
-      };
-    }
-  };
-
-  // 主题初始化
-  useEffect(() => {
-    console.log('[Lyra Exporter] 应用启动，设置主题');
-    const savedTheme = localStorage.getItem('app-theme') || 'dark';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    
-    // 初始化PWA主题色
-    if (window.updatePWAThemeColor) {
-      // 稍微延迟，确保主题属性已经设置
-      setTimeout(() => {
-        window.updatePWAThemeColor();
-      }, 100);
-    }
-  }, []);
-
-  // Lyra's Fetch 脚本集成 - 使用 useCallback 稳定处理函数
-  const handlePostMessage = useCallback(async (event) => {
-    console.log('[Lyra Exporter] 收到任何 postMessage:', {
-      origin: event.origin,
-      type: event.data?.type,
-      source: event.data?.source,
-      hasData: !!event.data
-    });
-    
-    // 安全检查：只接受来自特定域名的消息
-    const allowedOrigins = [
-      'https://claude.ai',
-      'https://pro.easychat.top',
-      'https://gemini.google.com',
-      'https://notebooklm.google.com',
-      'https://aistudio.google.com',
-      'http://localhost:3789',
-      'https://yalums.github.io'
-    ];
-    
-    // 检查是否是允许的 origin
-    const isAllowedOrigin = allowedOrigins.some(origin => event.origin === origin) ||
-                           event.origin.includes('localhost') || 
-                           event.origin.includes('127.0.0.1');
-    
-    if (!isAllowedOrigin) {
-      console.warn('[Lyra Exporter] 拒绝来自未知源的消息:', event.origin);
-      return;
-    }
-
-    // 对本地开发放宽限制
-    if (!allowedOrigins.some(origin => event.origin.startsWith(origin)) && 
-        !event.origin.includes('localhost') && 
-        !event.origin.includes('127.0.0.1')) {
-      console.warn('[Lyra Exporter] 拒绝来自未知源的消息:', event.origin);
-      return;
-    }
-    
-    // 处理握手请求
-    if (event.data && event.data.type === 'LYRA_HANDSHAKE' && event.data.source === 'lyra-fetch-script') {
-      console.log('[Lyra Exporter] 收到 Lyra Fetch 脚本的握手请求');
-      
-      try {
-        // 回复准备就绪
-        event.source.postMessage({
-          type: 'LYRA_READY',
-          source: 'lyra-exporter'
-        }, event.origin);
-        
-        console.log('[Lyra Exporter] 已发送 LYRA_READY 响应到:', event.origin);
-      } catch (error) {
-        console.error('[Lyra Exporter] 发送握手响应失败:', error);
-      }
-      return;
-    }
-    
-    // 处理数据加载请求
-    if (event.data && event.data.type === 'LYRA_LOAD_DATA' && event.data.source === 'lyra-fetch-script') {
-      console.log('[Lyra Exporter] 收到 Lyra Fetch 脚本的数据:', {
-        hasContent: !!event.data.data?.content,
-        filename: event.data.data?.filename,
-        contentLength: event.data.data?.content?.length
-      });
-      
-      try {
-        const { content, filename } = event.data.data;
-        
-        if (!content) {
-          throw new Error('没有收到内容数据');
-        }
-        
-        // 将 JSON 字符串转换为 File 对象
-        const jsonData = typeof content === 'string' ? content : JSON.stringify(content);
-        const blob = new Blob([jsonData], { type: 'application/json' });
-        const file = new File([blob], filename || 'imported_conversation.json', {
-          type: 'application/json',
-          lastModified: Date.now()
-        });
-        
-        console.log('[Lyra Exporter] 创建的文件对象:', {
-          name: file.name,
-          size: file.size,
-          type: file.type
-        });
-        
-        // 使用 fileActions.loadFiles 加载文件
-        fileActions.loadFiles([file]);
-        
-        console.log('[Lyra Exporter] 成功加载来自 Lyra Fetch 的数据:', filename);
-        
-        setError(null);
-        
-      } catch (error) {
-        console.error('[Lyra Exporter] 处理 Lyra Fetch 数据时出错:', error);
-        setError('加载数据失败: ' + error.message);
-      }
-    }
-  }, [fileActions]);
-
-  // postMessage 监听器 - 依赖稳定的处理函数
-  useEffect(() => {
-    console.log('[Lyra Exporter] 设置 postMessage 监听器');
-    
-    // 添加事件监听器
-    window.addEventListener('message', handlePostMessage);
-    
-    // 清理函数
-    return () => {
-      console.log('[Lyra Exporter] 移除 postMessage 监听器');
-      window.removeEventListener('message', handlePostMessage);
-    };
-  }, [handlePostMessage]); // 只依赖稳定的处理函数
-
-  // 监听文件变化，自动切换到时间线视图
-  useEffect(() => {
-    // 检查是否是通过 postMessage 加载的文件
-    if (files.length > 0 && processedData && !error) {
-      // 只在文件刚加载且还在conversations视图时触发
-      const latestFile = files[files.length - 1];
-      
-      // 检查是否需要自动切换视图
-      if (viewMode === 'conversations' && 
-          currentFileIndex === files.length - 1 && // 确保是最新加载的文件
-          (latestFile.name.includes('claude_') || latestFile.name.includes('_export_'))) {
-        
-        console.log('[Lyra Exporter] 检测到新加载的对话文件，准备切换视图');
-        
-        // 根据格式决定如何切换
-        if (processedData.format === 'claude_full_export') {
-          // 完整导出格式保持在对话列表
-          console.log('[Lyra Exporter] 完整导出格式，保持在对话列表视图');
-        } else {
-          // 其他格式切换到时间线
-          console.log('[Lyra Exporter] 切换到时间线视图');
-          setSelectedFileIndex(files.length - 1);
-          setSelectedConversationUuid(null);
-          setViewMode('timeline');
-        }
-      }
-    }
-  }, [files.length, currentFileIndex, error, files, processedData, viewMode]);
-
-  // 导出功能 - 修改部分
+  // 导出功能 - 简化版
   const handleExport = async () => {
-    const { exportChatAsMarkdown, saveTextFile } = await import('./utils/exportHelper');
-    
-    let dataToExport = [];
-    let exportFileName = '';
-    
-    switch (exportOptions.scope) {
-      case 'current':
-        // 导出当前时间线文件
-        if (viewMode === 'timeline' && processedData) {
-          // 使用排序后的消息（如果有自定义排序）
-          const messagesToExport = hasCustomSort ? sortedMessages : (processedData.chat_history || []);
-          
-          dataToExport = [{
-            data: {
-              ...processedData,
-              chat_history: messagesToExport
-            },
-            fileName: currentFile?.name || 'export',
-            marks: marks
-          }];
-          exportFileName = `${currentFile?.name.replace('.json', '') || 'export'}_${new Date().toISOString().split('T')[0]}.md`;
-        }
-        break;
-        
-      case 'operated':
-        // 导出所有有操作的文件
-        for (const fileUuid of operatedFiles) {
-          // 这里需要特殊处理，因为我们现在使用的是hash而不是index
-          // 需要通过比较所有文件的hash来找到对应的文件
-          let targetFile = null;
-          let targetFileIndex = -1;
-          
-          files.forEach((file, index) => {
-            const testUuid = generateFileCardUuid(index, file);
-            if (fileUuid.includes(testUuid) || fileUuid === testUuid) {
-              targetFile = file;
-              targetFileIndex = index;
-            }
-          });
-          
-          if (targetFile && targetFileIndex !== -1) {
-            // 处理文件导出...
-            try {
-              const text = await targetFile.text();
-              const jsonData = JSON.parse(text);
-              const { extractChatData, detectBranches } = await import('./utils/fileParser');
-              let data = extractChatData(jsonData, targetFile.name);
-              data = detectBranches(data);
-              
-              // 获取该文件的标记数据
-              const fileMarks = {
-                completed: new Set(),
-                important: new Set(),
-                deleted: new Set()
-              };
-              
-              try {
-                const markData = localStorage.getItem(`marks_${fileUuid}`);
-                if (markData) {
-                  const parsed = JSON.parse(markData);
-                  fileMarks.completed = new Set(parsed.completed || []);
-                  fileMarks.important = new Set(parsed.important || []);
-                  fileMarks.deleted = new Set(parsed.deleted || []);
-                }
-              } catch (err) {
-                console.error(`获取文件标记失败:`, err);
-              }
-              
-              dataToExport.push({
-                data,
-                fileName: targetFile.name,
-                marks: fileMarks
-              });
-            } catch (err) {
-              console.error(`导出文件 ${targetFile.name} 失败:`, err);
-            }
-          }
-        }
-        exportFileName = `operated_files_${new Date().toISOString().split('T')[0]}.md`;
-        break;
-        
-      case 'all':
-        // 导出所有文件
-        for (let i = 0; i < files.length; i++) {
-          const file = files[i];
-          try {
-            const text = await file.text();
-            const jsonData = JSON.parse(text);
-            const { extractChatData, detectBranches } = await import('./utils/fileParser');
-            let data = extractChatData(jsonData, file.name);
-            data = detectBranches(data);
-            
-            // 如果是当前文件且有自定义排序，使用排序后的消息
-            let messagesToExport = data.chat_history || [];
-            if (i === currentFileIndex && hasCustomSort) {
-              messagesToExport = sortedMessages;
-            }
-            
-            // 获取该文件的标记数据
-            const fileMarks = {
-              completed: new Set(),
-              important: new Set(),
-              deleted: new Set()
-            };
-            
-            const fileUuid = generateFileCardUuid(i, file);
-            try {
-              const markData = localStorage.getItem(`marks_${fileUuid}`);
-              if (markData) {
-                const parsed = JSON.parse(markData);
-                fileMarks.completed = new Set(parsed.completed || []);
-                fileMarks.important = new Set(parsed.important || []);
-                fileMarks.deleted = new Set(parsed.deleted || []);
-              }
-            } catch (err) {
-              console.error(`获取文件 ${file.name} 的标记失败:`, err);
-            }
-            
-            dataToExport.push({
-              data: {
-                ...data,
-                chat_history: messagesToExport
-              },
-              fileName: file.name,
-              marks: fileMarks
-            });
-          } catch (err) {
-            console.error(`导出文件 ${file.name} 失败:`, err);
-          }
-        }
-        exportFileName = `all_files_${new Date().toISOString().split('T')[0]}.md`;
-        break;
-        
-      default:
-        // 添加默认情况处理
-        if (processedData) {
-          dataToExport = [{
-            data: processedData,
-            fileName: currentFile?.name || 'export',
-            marks: marks
-          }];
-          exportFileName = `export_${new Date().toISOString().split('T')[0]}.md`;
-        }
-        break;
-    }
-    
-    if (dataToExport.length === 0) {
-      alert('没有可导出的数据');
-      return;
-    }
-    
-    // 生成 Markdown 内容
-    let markdownContent = '';
-    
-    dataToExport.forEach((item, index) => {
-      if (index > 0) {
-        markdownContent += '\n\n---\n---\n\n';
-      }
-      
-      // 根据导出选项筛选消息
-      let filteredHistory = [...(item.data.chat_history || [])];
-      
-      // 如果选择了"仅导出已完成标记"
-      if (exportOptions.includeCompleted) {
-        filteredHistory = filteredHistory.filter(msg => 
-          item.marks.completed?.has(msg.index)
-        );
-      }
-      
-      // 排除已删除的消息（如果选择了该选项）
-      if (exportOptions.excludeDeleted) {
-        filteredHistory = filteredHistory.filter(msg => 
-          !item.marks.deleted?.has(msg.index)
-        );
-      }
-      
-      const exportData = {
-        ...item.data,
-        chat_history: filteredHistory
-      };
-      
-      const config = {
-        exportMarkedOnly: exportOptions.includeCompleted, // 传递是否仅导出已完成
-        markedItems: item.marks.completed || new Set(),
-        includeTimestamps: exportOptions.includeTimestamps,
-        includeThinking: exportOptions.includeThinking,
-        includeArtifacts: exportOptions.includeArtifacts,
-        includeTools: exportOptions.includeTools,
-        includeCitations: exportOptions.includeCitations,
-        exportObsidianMetadata: false
-      };
-      
-      try {
-        markdownContent += exportChatAsMarkdown(exportData, config);
-      } catch (err) {
-        console.error(`导出文件 ${item.fileName} 失败:`, err);
-        markdownContent += `\n# 导出失败: ${item.fileName}\n\n错误信息: ${err.message}\n\n`;
-      }
-    });
-    
-    // 保存文件
-    if (saveTextFile(markdownContent, exportFileName)) {
-      setShowExportPanel(false);
-    }
+  const success = await exportHandler(
+    exportOptions,
+    viewMode,
+    processedData,
+    currentFile,
+    sortedMessages,
+    hasCustomSort,
+    marks,
+    operatedFiles,
+    files,
+    currentFileIndex
+  );
+  
+  if (success) {
+    setShowExportPanel(false);
+    // 可选：显示成功提示
+    // showNotification('导出成功！');
+  }
+};
+
+  // ==================== 工具函数 ====================
+  
+  // 使用统计计算模块
+  const getStats = () => {
+    const allMarksStats = getAllMarksStats(files, processedData, currentFileIndex);
+    return calculateViewStats(
+      viewMode,
+      allCards,
+      sortedMessages,
+      timelineMessages,
+      files,
+      allMarksStats,
+      stats,
+      shouldUseStarSystem,
+      starActions,
+      currentConversation
+    );
   };
 
-  // 获取搜索占位符
   const getSearchPlaceholder = () => {
     if (isFullExportConversationMode) {
       return "搜索对话标题、项目名称...";
@@ -798,94 +373,48 @@ function App() {
     }
   };
 
-  // 获取当前视图的数据用于搜索结果显示
-  const getSearchResultData = () => {
-    if (viewMode === 'conversations') {
-      const hasConversationCards = allCards.some(card => card.type === 'conversation');
-      if (hasConversationCards) {
-        return {
-          displayed: filteredMessages.length,
-          total: allCards.length,
-          unit: '个对话'
-        };
-      } else {
-        return {
-          displayed: filteredMessages.length,
-          total: allCards.length,
-          unit: '个文件'
-        };
-      }
-    } else {
-      const messages = Array.isArray(sortedMessages) ? sortedMessages : timelineMessages;
-      return {
-        displayed: filteredMessages.length,
-        total: messages.length,
-        unit: '条消息'
-      };
+  const searchStats = getSearchResultStats(viewMode, filteredMessages, allCards, sortedMessages, timelineMessages);
+
+  // ==================== 副作用 ====================
+  
+  // 主题初始化
+  useEffect(() => {
+    const savedTheme = localStorage.getItem(STORAGE_KEYS.THEME) || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    
+    if (window.updatePWAThemeColor) {
+      setTimeout(() => window.updatePWAThemeColor(), 100);
     }
-  };
+  }, []);
 
-  const searchStats = getSearchResultData();
+  // postMessage监听器
+  useEffect(() => {
+    window.addEventListener('message', handlePostMessage);
+    return () => window.removeEventListener('message', handlePostMessage);
+  }, [handlePostMessage]);
 
-  // 获取当前对话的信息（用于ConversationTimeline组件）- 更新以包含星标状态
-  const currentConversation = useMemo(() => {
-    if (viewMode === 'timeline' && selectedFileIndex !== null) {
-      if (selectedConversationUuid && processedData?.format === 'claude_full_export') {
-        // 在claude_full_export格式中找到对应的对话
-        const conversation = processedData.views?.conversationList?.find(
-          conv => conv.uuid === selectedConversationUuid
-        );
-        if (conversation && files[selectedFileIndex]) {
-          const convUuid = generateConversationCardUuid(selectedFileIndex, conversation.uuid, files[selectedFileIndex]);
-          return {
-            ...conversation,
-            uuid: convUuid,
-            // 计算最终的星标状态
-            is_starred: shouldUseStarSystem ? 
-              starActions.isStarred(convUuid, conversation.is_starred) :
-              conversation.is_starred
-          };
-        }
-        return null;
-      } else {
-        // 普通文件 - 避免依赖整个allCards数组
-        const file = files[selectedFileIndex];
-        if (file) {
-          const metadata = fileMetadata[file.name] || {};
-          const isCurrentFile = selectedFileIndex === currentFileIndex;
-          const fileData = isCurrentFile ? processedData : null;
-          
-          const fileCard = {
-            type: 'file',
-            uuid: generateFileCardUuid(selectedFileIndex, file),
-            name: fileData?.meta_info?.title || metadata.title || file.name.replace('.json', ''),
-            fileName: file.name,
-            fileIndex: selectedFileIndex,
-            isCurrentFile,
-            format: fileData?.format || metadata.format || 'unknown',
-            model: fileData?.meta_info?.model || metadata.model || '',
-            messageCount: fileData?.chat_history?.length || metadata.messageCount || 0,
-            created_at: metadata.created_at || (file.lastModified ? new Date(file.lastModified).toISOString() : null),
-            platform: metadata.platform || 'claude'
-          };
-          
-          // 确保使用正确的对话标题
-          if (selectedFileIndex === currentFileIndex && processedData) {
-            return {
-              ...fileCard,
-              name: processedData.meta_info?.title || fileCard.name
-            };
-          }
-          return fileCard;
+  // 文件自动切换视图
+  useEffect(() => {
+    if (files.length > 0 && processedData && !error) {
+      const latestFile = files[files.length - 1];
+      
+      if (viewMode === 'conversations' && 
+          currentFileIndex === files.length - 1 &&
+          (latestFile.name.includes('claude_') || latestFile.name.includes('_export_'))) {
+        
+        if (processedData.format !== 'claude_full_export') {
+          setSelectedFileIndex(files.length - 1);
+          setSelectedConversationUuid(null);
+          setViewMode('timeline');
         }
       }
     }
-    return null;
-  }, [viewMode, selectedFileIndex, selectedConversationUuid, processedData, files, currentFileIndex, fileMetadata, starActions, shouldUseStarSystem]);
+  }, [files.length, currentFileIndex, error, files, processedData, viewMode]);
 
+  // ==================== 渲染 ====================
+  
   return (
     <div className="app-redesigned">
-      {/* 隐藏的文件输入 */}
       <input
         ref={fileInputRef}
         type="file"
@@ -895,7 +424,6 @@ function App() {
         style={{ display: 'none' }}
       />
 
-      {/* 如果没有文件，显示欢迎页面 */}
       {files.length === 0 ? (
         <WelcomePage handleLoadClick={() => fileInputRef.current?.click()} />
       ) : (
@@ -907,7 +435,6 @@ function App() {
                 <span className="logo-text">Lyra Exporter</span>
               </div>
               
-              {/* 返回按钮 */}
               {viewMode === 'timeline' && (
                 <button 
                   className="btn-secondary small"
@@ -917,7 +444,6 @@ function App() {
                 </button>
               )}
               
-              {/* 搜索框 - 只在非claude_full_export对话模式下显示 */}
               {!isFullExportConversationMode && (
                 <div className="search-box">
                   <span className="search-icon">🔍</span>
@@ -926,7 +452,7 @@ function App() {
                     className="search-input"
                     placeholder={getSearchPlaceholder()}
                     value={query}
-                    onChange={(e) => handleSearch(e.target.value)}
+                    onChange={(e) => searchActions.search(e.target.value)}
                   />
                   {query && (
                     <div className="search-stats">
@@ -937,7 +463,6 @@ function App() {
               )}
             </div>
             <div className="navbar-right">
-              {/* 导出按钮*/}
               <button 
                 className="btn-secondary small"
                 onClick={() => setShowExportPanel(true)}
@@ -946,7 +471,6 @@ function App() {
                 📤 导出
               </button>
               
-              {/* 在对话网格模式下显示星标管理按钮 */}
               {isFullExportConversationMode && shouldUseStarSystem && (
                 <button 
                   className="btn-secondary small"
@@ -961,11 +485,9 @@ function App() {
 
           {/* 主容器 */}
           <div className="main-container">
-            {/* 内容区域 */}
             <div className="content-area" ref={contentAreaRef}>
               {/* 统计面板 */}
               <div className="stats-panel">
-                
                 <div className="stats-grid">
                   <div className="stat-card">
                     <div className="stat-value">{getStats().totalMessages}</div>
@@ -983,7 +505,6 @@ function App() {
                     <div className="stat-value">{getStats().markedCount}</div>
                     <div className="stat-label">标记消息</div>
                   </div>
-                  {/* 在对话网格模式下显示星标统计 */}
                   {isFullExportConversationMode && shouldUseStarSystem && (
                     <div className="stat-card">
                       <div className="stat-value">{getStats().starredCount}</div>
@@ -993,9 +514,9 @@ function App() {
                 </div>
               </div>
 
-              {/* 筛选器 - 仅在claude_full_export对话模式下显示 */}
+              {/* 筛选器 */}
               {isFullExportConversationMode && (
-                <ConversationFilter
+                <FullExportCardFilter
                   filters={filters}
                   availableProjects={availableProjects}
                   filterStats={filterStats}
@@ -1007,20 +528,19 @@ function App() {
               {/* 视图内容 */}
               <div className="view-content">
                 {viewMode === 'conversations' ? (
-                  /* 卡片网格视图（文件或对话） */
-                  <ConversationGrid
-                    conversations={query ? filteredMessages : allCards}
-                    onConversationSelect={handleCardSelect}
-                    onFileRemove={handleFileRemove}
-                    onFileAdd={() => fileInputRef.current?.click()}
-                    onStarToggle={isFullExportConversationMode && shouldUseStarSystem ? handleStarToggle : null}
-                    starredConversations={shouldUseStarSystem ? starredConversations : new Map()}
-                    showFileInfo={false}
-                    isFileMode={allCards.some(card => card.type === 'file')}
-                    showFileManagement={true}
-                  />
-                ) : (
-                  /* 时间线视图 */
+  <ConversationGrid
+    items={query ? filteredMessages : allCards}  // 改为items
+    viewType="grid"                               // 新增viewType
+    onItemSelect={handleCardSelect}              // 改为onItemSelect
+    onItemRemove={handleFileRemove}              // 改为onItemRemove
+    onAddItem={() => fileInputRef.current?.click()}  // 改为onAddItem
+    selectedItem={selectedConversation}         // 改为selectedItem
+    onStarToggle={isFullExportConversationMode && shouldUseStarSystem ? handleStarToggle : null}
+    starredItems={shouldUseStarSystem ? starredConversations : new Map()}  // 改为starredItems
+    showFileManagement={true}
+    className=""
+  />
+) : (
                   <ConversationTimeline
                     data={processedData}
                     conversation={currentConversation}
@@ -1036,7 +556,6 @@ function App() {
                       ...sortActions,
                       moveMessage: (index, direction) => {
                         sortActions.moveMessage(index, direction);
-                        // 记录有操作的文件
                         if (currentFileUuid) {
                           setOperatedFiles(prev => new Set(prev).add(currentFileUuid));
                         }
@@ -1047,7 +566,6 @@ function App() {
                     files={files}
                     currentFileIndex={currentFileIndex}
                     onFileSwitch={(index) => {
-                      // 保存当前滚动位置
                       if (contentAreaRef.current) {
                         const key = currentFile ? `file-${currentFileIndex}` : 'main';
                         setScrollPositions(prev => ({
@@ -1056,10 +574,7 @@ function App() {
                         }));
                       }
                       
-                      // 切换文件
                       fileActions.switchFile(index);
-                      
-                      // 更新选中状态（保持普通文件格式）
                       setSelectedFileIndex(index);
                       setSelectedConversationUuid(null);
                     }}
@@ -1106,37 +621,25 @@ function App() {
                     searchQuery={query}
                     format={processedData?.format}
                     onTabChange={setActiveTab}
-                    showTabs={false} // 模态框中不再显示内部标签页
+                    showTabs={false}
                   />
                 </div>
                 <div className="modal-footer">
                   <button 
                     className="btn-secondary"
-                    onClick={() => {
-                      if (selectedMessageIndex !== null) {
-                        handleMarkToggle(selectedMessageIndex, 'completed');
-                      }
-                    }}
+                    onClick={() => handleMarkToggle(selectedMessageIndex, 'completed')}
                   >
                     {markActions.isMarked(selectedMessageIndex, 'completed') ? '取消完成' : '标记完成'} ✓
                   </button>
                   <button 
                     className="btn-secondary"
-                    onClick={() => {
-                      if (selectedMessageIndex !== null) {
-                        handleMarkToggle(selectedMessageIndex, 'important');
-                      }
-                    }}
+                    onClick={() => handleMarkToggle(selectedMessageIndex, 'important')}
                   >
                     {markActions.isMarked(selectedMessageIndex, 'important') ? '取消重要' : '标记重要'} ⭐
                   </button>
                   <button 
                     className="btn-secondary"
-                    onClick={() => {
-                      if (selectedMessageIndex !== null) {
-                        handleMarkToggle(selectedMessageIndex, 'deleted');
-                      }
-                    }}
+                    onClick={() => handleMarkToggle(selectedMessageIndex, 'deleted')}
                   >
                     {markActions.isMarked(selectedMessageIndex, 'deleted') ? '取消删除' : '标记删除'} 🗑️
                   </button>
@@ -1172,6 +675,7 @@ function App() {
               </div>
             </div>
           )}
+
           <ThemeSwitcher />
 
           {/* 导出面板 */}
@@ -1341,7 +845,9 @@ function App() {
                   <div className="info-row">
                     <span className="label">标记统计:</span>
                     <span className="value">
-                      完成 {getAllMarksStats().completed} · 重要 {getAllMarksStats().important} · 删除 {getAllMarksStats().deleted}
+                      完成 {getAllMarksStats(files, processedData, currentFileIndex).completed} · 
+                      重要 {getAllMarksStats(files, processedData, currentFileIndex).important} · 
+                      删除 {getAllMarksStats(files, processedData, currentFileIndex).deleted}
                     </span>
                   </div>
                   {isFullExportConversationMode && shouldUseStarSystem && (

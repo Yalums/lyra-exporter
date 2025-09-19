@@ -1,7 +1,7 @@
-// components/ConversationFilter.js
+// components/FullExportCardFilter.js
 import React from 'react';
 
-const ConversationFilter = ({
+const FullExportCardFilter = ({
   filters,
   availableProjects,
   filterStats,
@@ -146,4 +146,4 @@ const ConversationFilter = ({
   );
 };
 
-export default ConversationFilter;
+export default FullExportCardFilter;

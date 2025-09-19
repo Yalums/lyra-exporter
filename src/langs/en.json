@@ -1,0 +1,112 @@
+{
+  "welcomePage": {
+    "title": "Lyra's Exporter",
+    "subtitle": "Capturing every moment of inspiration and warmth from Claude & Gemini",
+    "description": "Welcome to this conversation management tool that supports batch loading of multiple conversations, helping you preserve moments of inspiration and extend the value of every dialogue.",
+    "buttons": {
+      "loadFiles": "Load Conversation Files",
+      "installScript": "Install Script (Network access required)"
+    },
+    "privacyAssurance": {
+      "title": "Privacy & Security Guarantee",
+      "intro": "Concerned about privacy? We completely understand this worry",
+      "openSource": "Lyra's Exporter is 100% open source",
+      "description": "Simply put, this tool is like a 'purely local' notepad. All your data is stored in your browser's local cache - we can't see it or access it. You can also download the source code and run it on your own computer with just Node.js, or simply add this webpage to your desktop from the share menu for completely offline usage.",
+      "transparency": "Code update records on GitHub are like 'version history' - every change is traceable and completely transparent.",
+      "dataSecurityTitle": "Data Security Guarantee",
+      "guarantees": {
+        "localProcessing": {
+          "title": "Local Processing:",
+          "description": "All data is processed in your browser and never sent to any server"
+        },
+        "offlineMode": {
+          "title": "Offline Mode:",
+          "description": "Supports PWA technology, works normally even without internet"
+        },
+        "staticSite": {
+          "title": "Static Website:",
+          "description": "Hosted on GitHub Pages with no backend server, unable to collect data"
+        },
+        "selfHosted": {
+          "title": "Self-controlled:",
+          "description": "Can save webpage locally for completely offline usage"
+        }
+      },
+      "links": {
+        "sourceCode": "Website Source Code",
+        "download": "Download Deployment Package"
+      },
+      "note": "Note:",
+      "noteContent": "This tool runs completely locally and does not collect or upload your personal data. All your conversation records belong to you alone. We recommend using secure file transfer methods like LocalSend. Convert chat records into a manageable, searchable, and exportable knowledge base with mobile platform support."
+    },
+    "scriptInstall": {
+      "title": "Install Script",
+      "whyNeeded": "Why do you need this tool?",
+      "purpose": "Lyra's Exporter relies on browsers to safely obtain conversation data. With this open-source script, transfer chat records worth treasuring,",
+      "valueProposition": "save and organize these valuable conversations",
+      "featuresTitle": "Tool Features",
+      "features": {
+        "management": "Effortless Management - Neatly organize conversations from various platforms in grid format",
+        "organization": "Organize Thoughts - Integrate scattered inspiration into organized knowledge",
+        "preservation": "Complete Preservation - Cherish images, thoughts, and complete conversation branches",
+        "permanence": "Permanent Storage - Important conversations won't be lost even if accounts become invalid",
+        "onlineReading": "Online Reading - Now you can organize directly in the conversation window"
+      },
+      "installTitle": "Installation & Usage",
+      "inspirationQuote": "\"The thinking process feels more fascinating than the answers\" — A few simple steps to start preserving these precious moments",
+      "steps": {
+        "1": "Install browser extensions like Tampermonkey or ScriptCat",
+        "2": "Click the button below to go to the Greasyfork script website",
+        "3": "Click the 'Install Script' button on the script page",
+        "4": "Go to Claude, Gemini, Google AI Studio, or NotebookLM, refresh the website, and an export button will appear in the bottom right corner"
+      }
+    },
+    "features": {
+      "marking": {
+        "title": "Important Marking",
+        "description": "Mark particularly valuable responses for easy future reference. When Claude provides brilliant insights, save that thinking with one click."
+      },
+      "thinking": {
+        "title": "Thinking Process View",
+        "description": "View Claude's thinking process to understand how it forms answers step by step. See the complete process of problem analysis and reasoning."
+      },
+      "timeline": {
+        "title": "Timeline Review",
+        "description": "Pioneering timeline format for conversation review, from initial questions to deep discussions, restore Claude's branch switching options, easily find conversations from any period."
+      },
+      "classification": {
+        "title": "Conversation Classification",
+        "description": "Use tag systems to organize conversations, easily find all discussions about specific topics, build your personal knowledge base."
+      }
+    },
+    "tips": {
+      "conversationOrg": {
+        "title": "Conversation Organization",
+        "content": "Not just saving data, but preserving sparks of inspiration in the thinking process. Make AI conversations more valuable."
+      },
+      "flexibleExport": {
+        "title": "Flexible Export",
+        "content": "More complete than screenshots, more convenient than copy-paste. Export conversations in Markdown and YAML formats, perfectly preserving layout and formatting. Recommend using Obsidian."
+      },
+      "dataSecurity": {
+        "title": "Data Security",
+        "content": "From export scripts to management applications, export all Claude conversations at once, including attached images - all done with privacy protection."
+      }
+    },
+    "footer": {
+      "quote": "In the interweaving of thoughts and responses, we establish connections beyond conversation.\\nNow, let every dialogue be traceable and every inspiration have a place to rest.",
+      "signature": "—— Lyra's Exporter, Continuer of Conversation Value"
+    }
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error occurred",
+    "success": "Success",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "close": "Close",
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "retry": "Retry"
+  }
+}
