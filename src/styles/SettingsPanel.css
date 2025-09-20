@@ -1,0 +1,258 @@
+/* styles/SettingsPanel.css */
+
+/* 模态框基础 - 优化性能 */
+.modal-overlay {
+  will-change: opacity;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modal-content {
+  will-change: transform, opacity;
+  animation: slideUp 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 设置模态框 */
+.settings-modal {
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.settings-content {
+  padding: 20px 0;
+}
+
+/* 设置分组 */
+.settings-section {
+  margin-bottom: 30px;
+  padding: 0 20px;
+}
+
+.settings-section h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 15px;
+}
+
+/* 设置项 */
+.setting-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.setting-item:last-child {
+  border-bottom: none;
+}
+
+.setting-item.static {
+  cursor: default;
+}
+
+.setting-label {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.setting-label > span:first-child {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.setting-description {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* 主题切换按钮 */
+.theme-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.theme-toggle-btn:hover {
+  background: var(--bg-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.theme-icon {
+  font-size: 20px;
+}
+
+.theme-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* 复选框设置 */
+.setting-checkbox {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  cursor: pointer;
+}
+
+.setting-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-right: 12px;
+  cursor: pointer;
+}
+
+/* 语言切换器在设置中的样式 */
+.settings-language-switcher {
+  margin-left: auto;
+}
+
+/* 悬浮操作按钮 */
+.floating-action-button {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  cursor: pointer;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 999;
+}
+
+.floating-action-button:hover {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.floating-action-button:active {
+  transform: scale(0.95);
+}
+
+/* 深色主题调整 */
+[data-theme="dark"] .theme-toggle-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .theme-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* 浅色主题调整 */
+[data-theme="light"] .floating-action-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+[data-theme="light"] .theme-toggle-btn {
+  background: #f8f9fa;
+  border-color: #e0e0e0;
+}
+
+[data-theme="light"] .theme-toggle-btn:hover {
+  background: #f0f0f0;
+}
+
+/* 复制按钮样式 - 统一使用btn-secondary样式 */
+.btn-secondary.copied {
+  background: #4CAF50;
+  color: white;
+  border-color: #4CAF50;
+}
+
+/* 时间线内排序控件 */
+.timeline-sort-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.timeline-sort-controls .sort-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.timeline-sort-controls .sort-status-icon {
+  color: #4CAF50;
+}
+
+/* 导出面板优化 */
+.export-modal {
+  will-change: transform, opacity;
+  animation: slideUp 0.2s ease-out;
+}
+
+.export-modal .option-group {
+  transition: none; /* 移除内部元素的过渡效果 */
+}
+
+.export-modal input[type="radio"],
+.export-modal input[type="checkbox"] {
+  transform: translateZ(0); /* 启用硬件加速 */
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .settings-modal {
+    max-width: 90%;
+    margin: 20px;
+  }
+  
+  .floating-action-button {
+    bottom: 16px;
+    left: 16px;
+    width: 48px;
+    height: 48px;
+    font-size: 20px;
+  }
+}

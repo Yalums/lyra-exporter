@@ -3,6 +3,7 @@ import './styles/base.css';
 import './styles/themes.css';
 import './styles/UniversalTimeline.css';
 import './styles/message-gfm.css';
+import './styles/SettingsPanel.css';
 
 import { useI18n } from './hooks/useI18n.js';
 // 组件导入
@@ -11,7 +12,8 @@ import MessageDetail from './components/MessageDetail';
 import ConversationGrid from './components/ConversationCardView';
 import ConversationTimeline from './components/ConversationTimeline';
 import FullExportCardFilter from './components/FullExportCardFilter';
-import ThemeSwitcher from './components/ThemeSwitcher';
+import SettingsPanel from './components/SettingsPanel';
+import FloatingActionButton from './components/FloatingActionButton';
 
 // 自定义Hooks导入
 import { useFileManager } from './hooks/useFileManager';
@@ -26,7 +28,6 @@ import { useStarSystem } from './hooks/useStarSystem';
 import { handleExport as exportHandler, DEFAULT_EXPORT_CONFIG } from './utils/exportModule';
 import { createPostMessageHandler } from './utils/messageHandler';
 import { getAllMarksStats, calculateViewStats, getSearchResultStats } from './utils/statsCalculator';
-import { STORAGE_KEYS } from './utils/constants';
 
 function App() {
   // ==================== Hooks和状态管理 ====================
@@ -49,19 +50,21 @@ function App() {
   const [selectedMessageIndex, setSelectedMessageIndex] = useState(null);
   const [activeTab, setActiveTab] = useState('content');
   const [showExportPanel, setShowExportPanel] = useState(false);
+  const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const [viewMode, setViewMode] = useState('conversations');
   const [selectedFileIndex, setSelectedFileIndex] = useState(null);
   const [selectedConversationUuid, setSelectedConversationUuid] = useState(null);
-  const [selectedConversation, setSelectedConversation] = useState(null); // 不确定是不是这个，先加上
+  const [selectedConversation, setSelectedConversation] = useState(null);
   const [showMessageDetail, setShowMessageDetail] = useState(false);
   const [operatedFiles, setOperatedFiles] = useState(new Set());
   const [scrollPositions, setScrollPositions] = useState({});
   const [error, setError] = useState(null);
   const [exportOptions, setExportOptions] = useState({
-  ...DEFAULT_EXPORT_CONFIG,
-  scope: 'current',
-  includeCompleted: false
-});
+    ...DEFAULT_EXPORT_CONFIG,
+    scope: 'current',
+    includeCompleted: false,
+    includeImportant: false
+  });
   
   const fileInputRef = useRef(null);
   const contentAreaRef = useRef(null);
@@ -97,15 +100,13 @@ function App() {
     actions: filterActions
   } = useFullExportCardFilter(rawConversations);
 
-  // 卡片列表
-  const allCards = useMemo(() => {
-    if (viewMode === 'conversations' && processedData?.format === 'claude_full_export') {
-      return [...filteredConversations];
+  // 优化：分离文件卡片和对话卡片的计算
+  const fileCards = useMemo(() => {
+    if (viewMode !== 'conversations' || processedData?.format === 'claude_full_export') {
+      return [];
     }
     
-    // 文件卡片模式
-    const cards = [];
-    files.forEach((file, fileIndex) => {
+    return files.map((file, fileIndex) => {
       const isCurrentFile = fileIndex === currentFileIndex;
       const fileData = isCurrentFile ? processedData : null;
       const metadata = fileMetadata[file.name] || {};
@@ -118,7 +119,7 @@ function App() {
       
       const model = fileData?.meta_info?.model || metadata.model || (format === 'claude' ? '' : 'Claude');
       
-      cards.push({
+      return {
         type: 'file',
         uuid: generateFileCardUuid(fileIndex, file),
         name: metadata.title ? metadata.title.replace('.json', '') : file.name.replace('.json', ''),
@@ -135,11 +136,17 @@ function App() {
         summary: format === 'claude_full_export' ? 
           `${conversationCount}个对话，${messageCount}条消息` :
           (format !== 'unknown' ? `${messageCount}条消息的对话` : '点击加载文件内容...')
-      });
+      };
     });
-    
-    return cards;
-  }, [files, currentFileIndex, processedData, viewMode, filteredConversations, fileMetadata]);
+  }, [files, currentFileIndex, processedData, fileMetadata, viewMode]);
+
+  // 优化：使用分离的计算结果
+  const allCards = useMemo(() => {
+    if (viewMode === 'conversations' && processedData?.format === 'claude_full_export') {
+      return [...filteredConversations];
+    }
+    return fileCards;
+  }, [viewMode, processedData, filteredConversations, fileCards]);
 
   // 搜索目标数据
   const searchTarget = useMemo(() => {
@@ -310,11 +317,20 @@ function App() {
     setShowMessageDetail(true);
   };
 
+  // 修复：标记消息时正确记录operatedFiles
   const handleMarkToggle = (messageIndex, markType) => {
     markActions.toggleMark(messageIndex, markType);
     
-    if (currentFileUuid) {
-      setOperatedFiles(prev => new Set(prev).add(currentFileUuid));
+    // 修复：确保在时间线模式下正确记录操作的文件
+    if (viewMode === 'timeline' && selectedFileIndex !== null) {
+      const file = files[selectedFileIndex];
+      if (file) {
+        const fileUuid = selectedConversationUuid && processedData?.format === 'claude_full_export'
+          ? generateConversationCardUuid(selectedFileIndex, selectedConversationUuid, file)
+          : generateFileCardUuid(selectedFileIndex, file);
+        
+        setOperatedFiles(prev => new Set(prev).add(fileUuid));
+      }
     }
   };
 
@@ -324,25 +340,23 @@ function App() {
 
   // 导出功能 - 简化版
   const handleExport = async () => {
-  const success = await exportHandler(
-    exportOptions,
-    viewMode,
-    processedData,
-    currentFile,
-    sortedMessages,
-    hasCustomSort,
-    marks,
-    operatedFiles,
-    files,
-    currentFileIndex
-  );
-  
-  if (success) {
-    setShowExportPanel(false);
-    // 可选：显示成功提示
-    // showNotification('导出成功！');
-  }
-};
+    const success = await exportHandler(
+      exportOptions,
+      viewMode,
+      processedData,
+      currentFile,
+      sortedMessages,
+      hasCustomSort,
+      marks,
+      operatedFiles,
+      files,
+      currentFileIndex
+    );
+    
+    if (success) {
+      setShowExportPanel(false);
+    }
+  };
 
   // ==================== 工具函数 ====================
   
@@ -377,9 +391,46 @@ function App() {
 
   // ==================== 副作用 ====================
   
+  // 初始化时扫描已有操作记录
+  useEffect(() => {
+    if (files.length > 0) {
+      const operatedSet = new Set();
+      
+      // 扫描所有文件的操作记录
+      files.forEach((file, index) => {
+        // 检查普通文件的操作记录
+        const fileUuid = generateFileCardUuid(index, file);
+        const marksKey = `marks_${fileUuid}`;
+        const sortKey = `message_order_${fileUuid}`;
+        
+        if (localStorage.getItem(marksKey) || localStorage.getItem(sortKey)) {
+          operatedSet.add(fileUuid);
+        }
+        
+        // 如果是完整导出格式，检查每个对话
+        if (index === currentFileIndex && processedData?.format === 'claude_full_export') {
+          const conversations = processedData.views?.conversationList || [];
+          conversations.forEach(conv => {
+            const convUuid = generateConversationCardUuid(index, conv.uuid, file);
+            const convMarksKey = `marks_${convUuid}`;
+            const convSortKey = `message_order_${convUuid}`;
+            
+            if (localStorage.getItem(convMarksKey) || localStorage.getItem(convSortKey)) {
+              operatedSet.add(convUuid);
+            }
+          });
+        }
+      });
+      
+      if (operatedSet.size > 0) {
+        setOperatedFiles(operatedSet);
+      }
+    }
+  }, [files, currentFileIndex, processedData]);
+  
   // 主题初始化
   useEffect(() => {
-    const savedTheme = localStorage.getItem(STORAGE_KEYS.THEME) || 'dark';
+    const savedTheme = localStorage.getItem('app-theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
     
     if (window.updatePWAThemeColor) {
@@ -435,7 +486,7 @@ function App() {
                 <span className="logo-text">Lyra Exporter</span>
               </div>
               
-              {viewMode === 'timeline' && (
+              {viewMode === 'timeline'  && (
                 <button 
                   className="btn-secondary small"
                   onClick={handleBackToConversations}
@@ -463,12 +514,13 @@ function App() {
               )}
             </div>
             <div className="navbar-right">
+              {/* 设置按钮替代原来的导出按钮 */}
               <button 
                 className="btn-secondary small"
-                onClick={() => setShowExportPanel(true)}
-                title="导出"
+                onClick={() => setShowSettingsPanel(true)}
+                title="设置"
               >
-                📤 导出
+                ⚙️ 设置
               </button>
               
               {isFullExportConversationMode && shouldUseStarSystem && (
@@ -528,19 +580,19 @@ function App() {
               {/* 视图内容 */}
               <div className="view-content">
                 {viewMode === 'conversations' ? (
-  <ConversationGrid
-    items={query ? filteredMessages : allCards}  // 改为items
-    viewType="grid"                               // 新增viewType
-    onItemSelect={handleCardSelect}              // 改为onItemSelect
-    onItemRemove={handleFileRemove}              // 改为onItemRemove
-    onAddItem={() => fileInputRef.current?.click()}  // 改为onAddItem
-    selectedItem={selectedConversation}         // 改为selectedItem
-    onStarToggle={isFullExportConversationMode && shouldUseStarSystem ? handleStarToggle : null}
-    starredItems={shouldUseStarSystem ? starredConversations : new Map()}  // 改为starredItems
-    showFileManagement={true}
-    className=""
-  />
-) : (
+                  <ConversationGrid
+                    items={query ? filteredMessages : allCards}
+                    viewType="grid"
+                    onItemSelect={handleCardSelect}
+                    onItemRemove={handleFileRemove}
+                    onAddItem={() => fileInputRef.current?.click()}
+                    selectedItem={selectedConversation}
+                    onStarToggle={isFullExportConversationMode && shouldUseStarSystem ? handleStarToggle : null}
+                    starredItems={shouldUseStarSystem ? starredConversations : new Map()}
+                    showFileManagement={true}
+                    className=""
+                  />
+                ) : (
                   <ConversationTimeline
                     data={processedData}
                     conversation={currentConversation}
@@ -550,14 +602,40 @@ function App() {
                     }
                     marks={marks}
                     onMessageSelect={handleMessageSelect}
-                    markActions={markActions}
+                    markActions={{
+                      ...markActions,
+                      toggleMark: (messageIndex, markType) => {
+                        markActions.toggleMark(messageIndex, markType);
+                        // 记录操作的文件
+                        if (selectedFileIndex !== null && files[selectedFileIndex]) {
+                          const file = files[selectedFileIndex];
+                          const fileUuid = selectedConversationUuid && processedData?.format === 'claude_full_export'
+                            ? generateConversationCardUuid(selectedFileIndex, selectedConversationUuid, file)
+                            : generateFileCardUuid(selectedFileIndex, file);
+                          
+                          setOperatedFiles(prev => {
+                            const newSet = new Set(prev);
+                            newSet.add(fileUuid);
+                            return newSet;
+                          });
+                        }
+                      }
+                    }}
                     format={processedData?.format}
                     sortActions={{
                       ...sortActions,
                       moveMessage: (index, direction) => {
                         sortActions.moveMessage(index, direction);
-                        if (currentFileUuid) {
-                          setOperatedFiles(prev => new Set(prev).add(currentFileUuid));
+                        // 修复：排序时也记录操作的文件
+                        if (viewMode === 'timeline' && selectedFileIndex !== null) {
+                          const file = files[selectedFileIndex];
+                          if (file) {
+                            const fileUuid = selectedConversationUuid && processedData?.format === 'claude_full_export'
+                              ? generateConversationCardUuid(selectedFileIndex, selectedConversationUuid, file)
+                              : generateFileCardUuid(selectedFileIndex, file);
+                            
+                            setOperatedFiles(prev => new Set(prev).add(fileUuid));
+                          }
                         }
                       }
                     }}
@@ -584,6 +662,12 @@ function App() {
               </div>
             </div>
           </div>
+
+          {/* 悬浮导出按钮 */}
+          <FloatingActionButton 
+            onClick={() => setShowExportPanel(true)}
+            title="导出"
+          />
 
           {/* 消息详情模态框 */}
           {showMessageDetail && selectedMessageIndex !== null && (
@@ -629,7 +713,7 @@ function App() {
                     className="btn-secondary"
                     onClick={() => handleMarkToggle(selectedMessageIndex, 'completed')}
                   >
-                    {markActions.isMarked(selectedMessageIndex, 'completed') ? '取消完成' : '标记完成'} ✓
+                    {markActions.isMarked(selectedMessageIndex, 'completed') ? '取消完成' : '标记完成'} ✔
                   </button>
                   <button 
                     className="btn-secondary"
@@ -676,7 +760,11 @@ function App() {
             </div>
           )}
 
-          <ThemeSwitcher />
+          {/* 设置面板 */}
+          <SettingsPanel 
+            isOpen={showSettingsPanel}
+            onClose={() => setShowSettingsPanel(false)}
+          />
 
           {/* 导出面板 */}
           {showExportPanel && (
@@ -772,6 +860,19 @@ function App() {
                         <span>仅导出"已完成"标记</span>
                         <span className="option-description">
                           只导出标记为已完成的消息
+                        </span>
+                      </div>
+                    </label>
+                    <label className="checkbox-option">
+                      <input 
+                        type="checkbox" 
+                        checked={exportOptions.includeImportant}
+                        onChange={(e) => setExportOptions({...exportOptions, includeImportant: e.target.checked})}
+                      />
+                      <div className="option-label">
+                        <span>仅导出"重要"标记</span>
+                        <span className="option-description">
+                          只导出标记为重要的消息{exportOptions.includeCompleted && exportOptions.includeImportant ? '（需同时满足已完成）' : ''}
                         </span>
                       </div>
                     </label>

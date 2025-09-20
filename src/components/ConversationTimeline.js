@@ -1,10 +1,11 @@
-﻿// components/ConversationTimeline.js
-// 增强版时间线组件，整合了分支切换功能
+// components/ConversationTimeline.js
+// 增强版时间线组件，整合了分支切换功能、排序控制和复制功能
 import React, { useState, useEffect, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import MessageDetail from './MessageDetail';
 import PlatformIcon from './PlatformIcon';
+import { copyMessage } from '../utils/copyUtils';
 import '../styles/BranchSwitcher.css';
 
 
@@ -193,6 +194,8 @@ const ConversationTimeline = ({
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
   const [branchFilters, setBranchFilters] = useState(new Map());
   const [showAllBranches, setShowAllBranches] = useState(false);
+  const [copiedMessageIndex, setCopiedMessageIndex] = useState(null);
+  const [sortingEnabled, setSortingEnabled] = useState(false);
   
   // ==================== 分支分析 ====================
   
@@ -310,6 +313,11 @@ const ConversationTimeline = ({
       setSelectedMessageIndex(messages[0].index);
     }
   }, [isDesktop, messages, selectedMessageIndex]);
+
+  // 初始化排序状态
+  useEffect(() => {
+    setSortingEnabled(enableSorting);
+  }, [enableSorting]);
   
   // ==================== 消息过滤和显示 ====================
   
@@ -380,6 +388,45 @@ const ConversationTimeline = ({
     setSelectedMessageIndex(messageIndex);
     if (!isDesktop) {
       onMessageSelect(messageIndex);
+    }
+  };
+  
+  const handleCopyMessage = async (message, messageIndex) => {
+    // 从localStorage获取复制选项
+    let copyOptions = {
+      includeThinking: false,
+      includeArtifacts: false
+    };
+    
+    try {
+      const saved = localStorage.getItem('copy_options');
+      if (saved) {
+        copyOptions = JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error('Failed to load copy options:', e);
+    }
+    
+    const success = await copyMessage(message, copyOptions);
+    if (success) {
+      setCopiedMessageIndex(messageIndex);
+      setTimeout(() => setCopiedMessageIndex(null), 2000);
+    }
+  };
+
+  const handleToggleSort = () => {
+    if (!sortingEnabled) {
+      sortActions?.enableSort();
+      setSortingEnabled(true);
+    } else {
+      if (hasCustomSort) {
+        if (window.confirm('关闭排序将恢复原始消息顺序，确定吗？')) {
+          sortActions?.resetSort();
+          setSortingEnabled(false);
+        }
+      } else {
+        setSortingEnabled(false);
+      }
     }
   };
   
@@ -569,6 +616,39 @@ const ConversationTimeline = ({
                 {conversationInfo.name} 
                 {conversationInfo.is_starred && ' ⭐'}
                 <span className="platform-badge">{conversationInfo.platform}</span>
+                {/* 操作按钮组 */}
+                <span className="conversation-actions" style={{ marginLeft: '12px', display: 'inline-flex', gap: '8px' }}>
+                  {/* 重置当前对话标记 */}
+                  {markActions && (
+                    <button 
+                      className="btn-secondary small"
+                      onClick={() => {
+                        if (window.confirm('确定要清除当前对话的所有标记吗？')) {
+                          markActions.clearAllMarks();
+                        }
+                      }}
+                      title="清除所有标记"
+                      style={{ fontSize: '12px', padding: '2px 8px' }}
+                    >
+                      🔄 重置标记
+                    </button>
+                  )}
+                  {/* 重置排序按钮（在启用排序且有自定义排序时显示） */}
+                  {sortingEnabled && hasCustomSort && sortActions && (
+                    <button 
+                      className="btn-secondary small"
+                      onClick={() => {
+                        if (window.confirm('确定要重置为原始顺序吗？')) {
+                          sortActions.resetSort();
+                        }
+                      }}
+                      title="恢复原始消息顺序"
+                      style={{ fontSize: '12px', padding: '2px 8px' }}
+                    >
+                      🔄 重置排序
+                    </button>
+                  )}
+                </span>
               </h2>
               <div className="info-grid">
                 <div className="info-item">
@@ -589,41 +669,65 @@ const ConversationTimeline = ({
                 </div>
               </div>
               
-              {/* 分支统计和控制 */}
-              {branchAnalysis.branchPoints.size > 0 && (
-                <div className="export-info" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>🔀 检测到 {branchAnalysis.branchPoints.size} 个分支点</span>
-                  <div className="timeline-controls" style={{ display: 'flex', gap: '8px' }}>
+              {/* 分支和排序控制 */}
+              <div className="timeline-control-panel" style={{ marginTop: '12px' }}>
+                {/* 分支控制 */}
+                {branchAnalysis.branchPoints.size > 0 && (
+                  <div className="branch-control" style={{ marginBottom: '8px' }}>
+                    <span>🔀 检测到 {branchAnalysis.branchPoints.size} 个分支点</span>
                     <button 
                       className="btn-secondary small"
                       onClick={handleShowAllBranches}
                       title={showAllBranches ? "只显示选中分支" : "显示全部分支"}
+                      style={{ marginLeft: '12px' }}
                     >
                       {showAllBranches ? '🔍 筛选分支' : '📋 显示全部'}
                     </button>
-                    {/* 排序控制 */}
-                    {showAllBranches && sortActions && (
-                      !hasCustomSort ? (
+                  </div>
+                )}
+                
+                {/* 排序控制 - 改进版 */}
+                {(showAllBranches || branchAnalysis.branchPoints.size === 0) && sortActions && (
+                  <div className="sort-control" style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between',
+                    padding: '8px 0'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      {!sortingEnabled ? (
                         <button 
                           className="btn-secondary small"
-                          onClick={() => sortActions.enableSort()}
-                          title="启用消息排序"
+                          onClick={handleToggleSort}
+                          disabled={searchQuery !== ''}
+                          title={searchQuery !== '' ? "搜索时无法排序" : "启用消息排序"}
                         >
-                          🔄 启用排序
+                          📊 启用排序
                         </button>
                       ) : (
-                        <button 
-                          className="btn-secondary small"
-                          onClick={() => sortActions.resetSort()}
-                          title="重置排序"
-                        >
-                          🔄 重置排序
-                        </button>
-                      )
-                    )}
+                        <>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ color: 'var(--color-success)' }}>✅</span>
+                            <span>排序已启用</span>
+                          </span>
+                          <button 
+                            className="btn-secondary small"
+                            onClick={handleToggleSort}
+                            title="关闭排序"
+                          >
+                            ❌ 关闭排序
+                          </button>
+                        </>
+                      )}
+                      {searchQuery && (
+                        <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>
+                          (搜索中，排序不可用)
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
 
@@ -666,7 +770,7 @@ const ConversationTimeline = ({
                         </div>
                         
                         <div className="timeline-actions">
-                          {enableSorting && hasCustomSort && showAllBranches && sortActions && (
+                          {sortingEnabled && hasCustomSort && showAllBranches && sortActions && (
                             <div className="sort-controls">
                               <button 
                                 className="sort-btn"
@@ -836,6 +940,19 @@ const ConversationTimeline = ({
               {/* 标记按钮 */}
               {selectedMessageIndex !== null && markActions && (
                 <div className="detail-actions">
+                  {/* 复制按钮 - 使用与其他按钮相同的样式 */}
+                  <button 
+                    className={`btn-secondary ${copiedMessageIndex === selectedMessageIndex ? 'copied' : ''}`}
+                    onClick={() => {
+                      const message = displayMessages.find(m => m.index === selectedMessageIndex);
+                      if (message) {
+                        handleCopyMessage(message, selectedMessageIndex);
+                      }
+                    }}
+                  >
+                    {copiedMessageIndex === selectedMessageIndex ? '已复制 ✓' : '复制消息 📋'}
+                  </button>
+                  
                   <button 
                     className="btn-secondary"
                     onClick={() => markActions.toggleMark(selectedMessageIndex, 'completed')}

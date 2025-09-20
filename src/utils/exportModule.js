@@ -87,9 +87,17 @@ export const exportChatAsMarkdown = (processedData, config) => {
   lines.push(`*创建时间: ${meta_info.created_at || '未知'}*`);
   lines.push(`*导出时间: ${getCurrentDateTime()}*`);
   
-  // 如果是仅导出已完成的消息，添加说明
+  // 如果是仅导出特定标记的消息，添加说明
   if (config.exportMarkedOnly) {
-    lines.push(`*导出类型: 仅包含已完成标记的消息*`);
+    let exportType = '';
+    if (config.includeCompleted && config.includeImportant) {
+      exportType = '同时标记为已完成和重要';
+    } else if (config.includeCompleted) {
+      exportType = '已完成标记';
+    } else if (config.includeImportant) {
+      exportType = '重要标记';
+    }
+    lines.push(`*导出类型: 仅包含${exportType}的消息*`);
   }
 
   lines.push("");
@@ -105,9 +113,29 @@ export const exportChatAsMarkdown = (processedData, config) => {
   // 添加消息内容
   let exportedCount = 0;
   chat_history.forEach(msg => {
-    // 如果设置为只导出已标记并且该消息未被标记，则跳过
-    if (config.exportMarkedOnly && !config.markedItems?.has(msg.index)) {
-      return;
+    // 根据配置过滤消息
+    if (config.exportMarkedOnly) {
+      const hasCompleted = config.markedCompleted?.has(msg.index);
+      const hasImportant = config.markedImportant?.has(msg.index);
+      
+      // 如果同时选择了已完成和重要，需要两个都满足
+      if (config.includeCompleted && config.includeImportant) {
+        if (!hasCompleted || !hasImportant) {
+          return;
+        }
+      }
+      // 如果只选择了已完成
+      else if (config.includeCompleted) {
+        if (!hasCompleted) {
+          return;
+        }
+      }
+      // 如果只选择了重要
+      else if (config.includeImportant) {
+        if (!hasImportant) {
+          return;
+        }
+      }
     }
 
     exportedCount++;
@@ -277,7 +305,7 @@ export const exportChatAsMarkdown = (processedData, config) => {
     // 添加引用
     if (msg.citations && msg.citations.length > 0 && config.includeCitations) {
       lines.push("<details>");
-      lines.push("<summary>📎 引用来源</summary>");
+      lines.push("<summary>🔎 引用来源</summary>");
       lines.push("");
 
       lines.push("| 标题 | 来源 |");
@@ -298,10 +326,18 @@ export const exportChatAsMarkdown = (processedData, config) => {
     lines.push("");
   });
 
-  // 如果设置了仅导出已完成，在末尾添加统计信息
+  // 如果设置了仅导出特定标记，在末尾添加统计信息
   if (config.exportMarkedOnly) {
     lines.push("");
-    lines.push(`*共导出 ${exportedCount} 条已完成的消息*`);
+    let exportType = '';
+    if (config.includeCompleted && config.includeImportant) {
+      exportType = '同时标记为已完成和重要';
+    } else if (config.includeCompleted) {
+      exportType = '已完成';
+    } else if (config.includeImportant) {
+      exportType = '重要';
+    }
+    lines.push(`*共导出 ${exportedCount} 条${exportType}的消息*`);
   }
 
   return lines.join("\n");
@@ -438,11 +474,24 @@ const generateMarkdownContent = (dataToExport, exportOptions) => {
     // 根据导出选项筛选消息
     let filteredHistory = [...(item.data.chat_history || [])];
     
-    // 如果选择了"仅导出已完成标记"
-    if (exportOptions.includeCompleted) {
-      filteredHistory = filteredHistory.filter(msg => 
-        item.marks.completed?.has(msg.index)
-      );
+    // 如果选择了特定标记筛选
+    if (exportOptions.includeCompleted || exportOptions.includeImportant) {
+      if (exportOptions.includeCompleted && exportOptions.includeImportant) {
+        // 同时需要已完成和重要标记
+        filteredHistory = filteredHistory.filter(msg => 
+          item.marks.completed?.has(msg.index) && item.marks.important?.has(msg.index)
+        );
+      } else if (exportOptions.includeCompleted) {
+        // 只需要已完成标记
+        filteredHistory = filteredHistory.filter(msg => 
+          item.marks.completed?.has(msg.index)
+        );
+      } else if (exportOptions.includeImportant) {
+        // 只需要重要标记
+        filteredHistory = filteredHistory.filter(msg => 
+          item.marks.important?.has(msg.index)
+        );
+      }
     }
     
     // 排除已删除的消息
@@ -458,8 +507,11 @@ const generateMarkdownContent = (dataToExport, exportOptions) => {
     };
     
     const config = {
-      exportMarkedOnly: exportOptions.includeCompleted,
-      markedItems: item.marks.completed || new Set(),
+      exportMarkedOnly: exportOptions.includeCompleted || exportOptions.includeImportant,
+      includeCompleted: exportOptions.includeCompleted,
+      includeImportant: exportOptions.includeImportant,
+      markedCompleted: item.marks.completed || new Set(),
+      markedImportant: item.marks.important || new Set(),
       includeTimestamps: exportOptions.includeTimestamps !== false,
       includeThinking: exportOptions.includeThinking !== false,
       includeArtifacts: exportOptions.includeArtifacts !== false,
@@ -560,6 +612,8 @@ export const DEFAULT_EXPORT_CONFIG = {
   exportObsidianMetadata: false,
   exportMarkedOnly: false,
   excludeDeleted: true,
+  includeCompleted: false,
+  includeImportant: false,
   obsidianProperties: [],
   obsidianTags: []
 };
