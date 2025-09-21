@@ -1,13 +1,13 @@
-// components/ConversationTimeline.js
+﻿// components/ConversationTimeline.js
 // 增强版时间线组件，整合了分支切换功能、排序控制和复制功能
 import React, { useState, useEffect, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import MessageDetail from './MessageDetail';
 import PlatformIcon from './PlatformIcon';
-import { copyMessage } from '../utils/copyUtils';
+import { copyMessage } from '../utils/copyManager';
+import { PlatformUtils, DateTimeUtils, TextUtils } from '../utils/commonUtils';
 import '../styles/BranchSwitcher.css';
-
 
 // ==================== 分支切换器组件（内嵌） ====================
 const BranchSwitcher = ({ 
@@ -392,22 +392,7 @@ const ConversationTimeline = ({
   };
   
   const handleCopyMessage = async (message, messageIndex) => {
-    // 从localStorage获取复制选项
-    let copyOptions = {
-      includeThinking: false,
-      includeArtifacts: false
-    };
-    
-    try {
-      const saved = localStorage.getItem('copy_options');
-      if (saved) {
-        copyOptions = JSON.parse(saved);
-      }
-    } catch (e) {
-      console.error('Failed to load copy options:', e);
-    }
-    
-    const success = await copyMessage(message, copyOptions);
+    const success = await copyMessage(message);
     if (success) {
       setCopiedMessageIndex(messageIndex);
       setTimeout(() => setCopiedMessageIndex(null), 2000);
@@ -420,13 +405,9 @@ const ConversationTimeline = ({
       setSortingEnabled(true);
     } else {
       if (hasCustomSort) {
-        if (window.confirm('关闭排序将恢复原始消息顺序，确定吗？')) {
-          sortActions?.resetSort();
-          setSortingEnabled(false);
-        }
-      } else {
-        setSortingEnabled(false);
+        sortActions?.resetSort();
       }
+      setSortingEnabled(false);
     }
   };
   
@@ -437,18 +418,7 @@ const ConversationTimeline = ({
     
     const lastMessage = displayMessages[displayMessages.length - 1];
     if (lastMessage?.timestamp) {
-      try {
-        const date = new Date(lastMessage.timestamp);
-        return date.toLocaleDateString('zh-CN', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-      } catch {
-        return lastMessage.timestamp;
-      }
+      return DateTimeUtils.formatDateTime(lastMessage.timestamp);
     }
     return '未知时间';
   };
@@ -457,12 +427,7 @@ const ConversationTimeline = ({
     const lastUpdated = getLastUpdatedTime();
     
     if (conversation) {
-      let platformName = 'Claude';
-      if (data?.meta_info) {
-        if (data.meta_info.platform === 'gemini') platformName = 'Gemini';
-        else if (data.meta_info.platform === 'notebooklm') platformName = 'NotebookLM';
-        else if (data.meta_info.platform === 'aistudio') platformName = 'Google AI Studio';
-      }
+      const platformName = PlatformUtils.getPlatformName(data?.meta_info?.platform);
       
       return {
         name: conversation.name || '未命名对话',
@@ -478,12 +443,9 @@ const ConversationTimeline = ({
     if (!data) return null;
     
     const metaInfo = data.meta_info || {};
-    let platformName = 'Claude';
-    
-    if (metaInfo.platform === 'gemini') platformName = 'Gemini';
-    else if (metaInfo.platform === 'notebooklm') platformName = 'NotebookLM';
-    else if (metaInfo.platform === 'aistudio') platformName = 'Google AI Studio';
-    else if (format === 'gemini_notebooklm') platformName = 'Gemini';
+    const platformName = PlatformUtils.getPlatformName(
+      metaInfo.platform || (format === 'gemini_notebooklm' ? 'gemini' : 'claude')
+    );
     
     return {
       name: metaInfo.title || '未知对话',
@@ -496,35 +458,6 @@ const ConversationTimeline = ({
     };
   };
 
-  const formatTime = (timestamp) => {
-    if (!timestamp) return '';
-    try {
-      const date = new Date(timestamp);
-      return date.toLocaleTimeString('zh-CN', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-      });
-    } catch {
-      return timestamp;
-    }
-  };
-
-  const filterImageReferences = (text) => {
-    if (!text) return '';
-    return text
-      .replace(/\[(?:图片|附件|图像|image|attachment)\d*\s*[:：]\s*[^\]]+\]/gi, '')
-      .replace(/\[(?:图片|附件|图像|image|attachment)\d+\]/gi, '')
-      .trim();
-  };
-
-  const getPreview = (text, maxLength = 200) => {
-    if (!text) return '';
-    const filteredText = filterImageReferences(text);
-    if (filteredText.length <= maxLength) return filteredText;
-    return filteredText.substring(0, maxLength) + '...';
-  };
-
   const isMarked = (messageIndex, markType) => {
     return marks[markType]?.has(messageIndex) || false;
   };
@@ -535,37 +468,11 @@ const ConversationTimeline = ({
     return (
       <PlatformIcon 
         platform={platform?.toLowerCase() || 'claude'} 
-        format={getFormatFromPlatform(platform)} 
+        format={PlatformUtils.getFormatFromPlatform(platform)} 
         size={20} 
         style={{ backgroundColor: 'transparent' }}
       />
     );
-  };
-  
-  const getFormatFromPlatform = (platform) => {
-    switch(platform?.toLowerCase()) {
-      case 'gemini':
-      case 'google ai studio':
-      case 'aistudio':
-      case 'notebooklm':
-        return 'gemini_notebooklm';
-      default:
-        return 'claude';
-    }
-  };
-
-  const getPlatformClass = (platform) => {
-    switch (platform?.toLowerCase()) {
-      case 'gemini':
-        return 'platform-gemini';
-      case 'google ai studio':
-      case 'aistudio':
-        return 'platform-gemini';
-      case 'notebooklm':
-        return 'platform-notebooklm';
-      default:
-        return 'platform-claude';
-    }
   };
   
   const getFilePreview = (direction) => {
@@ -586,7 +493,7 @@ const ConversationTimeline = ({
   // ==================== 渲染 ====================
   
   const conversationInfo = getConversationInfo();
-  const platformClass = getPlatformClass(conversationInfo?.platform);
+  const platformClass = PlatformUtils.getPlatformClass(conversationInfo?.platform);
   const prevFilePreview = getFilePreview('prev');
   const nextFilePreview = getFilePreview('next');
 
@@ -671,23 +578,41 @@ const ConversationTimeline = ({
               
               {/* 分支和排序控制 */}
               <div className="timeline-control-panel" style={{ marginTop: '12px' }}>
-                {/* 分支控制 */}
+                {/* 分支控制 - 改进版：排序按钮在同一行 */}
                 {branchAnalysis.branchPoints.size > 0 && (
-                  <div className="branch-control" style={{ marginBottom: '8px' }}>
-                    <span>🔀 检测到 {branchAnalysis.branchPoints.size} 个分支点</span>
-                    <button 
-                      className="btn-secondary small"
-                      onClick={handleShowAllBranches}
-                      title={showAllBranches ? "只显示选中分支" : "显示全部分支"}
-                      style={{ marginLeft: '12px' }}
-                    >
-                      {showAllBranches ? '🔍 筛选分支' : '📋 显示全部'}
-                    </button>
+                  <div className="branch-control" style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span>🔀 检测到 {branchAnalysis.branchPoints.size} 个分支点</span>
+                      <button 
+                        className="btn-secondary small"
+                        onClick={handleShowAllBranches}
+                        title={showAllBranches ? "只显示选中分支" : "显示全部分支"}
+                      >
+                        {showAllBranches ? '🔍 筛选分支' : '📋 显示全部'}
+                      </button>
+                      {/* 排序按钮移到这里 */}
+                      {showAllBranches && sortActions && (
+                        <button 
+                          className="btn-secondary small"
+                          onClick={handleToggleSort}
+                          disabled={searchQuery !== ''}
+                          title={sortingEnabled ? "关闭排序" : (searchQuery !== '' ? "搜索时无法排序" : "启用消息排序")}
+                        >
+                          {sortingEnabled ? '❌ 关闭排序' : '📊 启用排序'}
+                        </button>
+                      )}
+                    </span>
+                    {/* 搜索提示 */}
+                    {showAllBranches && searchQuery && (
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>
+                        (搜索中，排序不可用)
+                      </span>
+                    )}
                   </div>
                 )}
                 
-                {/* 排序控制 - 改进版 */}
-                {(showAllBranches || branchAnalysis.branchPoints.size === 0) && sortActions && (
+                {/* 无分支时的排序控制 */}
+                {branchAnalysis.branchPoints.size === 0 && sortActions && (
                   <div className="sort-control" style={{ 
                     display: 'flex', 
                     alignItems: 'center', 
@@ -695,30 +620,15 @@ const ConversationTimeline = ({
                     padding: '8px 0'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      {!sortingEnabled ? (
-                        <button 
-                          className="btn-secondary small"
-                          onClick={handleToggleSort}
-                          disabled={searchQuery !== ''}
-                          title={searchQuery !== '' ? "搜索时无法排序" : "启用消息排序"}
-                        >
-                          📊 启用排序
-                        </button>
-                      ) : (
-                        <>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <span style={{ color: 'var(--color-success)' }}>✅</span>
-                            <span>排序已启用</span>
-                          </span>
-                          <button 
-                            className="btn-secondary small"
-                            onClick={handleToggleSort}
-                            title="关闭排序"
-                          >
-                            ❌ 关闭排序
-                          </button>
-                        </>
-                      )}
+                    <span>🔀 当前对话无分支</span>
+                      <button 
+                        className="btn-secondary small"
+                        onClick={handleToggleSort}
+                        disabled={searchQuery !== ''}
+                        title={sortingEnabled ? "关闭排序" : (searchQuery !== '' ? "搜索时无法排序" : "启用消息排序")}
+                      >
+                        {sortingEnabled ? '❌ 关闭排序' : '📊 启用排序'}
+                      </button>
                       {searchQuery && (
                         <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>
                           (搜索中，排序不可用)
@@ -764,7 +674,7 @@ const ConversationTimeline = ({
                               )}
                             </div>
                             <div className="sender-time">
-                              {formatTime(msg.timestamp)}
+                              {DateTimeUtils.formatTime(msg.timestamp)}
                             </div>
                           </div>
                         </div>
@@ -823,7 +733,7 @@ const ConversationTimeline = ({
                             li: ({ children }) => <span>• {children}</span>
                           }}
                         >
-                          {getPreview(msg.display_text)}
+                          {TextUtils.getPreview(msg.display_text)}
                         </ReactMarkdown>
                       </div>
                       

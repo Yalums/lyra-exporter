@@ -38,22 +38,6 @@
   font-size: 12px;
 }
 
-.btn-detail {
-  padding: 6px 12px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-primary);
-  border-radius: 6px;
-  color: var(--text-primary);
-  font-size: 13px;
-  cursor: pointer;
-  transition: background-color var(--transition-fast), color var(--transition-fast);
-}
-
-.btn-detail:hover {
-  background: var(--border-primary);
-  border-color: var(--border-secondary);
-}
-
 /* =================== 模态框 =================== */
 .modal-overlay {
   position: fixed;
@@ -325,37 +309,6 @@
   font-size: 1rem;
 }
 
-/* =================== 信息面板 =================== */
-.export-info {
-  background: var(--bg-primary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-md);
-  padding: 16px;
-  margin: 16px 0;
-}
-
-.info-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--bg-tertiary);
-}
-
-.info-row:last-child {
-  border-bottom: none;
-}
-
-.info-row .label {
-  color: var(--text-secondary);
-  font-size: 14px;
-}
-
-.info-row .value {
-  color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 500;
-}
-
 /* =================== 对话筛选器 =================== */
 .conversation-filter {
   background: var(--bg-secondary);
@@ -524,33 +477,4 @@
   }
 }
 
-/* =================== 信息面板 =================== */
-.export-info {
-  background: var(--bg-primary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-md);
-  padding: 16px;
-  margin: 16px 0;
-}
-
-.info-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--bg-tertiary);
-}
-
-.info-row:last-child {
-  border-bottom: none;
-}
-
-.info-row .label {
-  color: var(--text-secondary);
-  font-size: 14px;
-}
-
-.info-row .value {
-  color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 500;
-}
+/* 重复的信息面板样式已删除 - 使用导出模态框中的版本 */

@@ -19,7 +19,7 @@
   
   /* Claude.ai 温暖橙色系 */
   --accent-primary: #d97706;      /* 主要橙色 - terra cotta */
-  --accent-secondary: #C2C0B6;    /* 人类头像背景色 */
+  --accent-secondary: #FAF9F5;
   --accent-danger: #dc2626;       /* 红色（危险） */
   --accent-warning: #f59e0b;      /* 黄色（警告） */
   --accent-info: #FAF9F5;         /* 白色（边框和信息） */
@@ -64,7 +64,7 @@
   
   /* Claude.ai 温暖橙色系 - 浅色版本 */
   --accent-primary: #ea580c;      /* 主要橙色 - 更鲜艳的 terra cotta */
-  --accent-secondary: #C2C0B6;    /* 人类头像背景色 */
+  --accent-secondary: #E4E4E4;
   --accent-danger: #dc2626;       /* 红色（危险） */
   --accent-warning: #d97706;      /* 黄色（警告） */
   --accent-info: #141413;         /* 深灰色（边框和信息） */

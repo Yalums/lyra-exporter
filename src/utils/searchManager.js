@@ -1,24 +1,24 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+// utils/searchManager.js
+// 搜索功能管理
 
-// 搜索防抖延迟
 const SEARCH_DEBOUNCE_MS = 300;
 
-export const useSearch = (messages = []) => {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState([]);
-  const [filteredMessages, setFilteredMessages] = useState(messages);
-  const [isSearching, setIsSearching] = useState(false);
-  
-  // 使用 ref 来跟踪 messages 的变化，避免无限循环
-  const messagesRef = useRef(messages);
-  const prevMessagesLength = useRef(messages.length);
+export class SearchManager {
+  constructor() {
+    this.query = '';
+    this.results = [];
+    this.filteredMessages = [];
+    this.debounceTimer = null;
+  }
 
-  // 搜索函数 - 筛选模式
-  const performSearch = useCallback((searchText, messageList) => {
+  /**
+   * 执行搜索
+   */
+  performSearch(searchText, messageList) {
     if (!searchText.trim()) {
-      setResults([]);
-      setFilteredMessages(messageList);
-      return;
+      this.results = [];
+      this.filteredMessages = messageList;
+      return { results: this.results, filteredMessages: this.filteredMessages };
     }
 
     const lowerQuery = searchText.toLowerCase();
@@ -34,7 +34,7 @@ export const useSearch = (messages = []) => {
         matches.push({
           type: 'content',
           text: message.display_text,
-          excerpt: getExcerpt(message.display_text, lowerQuery)
+          excerpt: this.getExcerpt(message.display_text, lowerQuery)
         });
         shouldInclude = true;
       }
@@ -44,7 +44,7 @@ export const useSearch = (messages = []) => {
         matches.push({
           type: 'thinking',
           text: message.thinking,
-          excerpt: getExcerpt(message.thinking, lowerQuery)
+          excerpt: this.getExcerpt(message.thinking, lowerQuery)
         });
         shouldInclude = true;
       }
@@ -58,7 +58,7 @@ export const useSearch = (messages = []) => {
               type: 'artifact',
               artifactIndex,
               text: artifact.content || artifact.title,
-              excerpt: getExcerpt(artifact.content || artifact.title, lowerQuery)
+              excerpt: this.getExcerpt(artifact.content || artifact.title, lowerQuery)
             });
             shouldInclude = true;
           }
@@ -107,12 +107,16 @@ export const useSearch = (messages = []) => {
       }
     });
 
-    setFilteredMessages(filtered);
-    setResults(searchResults);
-  }, []);
+    this.results = searchResults;
+    this.filteredMessages = filtered;
+    
+    return { results: this.results, filteredMessages: this.filteredMessages };
+  }
 
-  // 获取搜索摘要
-  const getExcerpt = useCallback((text, query) => {
+  /**
+   * 获取搜索摘要
+   */
+  getExcerpt(text, query) {
     if (!text) return '';
     
     const index = text.toLowerCase().indexOf(query.toLowerCase());
@@ -126,56 +130,45 @@ export const useSearch = (messages = []) => {
     if (end < text.length) excerpt = excerpt + '...';
     
     return excerpt;
-  }, []);
+  }
 
-  // 更新 messages 引用，但只在真正需要时
-  useEffect(() => {
-    // 检查 messages 是否真的改变了（不只是引用改变）
-    const hasRealChange = messages.length !== prevMessagesLength.current ||
-      !messages.every((msg, idx) => msg === messagesRef.current[idx]);
+  /**
+   * 防抖搜索
+   */
+  searchWithDebounce(searchText, messageList, callback) {
+    clearTimeout(this.debounceTimer);
     
-    if (hasRealChange) {
-      messagesRef.current = messages;
-      prevMessagesLength.current = messages.length;
-      
-      // 如果没有搜索查询，直接更新 filteredMessages
-      if (!query.trim()) {
-        setFilteredMessages(messages);
-      }
-    }
-  }, [messages, query]);
-
-  // 防抖搜索 - 只在 query 改变时触发
-  useEffect(() => {
-    if (!query.trim()) {
-      setResults([]);
-      setFilteredMessages(messagesRef.current);
+    if (!searchText.trim()) {
+      this.query = '';
+      this.results = [];
+      this.filteredMessages = messageList;
+      if (callback) callback({ results: this.results, filteredMessages: this.filteredMessages });
       return;
     }
 
-    const timer = setTimeout(() => {
-      setIsSearching(true);
-      performSearch(query, messagesRef.current);
-      setIsSearching(false);
+    this.query = searchText;
+    
+    this.debounceTimer = setTimeout(() => {
+      const result = this.performSearch(searchText, messageList);
+      if (callback) callback(result);
     }, SEARCH_DEBOUNCE_MS);
+  }
 
-    return () => clearTimeout(timer);
-  }, [query, performSearch]);
+  /**
+   * 清除搜索
+   */
+  clearSearch(messageList) {
+    this.query = '';
+    this.results = [];
+    this.filteredMessages = messageList;
+    clearTimeout(this.debounceTimer);
+    return { results: this.results, filteredMessages: this.filteredMessages };
+  }
 
-  // 搜索操作
-  const search = useCallback((searchText) => {
-    setQuery(searchText);
-  }, []);
-
-  // 清除搜索
-  const clearSearch = useCallback(() => {
-    setQuery('');
-    setResults([]);
-    setFilteredMessages(messagesRef.current);
-  }, []);
-
-  // 高亮文本
-  const highlightText = useCallback((text, searchQuery) => {
+  /**
+   * 高亮文本
+   */
+  highlightText(text, searchQuery) {
     if (!searchQuery || !text) return text;
 
     const parts = text.split(new RegExp(`(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'));
@@ -184,34 +177,34 @@ export const useSearch = (messages = []) => {
         ? `<mark key="${index}">${part}</mark>`
         : part
     ).join('');
-  }, []);
+  }
 
-  // 获取结果统计
-  const resultStats = useMemo(() => {
-    const totalMatches = results.reduce((acc, result) => 
+  /**
+   * 获取结果统计
+   */
+  getResultStats() {
+    const totalMatches = this.results.reduce((acc, result) => 
       acc + result.matches.length, 0
     );
     
     return {
-      messageCount: results.length,
+      messageCount: this.results.length,
       totalMatches,
-      hasResults: results.length > 0
+      hasResults: this.results.length > 0
     };
-  }, [results]);
+  }
 
-  return {
-    // 状态
-    query,
-    results,
-    filteredMessages,
-    isSearching,
-    stats: resultStats,
-    
-    // 操作
-    actions: {
-      search,
-      clearSearch,
-      highlightText
-    }
-  };
-};
+  /**
+   * 获取当前查询
+   */
+  getQuery() {
+    return this.query;
+  }
+
+  /**
+   * 获取过滤后的消息
+   */
+  getFilteredMessages() {
+    return this.filteredMessages;
+  }
+}

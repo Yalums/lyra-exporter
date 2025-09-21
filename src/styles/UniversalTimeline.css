@@ -8,13 +8,7 @@
   flex-direction: column;
 }
 
-/* 基础时间线容器 */
-.universal-timeline-container {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 20px;
-  position: relative;
-}
+
 
 /* 对话信息卡片 */
 .conversation-info-card {
@@ -252,40 +246,7 @@
   font-weight: 500;
 }
 
-.btn-detail {
-  background: var(--accent-primary);
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color var(--transition-fast);
-  box-shadow: var(--shadow-sm);
-}
 
-.btn-detail:hover {
-  background: var(--accent-info);
-  box-shadow: var(--shadow-md);
-}
-
-/* 平台特定的按钮颜色 - 使用正确的Google品牌色 */
-.platform-gemini .btn-detail {
-  background: #1A73E8; /* Google蓝 */
-}
-
-.platform-gemini .btn-detail:hover {
-  background: #1557b0; /* 深一点的Google蓝 */
-}
-
-.platform-notebooklm .btn-detail {
-  background: #4B5563; /* 灰色 */
-}
-
-.platform-notebooklm .btn-detail:hover {
-  background: #374151; /* 深一点的灰色 */
-}
 
 /* 时间线主体 */
 .timeline-body {
@@ -322,7 +283,7 @@
 /* 特殊标签样式 */
 .timeline-tag.completed {
   background: var(--accent-secondary);
-  color: white;
+  color: #303030; /* Claude 黑白按钮颜色 */
   border-color: var(--accent-secondary);
 }
 
@@ -381,9 +342,6 @@
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .universal-timeline-container {
-    padding: 16px;
-  }
   
   .conversation-info-card {
     padding: 16px;
@@ -456,9 +414,9 @@
 /* 右侧消息详情面板 */
 .timeline-right-panel {
   flex: 1;
-  height: calc(100vh - 100px); /* 调整高度计算 */
+  height: calc(100vh - 90px); /* 调整高度计算 */
   position: sticky;
-  top: 20px;
+  top: -20px;
   overflow-y: auto;
 }
 

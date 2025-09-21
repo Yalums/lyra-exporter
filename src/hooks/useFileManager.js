@@ -1,4 +1,4 @@
-// hooks/useFileManager.js
+﻿// hooks/useFileManager.js
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { extractChatData, detectBranches } from '../utils/fileParser';
 

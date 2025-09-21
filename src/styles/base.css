@@ -39,14 +39,3 @@
   font-style: italic;
 }
 
-.empty-state {
-  text-align: center;
-  padding: 40px;
-  color: var(--text-secondary);
-}
-
-.empty-state h3 {
-  font-size: 18px;
-  margin-bottom: 20px;
-  color: var(--text-primary);
-}

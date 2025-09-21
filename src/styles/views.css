@@ -9,41 +9,6 @@
   margin-bottom: 24px;
 }
 
-.current-file-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-  padding: 12px 16px;
-  background: var(--bg-primary);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-primary);
-}
-
-.current-file-label {
-  font-size: 14px;
-  color: var(--text-secondary);
-  font-weight: 500;
-}
-
-.current-file-name {
-  font-size: 14px;
-  color: var(--text-primary);
-  font-weight: 600;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.current-file-type {
-  font-size: 12px;
-  color: var(--text-secondary);
-  background: var(--bg-tertiary);
-  padding: 4px 8px;
-  border-radius: 12px;
-}
-
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -57,9 +22,7 @@
   text-align: center;
 }
 
-.stat-card:hover {
-  /* 保留悬停效果但移除动画 */
-}
+/* 移除空的hover规则 - 如需要悬停效果请添加具体样式 */
 
 .stat-value {
   font-size: 32px;
@@ -133,11 +96,7 @@
 
 /* 统一的徽章样式 */
 
-.star {
-  color: #f1e05a;
-  font-size: 16px;
-  filter: drop-shadow(0 0 2px rgba(241, 224, 90, 0.3));
-}
+
 
 /* 关闭按钮 */
 .file-close-btn {
@@ -373,14 +332,10 @@
 }
 
 /* 动画效果 */
-@keyframes starPulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.2); }
-  100% { transform: scale(1); }
-}
+
 
 .star-btn:active {
-  animation: starPulse 0.3s ease-in-out;
+  transform: scale(1.1);
 }
 
 /* 移动端优化 */
