@@ -1,4 +1,4 @@
-﻿// components/ConversationTimeline.js
+// components/ConversationTimeline.js
 // 增强版时间线组件，整合了分支切换功能、排序控制和复制功能
 import React, { useState, useEffect, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -379,8 +379,17 @@ const ConversationTimeline = ({
     
     if (newShowAllBranches) {
       setBranchFilters(new Map());
-    } else if (hasCustomSort && sortActions?.resetSort) {
-      sortActions.resetSort();
+      // 自动启用排序模式
+      if (sortActions && !sortingEnabled) {
+        sortActions.enableSort();
+        setSortingEnabled(true);
+      }
+    } else {
+      // 退出显示全部时，如果有自定义排序则重置
+      if (hasCustomSort && sortActions?.resetSort) {
+        sortActions.resetSort();
+      }
+      setSortingEnabled(false);
     }
   };
   
@@ -540,13 +549,14 @@ const ConversationTimeline = ({
                       🔄 重置标记
                     </button>
                   )}
-                  {/* 重置排序按钮（在启用排序且有自定义排序时显示） */}
-                  {sortingEnabled && hasCustomSort && sortActions && (
+                  {/* 重置排序按钮（在启用排序时显示） */}
+                  {sortingEnabled && sortActions && (
                     <button 
                       className="btn-secondary small"
                       onClick={() => {
                         if (window.confirm('确定要重置为原始顺序吗？')) {
                           sortActions.resetSort();
+                          setSortingEnabled(false);
                         }
                       }}
                       title="恢复原始消息顺序"
@@ -680,7 +690,8 @@ const ConversationTimeline = ({
                         </div>
                         
                         <div className="timeline-actions">
-                          {sortingEnabled && hasCustomSort && showAllBranches && sortActions && (
+                          {sortingEnabled && sortActions && 
+                           (branchAnalysis.branchPoints.size === 0 || showAllBranches) && (
                             <div className="sort-controls">
                               <button 
                                 className="sort-btn"
