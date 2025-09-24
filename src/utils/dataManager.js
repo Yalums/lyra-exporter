@@ -255,6 +255,56 @@ export class StatsCalculator {
       };
     }
   }
+
+  /**
+   * 获取当前统计（从App.js移入以简化主文件）
+   */
+  static getStats(params) {
+    const {
+      viewMode,
+      allCards,
+      sortedMessages,
+      timelineMessages,
+      files,
+      markManagerRef,
+      starManagerRef,
+      shouldUseStarSystem,
+      currentConversation,
+      getAllMarksStats,
+      generateFileCardUuid,
+      generateConversationCardUuid,
+      processedData,
+      currentFileIndex
+    } = params;
+
+    const markStats = markManagerRef?.current ? markManagerRef.current.getStats() : {
+      completed: 0,
+      important: 0,
+      deleted: 0,
+      total: 0
+    };
+    
+    const allMarksStats = getAllMarksStats(
+      files, 
+      processedData, 
+      currentFileIndex, 
+      generateFileCardUuid, 
+      generateConversationCardUuid
+    );
+    
+    return this.calculateViewStats({
+      viewMode,
+      allCards,
+      sortedMessages,
+      timelineMessages,
+      files,
+      allMarksStats,
+      stats: markStats,
+      shouldUseStarSystem,
+      starActions: starManagerRef?.current,
+      currentConversation
+    });
+  }
 }
 
 /**
@@ -267,4 +317,145 @@ export function usePostMessageHandler(fileActions, setError) {
     setup: () => handler.setup(),
     handleMessage: handler.handleMessage
   };
+}
+
+/**
+ * 数据处理辅助类（从App.js移入以大幅简化主文件）
+ */
+export class DataProcessor {
+  /**
+   * 生成原始对话列表
+   */
+  static getRawConversations(viewMode, processedData, currentFileIndex, files) {
+    if (viewMode === 'conversations' && processedData?.format === 'claude_full_export') {
+      return processedData.views?.conversationList?.map(conv => ({
+        type: 'conversation',
+        ...conv,
+        fileIndex: currentFileIndex,
+        fileName: files[currentFileIndex]?.name || 'unknown',
+        fileFormat: processedData.format,
+        uuid: generateConversationCardUuid(currentFileIndex, conv.uuid, files[currentFileIndex]),
+        is_starred: conv.is_starred || false
+      })) || [];
+    }
+    return [];
+  }
+
+  /**
+   * 生成文件卡片数据
+   */
+  static getFileCards(viewMode, processedData, files, currentFileIndex, fileMetadata) {
+    if (viewMode !== 'conversations' || processedData?.format === 'claude_full_export') {
+      return [];
+    }
+    
+    return files.map((file, fileIndex) => {
+      const isCurrentFile = fileIndex === currentFileIndex;
+      const fileData = isCurrentFile ? processedData : null;
+      const metadata = fileMetadata[file.name] || {};
+      
+      const format = fileData?.format || metadata.format || 'unknown';
+      const messageCount = fileData?.chat_history?.length || metadata.messageCount || 0;
+      const conversationCount = fileData?.format === 'claude_full_export' ? 
+        (fileData?.views?.conversationList?.length || 0) : 
+        (metadata.conversationCount || (fileData ? 1 : 0));
+      
+      const model = fileData?.meta_info?.model || metadata.model || (format === 'claude' ? '' : 'Claude');
+      
+      return {
+        type: 'file',
+        uuid: generateFileCardUuid(fileIndex, file),
+        name: metadata.title ? metadata.title.replace('.json', '') : file.name.replace('.json', ''),
+        fileName: file.name,
+        fileIndex,
+        isCurrentFile,
+        fileData,
+        format,
+        model,
+        messageCount,
+        conversationCount,
+        created_at: metadata.created_at || (file.lastModified ? new Date(file.lastModified).toISOString() : null),
+        platform: metadata.platform || 'claude',
+        summary: format === 'claude_full_export' ? 
+          `${conversationCount}个对话，${messageCount}条消息` :
+          (format !== 'unknown' ? `${messageCount}条消息的对话` : '点击加载文件内容...'),
+        size: file.size
+      };
+    });
+  }
+
+  /**
+   * 获取时间线消息
+   */
+  static getTimelineMessages(viewMode, selectedFileIndex, currentFileIndex, processedData, selectedConversationUuid) {
+    if (viewMode !== 'timeline') {
+      return [];
+    }
+    
+    const dataSource = (selectedFileIndex !== null && selectedFileIndex === currentFileIndex) 
+      ? processedData 
+      : null;
+    
+    if (!dataSource) {
+      return [];
+    }
+    
+    if (dataSource.format === 'claude_full_export' && selectedConversationUuid) {
+      return dataSource.chat_history?.filter(msg => 
+        msg.conversation_uuid === selectedConversationUuid && !msg.is_conversation_header
+      ) || [];
+    }
+    
+    return dataSource.chat_history || [];
+  }
+
+  /**
+   * 获取当前对话信息
+   */
+  static getCurrentConversation(params) {
+    const { viewMode, selectedFileIndex, selectedConversationUuid, processedData, files, currentFileIndex, fileMetadata, starActions } = params;
+    
+    if (viewMode === 'timeline' && selectedFileIndex !== null) {
+      const dataSource = selectedFileIndex === currentFileIndex ? processedData : null;
+      
+      if (!dataSource) return null;
+      
+      if (selectedConversationUuid && dataSource.format === 'claude_full_export') {
+        const conversation = dataSource.views?.conversationList?.find(
+          conv => conv.uuid === selectedConversationUuid
+        );
+        if (conversation && files[selectedFileIndex]) {
+          const convUuid = generateConversationCardUuid(selectedFileIndex, conversation.uuid, files[selectedFileIndex]);
+          return {
+            ...conversation,
+            uuid: convUuid,
+            is_starred: starActions?.isStarred?.(convUuid, conversation.is_starred) || conversation.is_starred
+          };
+        }
+        return null;
+      } else {
+        const file = files[selectedFileIndex];
+        if (file) {
+          const metadata = fileMetadata[file.name] || {};
+          const isCurrentFile = selectedFileIndex === currentFileIndex;
+          const fileData = isCurrentFile ? dataSource : null;
+          
+          return {
+            type: 'file',
+            uuid: generateFileCardUuid(selectedFileIndex, file),
+            name: fileData?.meta_info?.title || metadata.title || file.name.replace('.json', ''),
+            fileName: file.name,
+            fileIndex: selectedFileIndex,
+            isCurrentFile,
+            format: fileData?.format || metadata.format || 'unknown',
+            model: fileData?.meta_info?.model || metadata.model || '',
+            messageCount: fileData?.chat_history?.length || metadata.messageCount || 0,
+            created_at: metadata.created_at || (file.lastModified ? new Date(file.lastModified).toISOString() : null),
+            platform: metadata.platform || 'claude'
+          };
+        }
+      }
+    }
+    return null;
+  }
 }

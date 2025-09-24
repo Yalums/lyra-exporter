@@ -1,11 +1,6 @@
-﻿// App.js - 修复数据同步问题版本
+﻿// App.js - 大幅简化版本
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import './styles/base.css';
-import './styles/themes.css';
-import './styles/UniversalTimeline.css';
-import './styles/message-gfm.css';
-import './styles/SettingsPanel.css';
-import './styles/BranchSwitcher.css';
 
 // 组件导入
 import WelcomePage from './components/WelcomePage';
@@ -17,12 +12,9 @@ import SettingsPanel from './components/SettingsManager';
 import { CardGrid } from './components/UnifiedCard';
 
 // 工具函数导入
-import { DateTimeUtils, PlatformUtils, ThemeUtils, StorageUtils  } from './utils/commonUtils';
-import { copyMessage } from './utils/copyManager';
-import { PostMessageHandler, StatsCalculator } from './utils/dataManager';
+import { ThemeUtils, StorageUtils } from './utils/commonUtils';
+import { PostMessageHandler, StatsCalculator, DataProcessor } from './utils/dataManager';
 import { extractChatData, detectBranches } from './utils/fileParser';
-
-// 新的工具模块导入
 import { 
   generateFileCardUuid, 
   generateConversationCardUuid, 
@@ -35,17 +27,9 @@ import { StarManager } from './utils/starManager';
 import { SortManager } from './utils/sortManager';
 import { SearchManager } from './utils/searchManager';
 
-// 保留的Hooks导入
+// Hooks导入
 import { useFileManager } from './hooks/useFileManager';
 import { useFullExportCardFilter } from './hooks/useFullExportCardFilter';
-
-// 调试开关
-const DEBUG = true;
-const debugLog = (category, message, data) => {
-  if (DEBUG) {
-    console.log(`[${category}] ${message}`, data || '');
-  }
-};
 
 function App() {
   // ==================== Hooks和状态管理 ====================
@@ -75,6 +59,10 @@ function App() {
   const [error, setError] = useState(null);
   const [sortVersion, setSortVersion] = useState(0);
   const [markVersion, setMarkVersion] = useState(0);
+  const [currentBranchState, setCurrentBranchState] = useState({
+    showAllBranches: false,
+    currentBranchIndexes: new Map()
+  });
   const [exportOptions, setExportOptions] = useState(() => {
     const savedExportConfig = StorageUtils.getLocalStorage('export-config', {});
     return {
@@ -86,7 +74,8 @@ function App() {
       includeThinking: savedExportConfig.includeThinking || false,
       includeArtifacts: savedExportConfig.includeArtifacts !== undefined ? savedExportConfig.includeArtifacts : true,
       includeTools: savedExportConfig.includeTools || false,
-      includeCitations: savedExportConfig.includeCitations || false
+      includeCitations: savedExportConfig.includeCitations || false,
+      includeAttachments: savedExportConfig.includeAttachments !== undefined ? savedExportConfig.includeAttachments : true
     };
   });
   
@@ -103,149 +92,58 @@ function App() {
   const sortManagerRef = useRef(null);
   const searchManagerRef = useRef(null);
 
-  // ==================== 调试日志 ====================
-  
-  // 监控关键状态变化
-  useEffect(() => {
-    debugLog('STATE_CHANGE', 'View Mode Changed', {
-      viewMode,
-      selectedFileIndex,
-      currentFileIndex,
-      selectedConversationUuid,
-      processedDataFormat: processedData?.format,
-      hasProcessedData: !!processedData
-    });
-  }, [viewMode, selectedFileIndex, currentFileIndex, selectedConversationUuid, processedData]);
-
-  useEffect(() => {
-    debugLog('DATA_CHANGE', 'ProcessedData Updated', {
-      format: processedData?.format,
-      messagesCount: processedData?.chat_history?.length,
-      currentFileIndex,
-      selectedFileIndex,
-      selectedConversationUuid
-    });
-  }, [processedData]);
-
   // ==================== 管理器初始化 ====================
   
   // UUID管理
   const currentFileUuid = useMemo(() => {
-    const uuid = getCurrentFileUuid(viewMode, selectedFileIndex, selectedConversationUuid, processedData, files);
-    debugLog('UUID', 'Current File UUID', { uuid, viewMode, selectedFileIndex, selectedConversationUuid });
-    return uuid;
+    return getCurrentFileUuid(viewMode, selectedFileIndex, selectedConversationUuid, processedData, files);
   }, [viewMode, selectedFileIndex, selectedConversationUuid, processedData, files]);
 
-  // 星标系统（仅claude_full_export格式）
+  // 星标系统
   const shouldUseStarSystem = processedData?.format === 'claude_full_export';
   
-  // 初始化星标管理器
   useEffect(() => {
     if (shouldUseStarSystem) {
       if (!starManagerRef.current) {
         starManagerRef.current = new StarManager(true);
-        debugLog('STAR_MANAGER', 'Initialized', { shouldUseStarSystem });
       }
     } else {
       starManagerRef.current = null;
     }
   }, [shouldUseStarSystem]);
 
-  // 初始化标记管理器
   useEffect(() => {
     if (currentFileUuid) {
       markManagerRef.current = new MarkManager(currentFileUuid);
-      debugLog('MARK_MANAGER', 'Initialized', { currentFileUuid });
     }
   }, [currentFileUuid]);
 
-  // 初始化搜索管理器
   useEffect(() => {
     if (!searchManagerRef.current) {
       searchManagerRef.current = new SearchManager();
-      debugLog('SEARCH_MANAGER', 'Initialized');
     }
   }, []);
 
-  // ==================== 数据计算和派生状态 ====================
+  // ==================== 数据计算 - 使用DataProcessor简化 ====================
   
-  // 原始对话列表（用于筛选）
-  const rawConversations = useMemo(() => {
-    if (viewMode === 'conversations' && processedData?.format === 'claude_full_export') {
-      const conversations = processedData.views?.conversationList?.map(conv => ({
-        type: 'conversation',
-        ...conv,
-        fileIndex: currentFileIndex,
-        fileName: files[currentFileIndex]?.name || 'unknown',
-        fileFormat: processedData.format,
-        uuid: generateConversationCardUuid(currentFileIndex, conv.uuid, files[currentFileIndex]),
-        is_starred: conv.is_starred || false
-      })) || [];
-      
-      debugLog('CONVERSATIONS', 'Raw Conversations Generated', { 
-        count: conversations.length,
-        firstConv: conversations[0]
-      });
-      
-      return conversations;
-    }
-    return [];
-  }, [viewMode, processedData, currentFileIndex, files]);
+  const rawConversations = useMemo(() => 
+    DataProcessor.getRawConversations(viewMode, processedData, currentFileIndex, files),
+    [viewMode, processedData, currentFileIndex, files]
+  );
 
-  // 对话筛选
   const {
     filters,
     filteredConversations,
     availableProjects,
     filterStats,
     actions: filterActions
-  } = useFullExportCardFilter(rawConversations);
+  } = useFullExportCardFilter(rawConversations, operatedFiles);
 
-  // 文件卡片数据
-  const fileCards = useMemo(() => {
-    if (viewMode !== 'conversations' || processedData?.format === 'claude_full_export') {
-      return [];
-    }
-    
-    const cards = files.map((file, fileIndex) => {
-      const isCurrentFile = fileIndex === currentFileIndex;
-      const fileData = isCurrentFile ? processedData : null;
-      const metadata = fileMetadata[file.name] || {};
-      
-      const format = fileData?.format || metadata.format || 'unknown';
-      const messageCount = fileData?.chat_history?.length || metadata.messageCount || 0;
-      const conversationCount = fileData?.format === 'claude_full_export' ? 
-        (fileData?.views?.conversationList?.length || 0) : 
-        (metadata.conversationCount || (fileData ? 1 : 0));
-      
-      const model = fileData?.meta_info?.model || metadata.model || (format === 'claude' ? '' : 'Claude');
-      
-      return {
-        type: 'file',
-        uuid: generateFileCardUuid(fileIndex, file),
-        name: metadata.title ? metadata.title.replace('.json', '') : file.name.replace('.json', ''),
-        fileName: file.name,
-        fileIndex,
-        isCurrentFile,
-        fileData,
-        format,
-        model,
-        messageCount,
-        conversationCount,
-        created_at: metadata.created_at || (file.lastModified ? new Date(file.lastModified).toISOString() : null),
-        platform: metadata.platform || 'claude',
-        summary: format === 'claude_full_export' ? 
-          `${conversationCount}个对话，${messageCount}条消息` :
-          (format !== 'unknown' ? `${messageCount}条消息的对话` : '点击加载文件内容...'),
-        size: file.size
-      };
-    });
-    
-    debugLog('FILE_CARDS', 'Generated', { count: cards.length });
-    return cards;
-  }, [files, currentFileIndex, processedData, fileMetadata, viewMode]);
+  const fileCards = useMemo(() => 
+    DataProcessor.getFileCards(viewMode, processedData, files, currentFileIndex, fileMetadata),
+    [files, currentFileIndex, processedData, fileMetadata, viewMode]
+  );
 
-  // 所有卡片数据
   const allCards = useMemo(() => {
     if (viewMode === 'conversations' && processedData?.format === 'claude_full_export') {
       return [...filteredConversations];
@@ -253,128 +151,51 @@ function App() {
     return fileCards;
   }, [viewMode, processedData, filteredConversations, fileCards]);
 
-  // 时间线消息 - 核心修复：确保数据同步
-  const timelineMessages = useMemo(() => {
-    // 只在timeline模式下计算消息
-    if (viewMode !== 'timeline') {
-      debugLog('TIMELINE_MESSAGES', 'Not in timeline mode', { viewMode });
-      return [];
-    }
-    
-    // 确保使用正确的数据源
-    // 关键修复：确保selectedFileIndex和currentFileIndex同步
-    const dataSource = (selectedFileIndex !== null && selectedFileIndex === currentFileIndex) 
-      ? processedData 
-      : null;
-    
-    if (!dataSource) {
-      debugLog('TIMELINE_MESSAGES', 'No valid data source', { 
-        currentFileIndex,
-        selectedFileIndex,
-        hasProcessedData: !!processedData,
-        dataSync: selectedFileIndex === currentFileIndex
-      });
-      return [];
-    }
-    
-    // 对于claude_full_export格式，需要过滤特定对话
-    if (dataSource.format === 'claude_full_export' && selectedConversationUuid) {
-      const messages = dataSource.chat_history?.filter(msg => 
-        msg.conversation_uuid === selectedConversationUuid && !msg.is_conversation_header
-      ) || [];
-      
-      debugLog('TIMELINE_MESSAGES', 'Claude Full Export Filtered', {
-        totalMessages: dataSource.chat_history?.length,
-        filteredMessages: messages.length,
-        selectedConversationUuid,
-        firstMessage: messages[0]
-      });
-      
-      return messages;
-    }
-    
-    // 对于其他格式，返回所有消息
-    const messages = dataSource.chat_history || [];
-    debugLog('TIMELINE_MESSAGES', 'Standard Format', {
-      messageCount: messages.length,
-      format: dataSource.format,
-      firstMessage: messages[0]
-    });
-    
-    return messages;
-  }, [viewMode, processedData, selectedConversationUuid, selectedFileIndex, currentFileIndex]);
+  const timelineMessages = useMemo(() => 
+    DataProcessor.getTimelineMessages(viewMode, selectedFileIndex, currentFileIndex, processedData, selectedConversationUuid),
+    [viewMode, processedData, selectedConversationUuid, selectedFileIndex, currentFileIndex]
+  );
 
-  // 关键修复：重置排序管理器当文件或对话改变
+  // 排序管理器初始化
   useEffect(() => {
-    // 当文件UUID改变时，强制重置排序管理器
-    if (currentFileUuid) {
-      // 总是创建新的排序管理器实例，避免数据混乱
+    if (currentFileUuid && timelineMessages.length > 0) {
       sortManagerRef.current = new SortManager(timelineMessages, currentFileUuid);
-      setSortVersion(v => v + 1); // 强制重新渲染
-      debugLog('SORT_MANAGER', 'Reset on UUID change', { 
-        messageCount: timelineMessages.length, 
-        fileUuid: currentFileUuid 
-      });
+      setSortVersion(v => v + 1);
     } else {
       sortManagerRef.current = null;
     }
-  }, [currentFileUuid]); // 只依赖于UUID改变
+  }, [currentFileUuid]);
 
-  // 更新排序管理器的消息
   useEffect(() => {
     if (sortManagerRef.current && timelineMessages.length > 0 && currentFileUuid) {
       if (sortManagerRef.current.fileUuid === currentFileUuid) {
         sortManagerRef.current.updateMessages(timelineMessages);
         setSortVersion(v => v + 1);
-        debugLog('SORT_MANAGER', 'Messages updated', { 
-          messageCount: timelineMessages.length,
-          fileUuid: currentFileUuid
-        });
       }
     }
-  }, [timelineMessages]);
+  }, [timelineMessages, currentFileUuid]);
 
-  // 获取排序后的消息
   const sortedMessages = useMemo(() => {
     if (sortManagerRef.current && viewMode === 'timeline' && timelineMessages.length > 0) {
       const sorted = sortManagerRef.current.getSortedMessages();
-      debugLog('SORTED_MESSAGES', 'Messages sorted', { 
-        originalCount: timelineMessages.length,
-        sortedCount: sorted.length,
-        fileUuid: sortManagerRef.current?.fileUuid
-      });
-      
-      // 验证排序后的消息数量应该等于原始消息数量
       if (sorted.length !== timelineMessages.length) {
-        console.error('SORTED_MESSAGES', 'Count mismatch!', {
-          expected: timelineMessages.length,
-          actual: sorted.length
-        });
-        return timelineMessages; // 返回原始消息避免数据错误
+        return timelineMessages;
       }
-      
       return sorted;
     }
     return timelineMessages;
   }, [timelineMessages, viewMode, sortVersion]);
 
-  // 处理搜索
+  // 搜索处理
   const handleSearch = useCallback((query) => {
     setSearchQuery(query);
-    
     if (!searchManagerRef.current) return;
-    
     const searchTarget = viewMode === 'conversations' ? allCards : sortedMessages;
-    
-    debugLog('SEARCH', 'Performing search', { query, targetCount: searchTarget.length });
-    
     searchManagerRef.current.searchWithDebounce(query, searchTarget, (result) => {
       setSearchResults(result);
-      debugLog('SEARCH', 'Results', { resultCount: result.filteredMessages.length });
     });
   }, [viewMode, allCards, sortedMessages]);
 
-  // 获取显示的消息/卡片
   const displayedItems = useMemo(() => {
     if (!searchQuery) {
       return viewMode === 'conversations' ? allCards : sortedMessages;
@@ -382,7 +203,6 @@ function App() {
     return searchResults.filteredMessages;
   }, [searchQuery, searchResults.filteredMessages, viewMode, allCards, sortedMessages]);
 
-  // 获取当前marks
   const currentMarks = useMemo(() => {
     return markManagerRef.current ? markManagerRef.current.getMarks() : {
       completed: new Set(),
@@ -391,97 +211,37 @@ function App() {
     };
   }, [markVersion, currentFileUuid]);
 
-  // 获取当前是否有自定义排序
   const hasCustomSort = useMemo(() => {
     return sortManagerRef.current ? sortManagerRef.current.hasCustomSort() : false;
   }, [sortVersion, currentFileUuid]);
 
-  // 当前对话信息
   const currentConversation = useMemo(() => {
-    if (viewMode === 'timeline' && selectedFileIndex !== null) {
-      // 确保使用正确的数据源
-      const dataSource = selectedFileIndex === currentFileIndex ? processedData : null;
-      
-      if (!dataSource) {
-        debugLog('CURRENT_CONVERSATION', 'No data source', {
-          selectedFileIndex,
-          currentFileIndex,
-          hasProcessedData: !!processedData
-        });
-        return null;
-      }
-      
-      if (selectedConversationUuid && dataSource.format === 'claude_full_export') {
-        const conversation = dataSource.views?.conversationList?.find(
-          conv => conv.uuid === selectedConversationUuid
-        );
-        if (conversation && files[selectedFileIndex]) {
-          const convUuid = generateConversationCardUuid(selectedFileIndex, conversation.uuid, files[selectedFileIndex]);
-          
-          debugLog('CURRENT_CONVERSATION', 'Full Export Conversation', {
-            conversation,
-            convUuid,
-            selectedConversationUuid
-          });
-          
-          return {
-            ...conversation,
-            uuid: convUuid,
-            is_starred: starManagerRef.current ? 
-              starManagerRef.current.isStarred(convUuid, conversation.is_starred) :
-              conversation.is_starred
-          };
-        }
-        return null;
-      } else {
-        const file = files[selectedFileIndex];
-        if (file) {
-          const metadata = fileMetadata[file.name] || {};
-          const isCurrentFile = selectedFileIndex === currentFileIndex;
-          const fileData = isCurrentFile ? dataSource : null;
-          
-          const fileConv = {
-            type: 'file',
-            uuid: generateFileCardUuid(selectedFileIndex, file),
-            name: fileData?.meta_info?.title || metadata.title || file.name.replace('.json', ''),
-            fileName: file.name,
-            fileIndex: selectedFileIndex,
-            isCurrentFile,
-            format: fileData?.format || metadata.format || 'unknown',
-            model: fileData?.meta_info?.model || metadata.model || '',
-            messageCount: fileData?.chat_history?.length || metadata.messageCount || 0,
-            created_at: metadata.created_at || (file.lastModified ? new Date(file.lastModified).toISOString() : null),
-            platform: metadata.platform || 'claude'
-          };
-          
-          debugLog('CURRENT_CONVERSATION', 'File Conversation', fileConv);
-          return fileConv;
-        }
-      }
-    }
-    return null;
+    return DataProcessor.getCurrentConversation({
+      viewMode,
+      selectedFileIndex,
+      selectedConversationUuid,
+      processedData,
+      files,
+      currentFileIndex,
+      fileMetadata,
+      starActions: starManagerRef.current
+    });
   }, [viewMode, selectedFileIndex, selectedConversationUuid, processedData, files, currentFileIndex, fileMetadata]);
 
   const isFullExportConversationMode = viewMode === 'conversations' && processedData?.format === 'claude_full_export';
 
   // ==================== 事件处理函数 ====================
   
-  // PostMessage处理器
   const postMessageHandler = useMemo(() => {
     return new PostMessageHandler(fileActions, setError);
   }, [fileActions]);
 
   const handleFileLoad = (e) => {
     const fileList = Array.from(e.target.files);
-    debugLog('FILE_LOAD', 'Loading files', { count: fileList.length });
     fileActions.loadFiles(fileList);
   };
 
-  // 核心修复：改进卡片选择处理，确保数据同步
   const handleCardSelect = useCallback((card) => {
-    debugLog('CARD_SELECT', 'Card selected', card);
-    
-    // 保存滚动位置
     if (contentAreaRef.current && viewMode === 'conversations') {
       const key = currentFile ? `file-${currentFileIndex}` : 'main';
       setScrollPositions(prev => ({
@@ -490,28 +250,16 @@ function App() {
       }));
     }
     
-    // 重置所有状态以避免数据混乱
     setSelectedMessageIndex(null);
     setShowMessageDetail(false);
-    setSearchQuery(''); // 重置搜索
-    setSortVersion(v => v + 1); // 重置排序
+    setSearchQuery('');
+    setSortVersion(v => v + 1);
     
     if (card.type === 'file') {
       const needsFileSwitch = card.fileIndex !== currentFileIndex;
       
-      debugLog('CARD_SELECT', 'File card processing', {
-        fileIndex: card.fileIndex,
-        currentFileIndex,
-        needsFileSwitch,
-        format: card.format || card.fileData?.format
-      });
-      
-      // 处理文件切换
       if (needsFileSwitch) {
-        // 先切换文件
         fileActions.switchFile(card.fileIndex);
-        
-        // 等待文件加载完成后再更新视图
         setTimeout(() => {
           if (card.format === 'claude_full_export' || card.fileData?.format === 'claude_full_export') {
             setViewMode('conversations');
@@ -524,7 +272,6 @@ function App() {
           }
         }, 100);
       } else {
-        // 文件已经是当前文件，直接更新视图
         if (card.format === 'claude_full_export' || card.fileData?.format === 'claude_full_export') {
           setViewMode('conversations');
           setSelectedFileIndex(null);
@@ -541,27 +288,14 @@ function App() {
       const conversationUuid = parsed.conversationUuid;
       const needsFileSwitch = fileIndex !== currentFileIndex;
       
-      debugLog('CARD_SELECT', 'Conversation card processing', {
-        fileIndex,
-        currentFileIndex,
-        needsFileSwitch,
-        conversationUuid,
-        parsedUuid: parsed
-      });
-      
-      // 处理对话卡片选择
       if (needsFileSwitch) {
-        // 需要切换文件
         fileActions.switchFile(fileIndex);
-        
-        // 等待文件加载完成后再更新视图
         setTimeout(() => {
           setSelectedFileIndex(fileIndex);
           setSelectedConversationUuid(conversationUuid);
           setViewMode('timeline');
         }, 100);
       } else {
-        // 文件已经是当前文件，直接更新视图
         setSelectedFileIndex(fileIndex);
         setSelectedConversationUuid(conversationUuid);
         setViewMode('timeline');
@@ -569,57 +303,44 @@ function App() {
     }
   }, [currentFileIndex, fileActions, viewMode, currentFile]);
 
-  // 修复文件移除处理
   const handleFileRemove = useCallback((fileIndexOrUuid) => {
-    debugLog('FILE_REMOVE', 'Removing file', { fileIndexOrUuid });
-    
-    // 处理直接的文件索引
     if (typeof fileIndexOrUuid === 'number') {
       fileActions.removeFile(fileIndexOrUuid);
-      
-      // 如果移除的是当前查看的文件，重置视图
       if (fileIndexOrUuid === currentFileIndex || fileIndexOrUuid === selectedFileIndex) {
         setViewMode('conversations');
         setSelectedFileIndex(null);
         setSelectedConversationUuid(null);
-        setSortVersion(v => v + 1); // 重置排序
+        setSortVersion(v => v + 1);
       }
       return;
     }
     
-    // 处理UUID（来自UnifiedCard的关闭按钮）
     const parsed = parseUuid(fileIndexOrUuid);
     if (parsed.fileHash) {
-      // 找到对应的文件索引
       const index = files.findIndex((file, idx) => {
         const hash = generateFileHash(file);
         return hash === parsed.fileHash || generateFileCardUuid(idx, file) === fileIndexOrUuid;
       });
       
-      debugLog('FILE_REMOVE', 'Found file index', { index, parsed });
-      
       if (index !== -1) {
         fileActions.removeFile(index);
-        
         if (index === currentFileIndex || index === selectedFileIndex) {
           setViewMode('conversations');
           setSelectedFileIndex(null);
           setSelectedConversationUuid(null);
-          setSortVersion(v => v + 1); // 重置排序
+          setSortVersion(v => v + 1);
         }
       }
     }
   }, [currentFileIndex, selectedFileIndex, files, fileActions]);
 
   const handleBackToConversations = () => {
-    debugLog('NAVIGATION', 'Back to conversations');
     setViewMode('conversations');
     setSelectedFileIndex(null);
     setSelectedConversationUuid(null);
     setSearchQuery('');
-    setSortVersion(v => v + 1); // 重置排序
+    setSortVersion(v => v + 1);
     
-    // 恢复滚动位置
     setTimeout(() => {
       if (contentAreaRef.current) {
         const key = currentFile ? `file-${currentFileIndex}` : 'main';
@@ -630,18 +351,14 @@ function App() {
   };
 
   const handleMessageSelect = (messageIndex) => {
-    debugLog('MESSAGE_SELECT', 'Message selected', { messageIndex });
     setSelectedMessageIndex(messageIndex);
     setShowMessageDetail(true);
   };
 
   const handleMarkToggle = (messageIndex, markType) => {
-    debugLog('MARK_TOGGLE', 'Toggling mark', { messageIndex, markType });
-    
     if (markManagerRef.current) {
       markManagerRef.current.toggleMark(messageIndex, markType);
       
-      // 记录操作的文件
       if (viewMode === 'timeline' && selectedFileIndex !== null) {
         const file = files[selectedFileIndex];
         if (file) {
@@ -653,18 +370,34 @@ function App() {
         }
       }
       
-      // 触发重新渲染
       setMarkVersion(v => v + 1);
     }
   };
 
   const handleStarToggle = (conversationUuid, nativeIsStarred) => {
-    debugLog('STAR_TOGGLE', 'Toggling star', { conversationUuid, nativeIsStarred });
-    
     if (starManagerRef.current) {
       starManagerRef.current.toggleStar(conversationUuid, nativeIsStarred);
-      // 强制刷新
       setSelectedConversation(prev => prev);
+    }
+  };
+
+  // 导出功能 - 使用exportManager中的handleExport
+  const handleExportClick = async () => {
+    const { handleExport } = await import('./utils/exportManager');
+    const success = await handleExport({
+      exportOptions,
+      processedData,
+      sortManagerRef,
+      sortedMessages,
+      markManagerRef,
+      currentBranchState,
+      operatedFiles,
+      files,
+      currentFileIndex
+    });
+    
+    if (success) {
+      setShowExportPanel(false);
     }
   };
 
@@ -674,21 +407,18 @@ function App() {
       if (sortManagerRef.current) {
         sortManagerRef.current.enableSort();
         setSortVersion(v => v + 1);
-        debugLog('SORT', 'Enabled');
       }
     },
     resetSort: () => {
       if (sortManagerRef.current) {
         sortManagerRef.current.resetSort();
         setSortVersion(v => v + 1);
-        debugLog('SORT', 'Reset');
       }
     },
     moveMessage: (fromIndex, direction) => {
       if (sortManagerRef.current) {
         sortManagerRef.current.moveMessage(fromIndex, direction);
         setSortVersion(v => v + 1);
-        debugLog('SORT', 'Move message', { fromIndex, direction });
       }
     }
   };
@@ -702,197 +432,65 @@ function App() {
     clearAllMarks: () => {
       if (markManagerRef.current) {
         markManagerRef.current.clearAllMarks();
-        
-        // 从operatedFiles中移除当前对话的UUID
         if (currentFileUuid) {
           setOperatedFiles(prev => {
             const newSet = new Set(prev);
             newSet.delete(currentFileUuid);
-            
-            // 同时清理相关的localStorage条目
             localStorage.removeItem(`marks_${currentFileUuid}`);
             localStorage.removeItem(`message_order_${currentFileUuid}`);
-            
             return newSet;
           });
         }
-        
         setMarkVersion(v => v + 1);
-        debugLog('MARKS', 'Cleared all marks');
       }
     }
   };
 
-  // 导出功能
-  const handleExport = async () => {
-    debugLog('EXPORT', 'Starting export', { scope: exportOptions.scope });
+  const handleClearAllFilesMarks = () => {
+    if (!window.confirm('确定要清除所有文件和对话的标记吗？这个操作不可恢复。')) {
+      return;
+    }
     
-    try {
-      // 获取导出格式配置
-      const exportFormatConfig = StorageUtils.getLocalStorage('export-config', {
-        includeNumbering: true,
-        numberingFormat: 'numeric',
-        senderFormat: 'default',
-        humanLabel: '人类',
-        assistantLabel: 'Claude',
-        includeHeaderPrefix: true,
-        headerLevel: 2
-      });
-      
-      // 准备导出数据
-      let dataToExport = [];
-      
-      switch (exportOptions.scope) {
-        case 'current':
-          if (processedData) {
-            const messagesToExport = sortManagerRef.current?.hasCustomSort() ? 
-              sortedMessages : (processedData.chat_history || []);
-            
-            // 获取当前文件的标记
-            const marks = markManagerRef.current ? markManagerRef.current.getMarks() : {
-              completed: new Set(),
-              important: new Set(),
-              deleted: new Set()
-            };
-            
-            dataToExport = [{
-              ...processedData,
-              chat_history: messagesToExport
-            }];
-          }
-          break;
-          
-        case 'operated':
-          // 处理有操作的文件
-          for (const fileUuid of operatedFiles) {
-            // 根据fileUuid找到对应的文件索引
-            const fileIndex = files.findIndex((file, index) => {
-              const fUuid = generateFileCardUuid(index, file);
-              return fUuid === fileUuid || fileUuid.includes(generateFileHash(file));
-            });
-            
-            if (fileIndex !== -1) {
-              const file = files[fileIndex];
-              try {
-                const text = await file.text();
-                const jsonData = JSON.parse(text);
-                let data = extractChatData(jsonData, file.name);
-                data = detectBranches(data);
-                
-                // 获取该文件的标记
-                const fileMarkManager = new MarkManager(fileUuid);
-                const marks = fileMarkManager.getMarks();
-                
-                // 获取该文件的排序
-                const fileSortManager = new SortManager(data.chat_history || [], fileUuid);
-                const sortedMsgs = fileSortManager.getSortedMessages();
-                
-                dataToExport.push({
-                  ...data,
-                  chat_history: sortedMsgs
-                });
-              } catch (err) {
-                console.error(`无法处理文件 ${file.name}:`, err);
-              }
-            }
-          }
-          break;
-          
-        case 'all':
-          // 导出所有文件
-          for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
-            const file = files[fileIndex];
-            try {
-              const text = await file.text();
-              const jsonData = JSON.parse(text);
-              let data = extractChatData(jsonData, file.name);
-              data = detectBranches(data);
-              
-              // 获取文件UUID
-              const fileUuid = generateFileCardUuid(fileIndex, file);
-              
-              // 获取该文件的标记
-              const fileMarkManager = new MarkManager(fileUuid);
-              const marks = fileMarkManager.getMarks();
-              
-              // 获取该文件的排序
-              const fileSortManager = new SortManager(data.chat_history || [], fileUuid);
-              const sortedMsgs = fileSortManager.getSortedMessages();
-              
-              dataToExport.push({
-                ...data,
-                chat_history: sortedMsgs
-              });
-            } catch (err) {
-              console.error(`无法处理文件 ${file.name}:`, err);
-            }
-          }
-          break;
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('marks_') || key.startsWith('message_order_'))) {
+        keysToRemove.push(key);
       }
-      
-      if (dataToExport.length === 0) {
-        alert('没有可导出的数据');
-        return;
-      }
-      
-      debugLog('EXPORT', 'Exporting data', { itemCount: dataToExport.length });
-      
-      // 执行导出
-      const { exportData } = await import('./utils/exportManager');
-      const success = await exportData({
-        scope: dataToExport.length === 1 ? 'current' : 'multiple',
-        data: dataToExport.length === 1 ? dataToExport[0] : null,
-        dataList: dataToExport,
-        config: {
-          ...exportOptions,
-          ...exportFormatConfig,
-          marks: markManagerRef.current ? markManagerRef.current.getMarks() : {
-            completed: new Set(),
-            important: new Set(),
-            deleted: new Set()
-          }
-        }
-      });
-      
-      if (success) {
-        setShowExportPanel(false);
-      }
-    } catch (error) {
-      console.error('导出失败:', error);
-      alert('导出失败：' + error.message);
     }
+    
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    setOperatedFiles(new Set());
+    
+    if (markManagerRef.current) {
+      markManagerRef.current.clearAllMarks();
+    }
+    
+    if (sortManagerRef.current) {
+      sortManagerRef.current.resetSort();
+    }
+    
+    setMarkVersion(v => v + 1);
+    setSortVersion(v => v + 1);
   };
 
-  // ==================== 工具函数 ====================
-  
-  // 获取统计数据
+  // 获取统计 - 使用dataManager中的StatsCalculator
   const getStats = () => {
-    const markStats = markManagerRef.current ? markManagerRef.current.getStats() : {
-      completed: 0,
-      important: 0,
-      deleted: 0,
-      total: 0
-    };
-    
-    const allMarksStats = getAllMarksStats(
-      files, 
-      processedData, 
-      currentFileIndex, 
-      generateFileCardUuid, 
-      generateConversationCardUuid
-    );
-    
-    return StatsCalculator.calculateViewStats({
+    return StatsCalculator.getStats({
       viewMode,
       allCards,
       sortedMessages,
       timelineMessages,
       files,
-      allMarksStats,
-      stats: markStats,
+      markManagerRef,
+      starManagerRef,
       shouldUseStarSystem,
-      starActions: starManagerRef.current,
-      currentConversation
+      currentConversation,
+      getAllMarksStats,
+      generateFileCardUuid,
+      generateConversationCardUuid,
+      processedData,
+      currentFileIndex
     });
   };
 
@@ -912,21 +510,17 @@ function App() {
 
   // ==================== 副作用 ====================
   
-  // 文件切换后同步选中消息
   useEffect(() => {
     if (viewMode === 'timeline' && timelineMessages.length > 0) {
-      // 如果是桌面端且没有选中消息，选中第一条
       if (window.innerWidth >= 1024 && selectedMessageIndex === null) {
         const firstMessageIndex = timelineMessages[0]?.index;
         if (firstMessageIndex !== undefined) {
           setSelectedMessageIndex(firstMessageIndex);
-          debugLog('AUTO_SELECT', 'Selected first message', { index: firstMessageIndex });
         }
       }
     }
   }, [viewMode, timelineMessages, selectedMessageIndex]);
 
-  // 初始化时扫描已有操作记录
   useEffect(() => {
     if (files.length > 0) {
       const operatedSet = new Set();
@@ -956,23 +550,20 @@ function App() {
       
       if (operatedSet.size > 0) {
         setOperatedFiles(operatedSet);
-        debugLog('OPERATED_FILES', 'Found operated files', { count: operatedSet.size });
       }
     }
   }, [files, currentFileIndex, processedData]);
   
-  // 主题初始化
   useEffect(() => {
     ThemeUtils.applyTheme(ThemeUtils.getCurrentTheme());
   }, []);
 
-  // postMessage监听器
   useEffect(() => {
     const cleanup = postMessageHandler.setup();
     return cleanup;
   }, [postMessageHandler]);
 
-  // ==================== 渲染（保持原有的渲染逻辑不变） ====================
+  // ==================== 渲染 ====================
   
   return (
     <div className="app-redesigned">
@@ -1083,6 +674,8 @@ function App() {
                   filterStats={filterStats}
                   onFilterChange={filterActions.setFilter}
                   onReset={filterActions.resetFilters}
+                  onClearAllMarks={handleClearAllFilesMarks}
+                  operatedCount={operatedFiles.size}
                 />
               )}
 
@@ -1126,6 +719,8 @@ function App() {
                       setSelectedConversationUuid(null);
                     }}
                     searchQuery={searchQuery}
+                    branchState={currentBranchState}
+                    onBranchStateChange={setCurrentBranchState}
                   />
                 )}
               </div>
@@ -1273,6 +868,30 @@ function App() {
                       <input 
                         type="radio" 
                         name="scope" 
+                        value="currentBranch"
+                        checked={exportOptions.scope === 'currentBranch'}
+                        onChange={(e) => setExportOptions({...exportOptions, scope: e.target.value})}
+                        disabled={viewMode !== 'timeline' || currentBranchState.showAllBranches}
+                      />
+                      <div className="option-label">
+                        <span>当前时间线的当前分支</span>
+                        {viewMode === 'timeline' ? (
+                          currentBranchState.showAllBranches ? (
+                            <span className="hint">显示全部分支时不可选择</span>
+                          ) : (
+                            <span className="option-description">
+                              仅导出当前时间线中展示的分支
+                            </span>
+                          )
+                        ) : (
+                          <span className="hint">请先进入时间线视图</span>
+                        )}
+                      </div>
+                    </label>
+                    <label className="radio-option">
+                      <input 
+                        type="radio" 
+                        name="scope" 
                         value="operated"
                         checked={exportOptions.scope === 'operated'}
                         onChange={(e) => setExportOptions({...exportOptions, scope: e.target.value})}
@@ -1378,6 +997,7 @@ function App() {
                         exportOptions.includeTimestamps && '时间戳',
                         exportOptions.includeThinking && '思考过程', 
                         exportOptions.includeArtifacts && 'Artifacts',
+                        exportOptions.includeAttachments && '附加文件',
                         exportOptions.includeTools && '工具使用',
                         exportOptions.includeCitations && '引用来源'
                       ].filter(Boolean).join(' · ') || '仅基础内容'}
@@ -1389,7 +1009,7 @@ function App() {
                   <button className="btn-secondary" onClick={() => setShowExportPanel(false)}>
                     取消
                   </button>
-                  <button className="btn-primary" onClick={handleExport}>
+                  <button className="btn-primary" onClick={handleExportClick}>
                     导出为 Markdown
                   </button>
                 </div>

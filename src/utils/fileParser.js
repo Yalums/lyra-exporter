@@ -116,6 +116,7 @@ const extractClaudeData = (jsonData) => {
       artifacts: [],
       citations: [],
       images: [],
+      attachments: [], // 添加附件字段
       branch_id: null,
       is_branch_point: false,
       branch_level: 0
@@ -123,17 +124,29 @@ const extractClaudeData = (jsonData) => {
 
     // 处理消息内容
     if (msg.content && Array.isArray(msg.content)) {
-      processContentArray(msg.content, messageData);
+      processContentArray(msg.content, messageData, sender === "human");
     } else if (msg.text) {
       messageData.raw_text = msg.text;
       messageData.display_text = msg.text;
+    }
+    
+    // 处理附件
+    if (msg.attachments && Array.isArray(msg.attachments)) {
+      messageData.attachments = msg.attachments.map(attachment => ({
+        id: attachment.id || "",
+        file_name: attachment.file_name || "未知文件",
+        file_size: attachment.file_size || 0,
+        file_type: attachment.file_type || "",
+        extracted_content: attachment.extracted_content || "",
+        created_at: attachment.created_at ? parseTimestamp(attachment.created_at) : ""
+      }));
     }
     
     // 处理附件图片
     processMessageImages(msg, messageData);
     
     // 整理最终显示文本
-    finalizeDisplayText(messageData);
+    finalizeDisplayText(messageData, sender === "human");
 
     chatHistory.push(messageData);
   });
@@ -432,7 +445,7 @@ function createMessage(index, uuid, parentUuid, sender, senderLabel, timestamp) 
 }
 
 // 处理content数组
-function processContentArray(contentArray, messageData) {
+function processContentArray(contentArray, messageData, isHumanMessage = false) {
   let displayText = "";
 
   contentArray.forEach((item, index) => {
@@ -470,18 +483,24 @@ function processContentArray(contentArray, messageData) {
       displayText += imageInfo.placeholder;
     }
     else if (contentType === "thinking") {
-      messageData.thinking = (item.thinking || "").trim();
+      // 人类消息不包含思考过程
+      if (!isHumanMessage) {
+        messageData.thinking = (item.thinking || "").trim();
+      }
     }
     else if (contentType === "tool_use") {
-      if (item.name === "artifacts") {
-        const artifactData = extractArtifact(item);
-        if (artifactData) {
-          messageData.artifacts.push(artifactData);
-        }
-      } else {
-        const toolData = extractToolUse(item);
-        if (toolData) {
-          messageData.tools.push(toolData);
+      // 人类消息不包含Artifacts
+      if (!isHumanMessage) {
+        if (item.name === "artifacts") {
+          const artifactData = extractArtifact(item);
+          if (artifactData) {
+            messageData.artifacts.push(artifactData);
+          }
+        } else {
+          const toolData = extractToolUse(item);
+          if (toolData) {
+            messageData.tools.push(toolData);
+          }
         }
       }
     }
@@ -590,9 +609,10 @@ function processGeminiImage(imgData, itemIndex, imgIndex, platform) {
 }
 
 // 生成最终显示文本
-function finalizeDisplayText(messageData) {
+function finalizeDisplayText(messageData, isHumanMessage = false) {
   const hasAttachmentImages = messageData.images.some(img => !img.placeholder);
   
+  // 添加图片标记
   if (hasAttachmentImages) {
     const imageMarkdown = messageData.images
       .filter(img => !img.placeholder)
@@ -603,6 +623,8 @@ function finalizeDisplayText(messageData) {
       messageData.display_text = `${imageMarkdown}\n\n${messageData.display_text}`.trim();
     }
   }
+  
+  // 注意：附件信息不再添加到display_text中，而是保留在attachments字段中单独显示
 }
 
 // 提取artifact信息

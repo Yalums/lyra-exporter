@@ -1,14 +1,15 @@
 ﻿// hooks/useFullExportCardFilter.js
 import { useState, useMemo, useCallback } from 'react';
 
-export const useFullExportCardFilter = (conversations = []) => {
+export const useFullExportCardFilter = (conversations = [], operatedUuids = new Set()) => {
   const [filters, setFilters] = useState({
     name: '',
     dateRange: 'all', // 'all', 'today', 'week', 'month', 'custom'
     customDateStart: '',
     customDateEnd: '',
     project: 'all', // 'all', 'no_project', or specific project uuid
-    starred: 'all' // 'all', 'starred', 'unstarred'
+    starred: 'all', // 'all', 'starred', 'unstarred'
+    operated: 'all' // 'all', 'operated', 'unoperated'
   });
 
   // 获取所有可用的项目
@@ -45,6 +46,13 @@ export const useFullExportCardFilter = (conversations = []) => {
       if (filters.starred !== 'all') {
         if (filters.starred === 'starred' && !conv.is_starred) return false;
         if (filters.starred === 'unstarred' && conv.is_starred) return false;
+      }
+
+      // 操作状态筛选
+      if (filters.operated !== 'all') {
+        const isOperated = operatedUuids.has(conv.uuid);
+        if (filters.operated === 'operated' && !isOperated) return false;
+        if (filters.operated === 'unoperated' && isOperated) return false;
       }
 
       // 日期筛选
@@ -105,7 +113,8 @@ export const useFullExportCardFilter = (conversations = []) => {
       customDateStart: '',
       customDateEnd: '',
       project: 'all',
-      starred: 'all'
+      starred: 'all',
+      operated: 'all'
     });
   }, []);
 
@@ -114,7 +123,8 @@ export const useFullExportCardFilter = (conversations = []) => {
     const hasActiveFilters = filters.name.trim() || 
                            filters.dateRange !== 'all' || 
                            filters.project !== 'all' || 
-                           filters.starred !== 'all';
+                           filters.starred !== 'all' ||
+                           filters.operated !== 'all';
     
     return {
       total: conversations.length,
@@ -124,7 +134,8 @@ export const useFullExportCardFilter = (conversations = []) => {
         filters.name.trim(),
         filters.dateRange !== 'all',
         filters.project !== 'all',
-        filters.starred !== 'all'
+        filters.starred !== 'all',
+        filters.operated !== 'all'
       ].filter(Boolean).length
     };
   }, [conversations.length, filteredConversations.length, filters]);
@@ -158,6 +169,10 @@ export const useFullExportCardFilter = (conversations = []) => {
     
     if (filters.starred !== 'all') {
       parts.push(`星标: ${filters.starred === 'starred' ? '已星标' : '未星标'}`);
+    }
+    
+    if (filters.operated !== 'all') {
+      parts.push(`操作: ${filters.operated === 'operated' ? '有过操作' : '未操作'}`);
     }
     
     return parts.join(', ');

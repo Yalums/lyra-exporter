@@ -7,7 +7,6 @@ import MessageDetail from './MessageDetail';
 import PlatformIcon from './PlatformIcon';
 import { copyMessage } from '../utils/copyManager';
 import { PlatformUtils, DateTimeUtils, TextUtils } from '../utils/commonUtils';
-import '../styles/BranchSwitcher.css';
 
 // ==================== 分支切换器组件（内嵌） ====================
 const BranchSwitcher = ({ 
@@ -187,15 +186,33 @@ const ConversationTimeline = ({
   files = [],
   currentFileIndex = null,
   onFileSwitch = null,
-  searchQuery = ''
+  searchQuery = '',
+  branchState = null,
+  onBranchStateChange = null
 }) => {
   const [selectedMessageIndex, setSelectedMessageIndex] = useState(null);
   const [activeTab, setActiveTab] = useState('content');
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
   const [branchFilters, setBranchFilters] = useState(new Map());
-  const [showAllBranches, setShowAllBranches] = useState(false);
+  const [showAllBranches, setShowAllBranches] = useState(branchState?.showAllBranches || false);
   const [copiedMessageIndex, setCopiedMessageIndex] = useState(null);
   const [sortingEnabled, setSortingEnabled] = useState(false);
+  
+  // 滚动相关状态
+  const [isHeaderHidden, setIsHeaderHidden] = useState(false);
+  const [lastScrollY, setLastScrollY] = useState(0);
+  const [scrollDirection, setScrollDirection] = useState('up');
+  const leftPanelRef = React.useRef(null);
+  
+  // 同步外部分支状态
+  useEffect(() => {
+    if (branchState) {
+      setShowAllBranches(branchState.showAllBranches);
+      if (branchState.currentBranchIndexes) {
+        setBranchFilters(branchState.currentBranchIndexes);
+      }
+    }
+  }, [branchState]);
   
   // ==================== 分支分析 ====================
   
@@ -319,6 +336,62 @@ const ConversationTimeline = ({
     setSortingEnabled(enableSorting);
   }, [enableSorting]);
   
+  // 滚动监听器 - 智能顶栏隐藏/显示
+  useEffect(() => {
+    if (!isDesktop || !leftPanelRef.current) return;
+    
+    const leftPanel = leftPanelRef.current;
+    let ticking = false;
+    const SCROLL_THRESHOLD = 10; // 最小滚动距离
+    const HIDE_THRESHOLD = 100; // 开始隐藏的滚动距离
+    
+    const handleScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          const currentScrollY = leftPanel.scrollTop;
+          const deltaY = currentScrollY - lastScrollY;
+          
+          // 检测滚动方向
+          if (Math.abs(deltaY) > SCROLL_THRESHOLD) {
+            const newDirection = deltaY > 0 ? 'down' : 'up';
+            
+            // 向下滚动且超过阈值时隐藏顶栏
+            if (newDirection === 'down' && currentScrollY > HIDE_THRESHOLD && !isHeaderHidden) {
+              setIsHeaderHidden(true);
+              setScrollDirection('down');
+            }
+            // 向上滚动或滚动到顶部时显示顶栏
+            else if ((newDirection === 'up' || currentScrollY <= HIDE_THRESHOLD) && isHeaderHidden) {
+              setIsHeaderHidden(false);
+              setScrollDirection('up');
+            }
+            
+            setLastScrollY(currentScrollY);
+          }
+          
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+    
+    leftPanel.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      leftPanel.removeEventListener('scroll', handleScroll);
+    };
+  }, [isDesktop, lastScrollY, isHeaderHidden]);
+  
+  // 重置滚动状态 - 当数据改变时
+  useEffect(() => {
+    setIsHeaderHidden(false);
+    setLastScrollY(0);
+    setScrollDirection('up');
+    if (leftPanelRef.current) {
+      leftPanelRef.current.scrollTop = 0;
+    }
+  }, [conversation?.uuid, messages.length]);
+  
   // ==================== 消息过滤和显示 ====================
   
   const displayMessages = useMemo(() => {
@@ -369,6 +442,15 @@ const ConversationTimeline = ({
     setBranchFilters(prev => {
       const newFilters = new Map(prev);
       newFilters.set(branchPointUuid, newBranchIndex);
+      
+      // 通知父组件分支状态变化
+      if (onBranchStateChange) {
+        onBranchStateChange({
+          showAllBranches: false,
+          currentBranchIndexes: newFilters
+        });
+      }
+      
       return newFilters;
     });
   };
@@ -376,6 +458,14 @@ const ConversationTimeline = ({
   const handleShowAllBranches = () => {
     const newShowAllBranches = !showAllBranches;
     setShowAllBranches(newShowAllBranches);
+    
+    // 通知父组件分支状态变化
+    if (onBranchStateChange) {
+      onBranchStateChange({
+        showAllBranches: newShowAllBranches,
+        currentBranchIndexes: newShowAllBranches ? new Map() : branchFilters
+      });
+    }
     
     if (newShowAllBranches) {
       setBranchFilters(new Map());
@@ -507,10 +597,10 @@ const ConversationTimeline = ({
   const nextFilePreview = getFilePreview('next');
 
   return (
-    <div className={`enhanced-timeline-container ${platformClass} ${isDesktop ? 'desktop-layout' : 'mobile-layout'}`}>
+    <div className={`enhanced-timeline-container ${platformClass} ${isDesktop ? 'desktop-layout' : 'mobile-layout'} ${isHeaderHidden ? 'header-hidden' : ''}`}>
       <div className="timeline-main-content">
         {/* 左侧时间线面板 */}
-        <div className="timeline-left-panel">
+        <div className="timeline-left-panel" ref={leftPanelRef}>
           {/* 文件切换预览 - 顶部 */}
           {prevFilePreview && isDesktop && (
             <div 
@@ -527,7 +617,7 @@ const ConversationTimeline = ({
           
           {/* 对话信息卡片 */}
           {conversationInfo && (
-            <div className="conversation-info-card">
+            <div className={`conversation-info-card ${isHeaderHidden ? 'hidden' : ''}`}>
               <h2>
                 {conversationInfo.name} 
                 {conversationInfo.is_starred && ' ⭐'}
@@ -750,30 +840,35 @@ const ConversationTimeline = ({
                       
                       {/* 消息标签和标记 */}
                       <div className="timeline-footer">
-                        {msg.thinking && (
+                        {/* 思考过程 - 仅助手消息显示 */}
+                        {msg.sender !== 'human' && msg.thinking && (
                           <div className="timeline-tag">
                             <span>💭</span>
                             <span>有思考过程</span>
                           </div>
                         )}
+                        {/* 图片 */}
                         {msg.images && msg.images.length > 0 && (
                           <div className="timeline-tag">
                             <span>🖼️</span>
                             <span>{msg.images.length}张图片</span>
                           </div>
                         )}
-                        {!msg.images && msg.attachments && msg.attachments.length > 0 && (
+                        {/* 附件 - 主要用于人类消息 */}
+                        {msg.attachments && msg.attachments.length > 0 && (
                           <div className="timeline-tag">
-                            <span>🖼️</span>
+                            <span>📎</span>
                             <span>{msg.attachments.length}个附件</span>
                           </div>
                         )}
-                        {msg.artifacts && msg.artifacts.length > 0 && (
+                        {/* Artifacts - 仅助手消息显示 */}
+                        {msg.sender !== 'human' && msg.artifacts && msg.artifacts.length > 0 && (
                           <div className="timeline-tag">
                             <span>🔧</span>
                             <span>{msg.artifacts.length}个Artifacts</span>
                           </div>
                         )}
+                        {/* 工具使用 - 通常只有助手消息有 */}
                         {msg.tools && msg.tools.length > 0 && (
                           <div className="timeline-tag">
                             <span>🔍</span>

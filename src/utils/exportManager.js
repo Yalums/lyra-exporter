@@ -2,7 +2,10 @@
 // 重构后的导出管理模块
 
 import { DateTimeUtils, StorageUtils } from './commonUtils';
-import { generateFileCardUuid } from './uuidManager';
+import { generateFileCardUuid, generateConversationCardUuid, parseUuid, generateFileHash } from './uuidManager';
+import { extractChatData, detectBranches } from './fileParser';
+import { MarkManager } from './markManager';
+import { SortManager } from './sortManager';
 
 /**
  * 导出配置
@@ -13,6 +16,7 @@ export const ExportConfig = {
     includeTools: true,
     includeArtifacts: true,
     includeCitations: true,
+    includeAttachments: true,
     includeTimestamps: false,
     exportObsidianMetadata: false,
     exportMarkedOnly: false,
@@ -196,13 +200,18 @@ export class MarkdownGenerator {
     lines.push(msg.display_text, '');
     }
 
-    // 思考过程
-    if (msg.thinking && this.config.includeThinking) {
+    // 附件（仅对人类消息，且配置开启时）
+    if (msg.attachments?.length > 0 && this.config.includeAttachments && msg.sender === 'human') {
+      lines.push(this.formatAttachments(msg.attachments));
+    }
+
+    // 思考过程（仅对非人类消息）
+    if (msg.thinking && this.config.includeThinking && msg.sender !== 'human') {
       lines.push(this.formatThinking(msg.thinking));
     }
 
-    // Artifacts
-    if (msg.artifacts?.length > 0 && this.config.includeArtifacts) {
+    // Artifacts（仅对非人类消息）
+    if (msg.artifacts?.length > 0 && this.config.includeArtifacts && msg.sender !== 'human') {
       msg.artifacts.forEach(artifact => {
         lines.push(this.formatArtifact(artifact));
       });
@@ -237,6 +246,45 @@ export class MarkdownGenerator {
       '</details>',
       ''
     ].join('\n');
+  }
+
+  /**
+   * 格式化附件
+   */
+  formatAttachments(attachments) {
+    const lines = [
+      '<details>',
+      '<summary>📎 附加文件</summary>',
+      ''
+    ];
+    
+    attachments.forEach(att => {
+      const sizeStr = this.formatFileSize(att.file_size);
+      lines.push(`- **${att.file_name}** (${sizeStr})`);
+      if (att.file_type) {
+        lines.push(`  - 类型: ${att.file_type}`);
+      }
+      if (att.extracted_content) {
+        const preview = att.extracted_content.substring(0, 200);
+        const previewText = preview.length < att.extracted_content.length ? 
+          `${preview}...` : preview;
+        lines.push(`  - 内容预览: ${previewText}`);
+      }
+    });
+    
+    lines.push('', '</details>', '');
+    return lines.join('\n');
+  }
+
+  /**
+   * 格式化文件大小
+   */
+  formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
   /**
@@ -493,6 +541,199 @@ export class FileExporter {
     }
     
     return `export_${date}.md`;
+  }
+}
+
+/**
+ * 处理导出操作（从App.js移入以简化主文件）
+ * @param {Object} params - 导出参数
+ * @returns {Promise<boolean>} 成功与否
+ */
+export async function handleExport({
+  exportOptions,
+  processedData,
+  sortManagerRef,
+  sortedMessages,
+  markManagerRef,
+  currentBranchState,
+  operatedFiles,
+  files,
+  currentFileIndex
+}) {
+  try {
+    const exportFormatConfig = StorageUtils.getLocalStorage('export-config', {
+      includeNumbering: true,
+      numberingFormat: 'numeric',
+      senderFormat: 'default',
+      humanLabel: '人类',
+      assistantLabel: 'Claude',
+      includeHeaderPrefix: true,
+      headerLevel: 2
+    });
+    
+    let dataToExport = [];
+    
+    switch (exportOptions.scope) {
+      case 'current':
+        if (processedData) {
+          const messagesToExport = sortManagerRef?.current?.hasCustomSort() ? 
+            sortedMessages : (processedData.chat_history || []);
+          
+          dataToExport = [{
+            ...processedData,
+            chat_history: messagesToExport
+          }];
+        }
+        break;
+      
+      case 'currentBranch':
+        if (processedData && currentBranchState && !currentBranchState.showAllBranches) {
+          let branchMessages = processedData.chat_history || [];
+          
+          if (currentBranchState.currentBranchIndexes && currentBranchState.currentBranchIndexes.size > 0) {
+            branchMessages = branchMessages.filter(msg => {
+              if (!msg.is_branch_point) return true;
+              const branchIndex = currentBranchState.currentBranchIndexes.get(msg.uuid);
+              if (branchIndex !== undefined) {
+                return msg.branch_id === branchIndex || msg.branch_id === null;
+              }
+              return true;
+            });
+          }
+          
+          const messagesToExport = sortManagerRef?.current?.hasCustomSort() ? 
+            sortManagerRef.current.getSortedMessages().filter(msg => 
+              branchMessages.some(bm => bm.uuid === msg.uuid)
+            ) : branchMessages;
+          
+          dataToExport = [{
+            ...processedData,
+            chat_history: messagesToExport
+          }];
+        }
+        break;
+        
+      case 'operated':
+        const processedFileIndices = new Set();
+        
+        for (const fileUuid of operatedFiles) {
+          const parsed = parseUuid(fileUuid);
+          let fileIndex = -1;
+          let isConversation = false;
+          let conversationUuid = null;
+          
+          if (parsed.conversationUuid) {
+            isConversation = true;
+            conversationUuid = parsed.conversationUuid;
+            fileIndex = parsed.fileIndex;
+          } else {
+            fileIndex = files.findIndex((file, index) => {
+              const fUuid = generateFileCardUuid(index, file);
+              return fUuid === fileUuid || fileUuid.includes(generateFileHash(file));
+            });
+          }
+          
+          if (fileIndex !== -1 && !processedFileIndices.has(fileIndex)) {
+            const file = files[fileIndex];
+            try {
+              const text = await file.text();
+              const jsonData = JSON.parse(text);
+              let data = extractChatData(jsonData, file.name);
+              data = detectBranches(data);
+              
+              if (data.format === 'claude_full_export' && isConversation && conversationUuid) {
+                const conversation = data.views?.conversationList?.find(
+                  conv => conv.uuid === conversationUuid
+                );
+                
+                if (conversation) {
+                  const conversationMessages = data.chat_history?.filter(
+                    msg => msg.conversation_uuid === conversationUuid && !msg.is_conversation_header
+                  ) || [];
+                  
+                  const convUuid = generateConversationCardUuid(fileIndex, conversationUuid, file);
+                  const convSortManager = new SortManager(conversationMessages, convUuid);
+                  const sortedMsgs = convSortManager.getSortedMessages();
+                  
+                  dataToExport.push({
+                    ...data,
+                    meta_info: {
+                      ...data.meta_info,
+                      title: conversation.name || '未命名对话'
+                    },
+                    chat_history: sortedMsgs,
+                    views: {
+                      conversationList: [conversation]
+                    }
+                  });
+                }
+              } else {
+                const fileSortManager = new SortManager(data.chat_history || [], fileUuid);
+                const sortedMsgs = fileSortManager.getSortedMessages();
+                
+                dataToExport.push({
+                  ...data,
+                  chat_history: sortedMsgs
+                });
+                
+                processedFileIndices.add(fileIndex);
+              }
+            } catch (err) {
+              console.error(`无法处理文件 ${file.name}:`, err);
+            }
+          }
+        }
+        break;
+        
+      case 'all':
+        for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
+          const file = files[fileIndex];
+          try {
+            const text = await file.text();
+            const jsonData = JSON.parse(text);
+            let data = extractChatData(jsonData, file.name);
+            data = detectBranches(data);
+            
+            const fileUuid = generateFileCardUuid(fileIndex, file);
+            const fileSortManager = new SortManager(data.chat_history || [], fileUuid);
+            const sortedMsgs = fileSortManager.getSortedMessages();
+            
+            dataToExport.push({
+              ...data,
+              chat_history: sortedMsgs
+            });
+          } catch (err) {
+            console.error(`无法处理文件 ${file.name}:`, err);
+          }
+        }
+        break;
+    }
+    
+    if (dataToExport.length === 0) {
+      alert('没有可导出的数据');
+      return false;
+    }
+    
+    const success = await exportData({
+      scope: dataToExport.length === 1 ? 'current' : 'multiple',
+      data: dataToExport.length === 1 ? dataToExport[0] : null,
+      dataList: dataToExport,
+      config: {
+        ...exportOptions,
+        ...exportFormatConfig,
+        marks: markManagerRef?.current ? markManagerRef.current.getMarks() : {
+          completed: new Set(),
+          important: new Set(),
+          deleted: new Set()
+        }
+      }
+    });
+    
+    return success;
+  } catch (error) {
+    console.error('导出失败:', error);
+    alert('导出失败：' + error.message);
+    return false;
   }
 }
 

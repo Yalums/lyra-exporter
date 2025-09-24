@@ -16,6 +16,8 @@ const MessageDetail = ({
   const contentRef = useRef(null);
   const [imageLoadErrors, setImageLoadErrors] = useState({});
   const [internalActiveTab, setInternalActiveTab] = useState(activeTab);
+  const [expandedAttachments, setExpandedAttachments] = useState(new Set());
+  const [attachmentViewMode, setAttachmentViewMode] = useState({}); // 'preview' or 'full' for each attachment
   
   // 使用内部状态管理activeTab，如果没有提供onTabChange
   const currentActiveTab = onTabChange ? activeTab : internalActiveTab;
@@ -49,12 +51,28 @@ const MessageDetail = ({
   const getAvailableTabs = () => {
     const baseTabs = [{ id: 'content', label: '内容' }];
     
-    // 只有Claude格式才显示思考过程和Artifacts
-    if (format === 'claude' || format === 'claude_full_export' || !format) {
-      baseTabs.push(
-        { id: 'thinking', label: '思考过程' },
-        { id: 'artifacts', label: 'Artifacts' }
-      );
+    // 如果没有选中消息，返回基础标签
+    if (!currentMessage) {
+      return baseTabs;
+    }
+    
+    // 人类消息的处理
+    if (currentMessage.sender === 'human') {
+      // 人类消息不显示思考过程和Artifacts
+      // 但如果有附件，显示附件选项卡
+      if (currentMessage.attachments && currentMessage.attachments.length > 0) {
+        baseTabs.push({ id: 'attachments', label: '附加文件' });
+      }
+    } else {
+      // 助手消息的处理（仅Claude格式显示思考过程和Artifacts）
+      if (format === 'claude' || format === 'claude_full_export' || !format) {
+        if (currentMessage.thinking) {
+          baseTabs.push({ id: 'thinking', label: '思考过程' });
+        }
+        if (currentMessage.artifacts && currentMessage.artifacts.length > 0) {
+          baseTabs.push({ id: 'artifacts', label: 'Artifacts' });
+        }
+      }
     }
     
     return baseTabs;
@@ -73,6 +91,8 @@ const MessageDetail = ({
   // 清除图片错误状态当消息改变时
   useEffect(() => {
     setImageLoadErrors({});
+    setExpandedAttachments(new Set());
+    setAttachmentViewMode({});
   }, [selectedMessageIndex]);
 
   // 自定义渲染组件，用于搜索高亮
@@ -318,6 +338,296 @@ const MessageDetail = ({
     ));
   };
 
+  // 渲染附件
+  const renderAttachments = (attachments) => {
+    if (!attachments || attachments.length === 0) {
+      return <div className="placeholder">此消息没有附件</div>;
+    }
+
+    const formatFileSize = (bytes) => {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    };
+
+    const toggleExpanded = (index) => {
+      const newExpanded = new Set(expandedAttachments);
+      if (newExpanded.has(index)) {
+        newExpanded.delete(index);
+      } else {
+        newExpanded.add(index);
+      }
+      setExpandedAttachments(newExpanded);
+    };
+
+    const toggleViewMode = (index) => {
+      setAttachmentViewMode(prev => ({
+        ...prev,
+        [index]: prev[index] === 'full' ? 'preview' : 'full'
+      }));
+    };
+
+    const getFileExtension = (fileName) => {
+      if (!fileName) return '';
+      const parts = fileName.split('.');
+      return parts.length > 1 ? parts.pop().toLowerCase() : '';
+    };
+
+    const renderFileContent = (attachment, index) => {
+      if (!attachment.extracted_content) return null;
+
+      const isExpanded = expandedAttachments.has(index);
+      const isFullView = attachmentViewMode[index] === 'full';
+      const fileExt = getFileExtension(attachment.file_name);
+      const isMarkdown = fileExt === 'md' || fileExt === 'markdown';
+      const isCode = ['js', 'jsx', 'ts', 'tsx', 'py', 'java', 'cpp', 'c', 'cs', 'go', 'rs', 'php', 'rb', 'swift'].includes(fileExt);
+      
+      const content = isFullView ? 
+        attachment.extracted_content : 
+        attachment.extracted_content.substring(0, 1000);
+      
+      const needsToggle = attachment.extracted_content.length > 1000;
+
+      return (
+        <div className="attachment-content">
+          <div className="content-header">
+            <h5>
+              {isFullView ? '完整内容' : '内容预览'}
+              {attachment.extracted_content.length > 50 && (
+                <span className="content-length"> ({attachment.extracted_content.length} 字符)</span>
+              )}
+            </h5>
+            {needsToggle && (
+              <button 
+                className="toggle-view-btn"
+                onClick={() => toggleViewMode(index)}
+                style={{
+                  marginLeft: '10px',
+                  padding: '4px 12px',
+                  fontSize: '12px',
+                  background: '#f0f0f0',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                {isFullView ? '显示预览' : '显示全部'}
+              </button>
+            )}
+          </div>
+          
+          <div 
+            className="content-body"
+            style={{
+              maxHeight: isExpanded ? 'none' : '300px',
+              overflow: isExpanded ? 'visible' : 'hidden',
+              position: 'relative'
+            }}
+          >
+            {isMarkdown ? (
+              <div className="markdown-content" style={{
+                padding: '15px',
+                background: '#f8f9fa',
+                borderRadius: '4px',
+                border: '1px solid #e1e4e8'
+              }}>
+                <ReactMarkdown 
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    // 自定义代码块样式
+                    code: ({node, inline, className, children, ...props}) => {
+                      const match = /language-(\w+)/.exec(className || '');
+                      return !inline && match ? (
+                        <pre style={{
+                          background: '#2d2d2d',
+                          color: '#f8f8f2',
+                          padding: '10px',
+                          borderRadius: '4px',
+                          overflow: 'auto'
+                        }}>
+                          <code className={className} {...props}>
+                            {children}
+                          </code>
+                        </pre>
+                      ) : (
+                        <code style={{
+                          background: '#f6f8fa',
+                          padding: '2px 4px',
+                          borderRadius: '3px',
+                          fontSize: '85%'
+                        }} {...props}>
+                          {children}
+                        </code>
+                      );
+                    },
+                    // 自定义标题样式
+                    h1: ({children}) => <h1 style={{fontSize: '1.8em', marginTop: '20px', marginBottom: '10px'}}>{children}</h1>,
+                    h2: ({children}) => <h2 style={{fontSize: '1.5em', marginTop: '18px', marginBottom: '8px'}}>{children}</h2>,
+                    h3: ({children}) => <h3 style={{fontSize: '1.3em', marginTop: '16px', marginBottom: '6px'}}>{children}</h3>,
+                    // 自定义列表样式
+                    ul: ({children}) => <ul style={{paddingLeft: '25px', marginBottom: '10px'}}>{children}</ul>,
+                    ol: ({children}) => <ol style={{paddingLeft: '25px', marginBottom: '10px'}}>{children}</ol>,
+                    // 自定义引用块
+                    blockquote: ({children}) => (
+                      <blockquote style={{
+                        borderLeft: '4px solid #dfe2e5',
+                        paddingLeft: '16px',
+                        margin: '10px 0',
+                        color: '#6a737d'
+                      }}>
+                        {children}
+                      </blockquote>
+                    )
+                  }}
+                >
+                  {content}
+                </ReactMarkdown>
+                {!isFullView && needsToggle && (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '10px',
+                    color: '#666',
+                    fontSize: '14px'
+                  }}>
+                    ... 内容已截断 ...
+                  </div>
+                )}
+              </div>
+            ) : isCode ? (
+              <pre className="code-content" style={{
+                background: '#2d2d2d',
+                color: '#f8f8f2',
+                padding: '15px',
+                borderRadius: '4px',
+                overflow: 'auto',
+                fontFamily: 'Monaco, Consolas, "Courier New", monospace',
+                fontSize: '13px',
+                lineHeight: '1.5'
+              }}>
+                <code>{content}</code>
+                {!isFullView && needsToggle && (
+                  <div style={{color: '#888', marginTop: '10px'}}>
+                    ... 代码已截断 ...
+                  </div>
+                )}
+              </pre>
+            ) : (
+              <pre className="text-content" style={{
+                background: '#f8f9fa',
+                padding: '15px',
+                borderRadius: '4px',
+                whiteSpace: 'pre-wrap',
+                wordWrap: 'break-word',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                fontSize: '14px',
+                lineHeight: '1.6'
+              }}>
+                {content}
+                {!isFullView && needsToggle && '...'}
+              </pre>
+            )}
+            
+            {/* 渐变遮罩效果 */}
+            {!isExpanded && attachment.extracted_content.length > 300 && (
+              <div style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: '60px',
+                background: 'linear-gradient(transparent, rgba(255,255,255,0.95))',
+                pointerEvents: 'none'
+              }} />
+            )}
+          </div>
+          
+          {attachment.extracted_content.length > 300 && (
+            <button 
+              className="expand-btn"
+              onClick={() => toggleExpanded(index)}
+              style={{
+                width: '100%',
+                padding: '8px',
+                marginTop: '10px',
+                background: isExpanded ? '#e3f2fd' : '#f5f5f5',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                color: '#1976d2'
+              }}
+            >
+              {isExpanded ? '⬆ 收起内容' : '⬇ 展开显示更多'}
+            </button>
+          )}
+        </div>
+      );
+    };
+
+    return (
+      <div className="attachments-list">
+        {attachments.map((attachment, index) => (
+          <div key={index} className="attachment-item" style={{
+            marginBottom: '20px',
+            padding: '15px',
+            background: '#fff',
+            border: '1px solid #e1e4e8',
+            borderRadius: '6px'
+          }}>
+            <div className="attachment-header" style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              marginBottom: '10px',
+              paddingBottom: '10px',
+              borderBottom: '1px solid #f0f0f0'
+            }}>
+              <span className="attachment-icon" style={{fontSize: '20px'}}>
+                {getFileExtension(attachment.file_name) === 'md' ? '📝' : 
+                 getFileExtension(attachment.file_name) === 'docx' ? '📄' : 
+                 getFileExtension(attachment.file_name) === 'pdf' ? '📕' : '📎'}
+              </span>
+              <span className="attachment-name" style={{
+                fontWeight: 'bold',
+                fontSize: '16px',
+                flex: 1
+              }}>{attachment.file_name || '未知文件'}</span>
+              <span className="attachment-size" style={{
+                color: '#666',
+                fontSize: '14px'
+              }}>({formatFileSize(attachment.file_size)})</span>
+            </div>
+            
+            {attachment.file_type && (
+              <div className="attachment-meta" style={{
+                marginBottom: '10px',
+                fontSize: '13px',
+                color: '#666'
+              }}>
+                <span>类型: {attachment.file_type || getFileExtension(attachment.file_name)}</span>
+              </div>
+            )}
+            
+            {renderFileContent(attachment, index)}
+            
+            {attachment.created_at && (
+              <div className="attachment-timestamp" style={{
+                marginTop: '10px',
+                fontSize: '12px',
+                color: '#999',
+                fontStyle: 'italic'
+              }}>
+                创建时间: {attachment.created_at}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   // 渲染工具使用记录
   const renderTools = (tools) => {
     if (!tools || tools.length === 0) {
@@ -449,6 +759,13 @@ const MessageDetail = ({
         return (
           <div className="artifacts-content">
             {renderArtifacts(currentMessage.artifacts)}
+          </div>
+        );
+
+      case 'attachments':
+        return (
+          <div className="attachments-content">
+            {renderAttachments(currentMessage.attachments)}
           </div>
         );
 

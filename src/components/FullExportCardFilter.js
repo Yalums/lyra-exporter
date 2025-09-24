@@ -7,6 +7,8 @@ const FullExportCardFilter = ({
   filterStats,
   onFilterChange,
   onReset,
+  onClearAllMarks,
+  operatedCount = 0,
   className = ""
 }) => {
   const formatDate = (dateStr) => {
@@ -31,15 +33,26 @@ const FullExportCardFilter = ({
               <span className="filter-badge">{filterStats.activeFilterCount}</span>
             )}
           </div>
-          {filterStats.hasActiveFilters && (
-            <button 
-              className="btn-secondary small"
-              onClick={onReset}
-              title="清除所有筛选条件"
-            >
-              ✕ 清除筛选
-            </button>
-          )}
+          <div className="filter-actions" style={{ display: 'flex', gap: '8px' }}>
+            {filterStats.hasActiveFilters && (
+              <button 
+                className="btn-secondary small"
+                onClick={onReset}
+                title="清除所有筛选条件"
+              >
+                ✕ 清除筛选
+              </button>
+            )}
+            {onClearAllMarks && operatedCount > 0 && (
+              <button 
+                className="btn-secondary small"
+                onClick={onClearAllMarks}
+                title={`清除所有文件的标记（${operatedCount}个有操作）`}
+              >
+                🔄 清除全部标记
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="filter-sections">
@@ -124,6 +137,20 @@ const FullExportCardFilter = ({
               <option value="all">全部</option>
               <option value="starred">⭐ 已星标</option>
               <option value="unstarred">○ 未星标</option>
+            </select>
+          </div>
+
+          {/* 操作状态筛选 */}
+          <div className="filter-section">
+            <label className="filter-label">操作状态</label>
+            <select
+              className="filter-select"
+              value={filters.operated || 'all'}
+              onChange={(e) => onFilterChange('operated', e.target.value)}
+            >
+              <option value="all">全部</option>
+              <option value="operated">✏️ 有过操作</option>
+              <option value="unoperated">○ 未操作</option>
             </select>
           </div>
         </div>
