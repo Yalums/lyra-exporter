@@ -1,0 +1,241 @@
+/* =================== 导出面板样式 =================== */
+
+/* 导出模态框 */
+.modal-content.export-modal {
+  max-width: 700px;
+  padding: 0;
+}
+
+.export-modal .modal-header {
+  padding: 24px;
+  border-bottom: 1px solid var(--border-primary);
+  margin-bottom: 0;
+  background: var(--bg-secondary);
+}
+
+.export-modal .modal-header h2 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.export-modal .export-info {
+  padding: 20px 32px;
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border-primary);
+  margin: 0;
+}
+
+.export-modal .modal-buttons {
+  padding: 24px 32px;
+  display: flex;
+  gap: 16px;
+  justify-content: flex-end;
+  border-top: 1px solid var(--border-primary);
+  margin-top: 0;
+  background: var(--bg-primary);
+}
+
+.export-modal .modal-buttons button {
+  padding: 10px 24px;
+  font-size: 1rem;
+}
+
+/* 导出选项 */
+.export-options {
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  background: var(--bg-secondary);
+}
+
+.option-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.option-group h3 {
+  margin: 0 0 12px 0;
+  font-size: 1.2rem;
+  color: var(--text-primary);
+  font-weight: 600;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--border-primary);
+}
+
+.radio-option,
+.checkbox-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: 1px solid transparent;
+}
+
+.radio-option:hover,
+.checkbox-option:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--border-primary);
+}
+
+.radio-option input,
+.checkbox-option input {
+  margin-top: 2px;
+}
+
+.option-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.option-label span:first-child {
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.option-description {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+/* 导出信息 */
+.export-info {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin: 16px 0;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--bg-tertiary);
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-row .label {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.info-row .value {
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* 导出范围标签 */
+.export-range-tabs {
+  display: flex;
+  gap: 2px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  padding: 4px;
+  border-radius: var(--radius-md);
+  margin-bottom: 20px;
+}
+
+.export-range-tab {
+  flex: 1;
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all var(--transition-fast);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.export-range-tab:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.export-range-tab.active {
+  background: var(--accent-primary);
+  color: white;
+}
+
+/* 导出进度 */
+.export-progress {
+  padding: 20px;
+  text-align: center;
+}
+
+.export-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 16px 0;
+}
+
+.export-progress-fill {
+  height: 100%;
+  background: var(--accent-primary);
+  transition: width 0.3s ease;
+}
+
+.export-progress-text {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* Obsidian选项 */
+.obsidian-options {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.obsidian-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.obsidian-input-group label {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.obsidian-input-group input,
+.obsidian-input-group textarea {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.obsidian-input-group textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.obsidian-hint {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 4px;
+}

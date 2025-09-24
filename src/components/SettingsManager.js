@@ -364,7 +364,7 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
           {/* 关于 */}
           <SettingsSection title="关于">
             <SettingItem label="Lyra Exporter" description="强大的对话导出和管理工具" static={true} />
-            <SettingItem label="版本" description="v1.5.0" static={true} />
+            <SettingItem label="版本" description="v1.5.1" static={true} />
             <SettingItem label="GitHub" description="开源项目，欢迎贡献和反馈" static={true} />
           </SettingsSection>
         </div>

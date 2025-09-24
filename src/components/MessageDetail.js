@@ -403,15 +403,6 @@ const MessageDetail = ({
               <button 
                 className="toggle-view-btn"
                 onClick={() => toggleViewMode(index)}
-                style={{
-                  marginLeft: '10px',
-                  padding: '4px 12px',
-                  fontSize: '12px',
-                  background: '#f0f0f0',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                }}
               >
                 {isFullView ? '显示预览' : '显示全部'}
               </button>
@@ -422,17 +413,11 @@ const MessageDetail = ({
             className="content-body"
             style={{
               maxHeight: isExpanded ? 'none' : '300px',
-              overflow: isExpanded ? 'visible' : 'hidden',
-              position: 'relative'
+              overflow: isExpanded ? 'visible' : 'hidden'
             }}
           >
             {isMarkdown ? (
-              <div className="markdown-content" style={{
-                padding: '15px',
-                background: '#f8f9fa',
-                borderRadius: '4px',
-                border: '1px solid #e1e4e8'
-              }}>
+              <div className="markdown-content">
                 <ReactMarkdown 
                   remarkPlugins={[remarkGfm]}
                   components={{
@@ -488,7 +473,7 @@ const MessageDetail = ({
                   <div style={{
                     textAlign: 'center',
                     padding: '10px',
-                    color: '#666',
+                    color: 'var(--text-secondary)',
                     fontSize: '14px'
                   }}>
                     ... 内容已截断 ...
@@ -496,34 +481,16 @@ const MessageDetail = ({
                 )}
               </div>
             ) : isCode ? (
-              <pre className="code-content" style={{
-                background: '#2d2d2d',
-                color: '#f8f8f2',
-                padding: '15px',
-                borderRadius: '4px',
-                overflow: 'auto',
-                fontFamily: 'Monaco, Consolas, "Courier New", monospace',
-                fontSize: '13px',
-                lineHeight: '1.5'
-              }}>
+              <pre className="code-content">
                 <code>{content}</code>
                 {!isFullView && needsToggle && (
-                  <div style={{color: '#888', marginTop: '10px'}}>
+                  <div style={{color: 'var(--text-secondary)', marginTop: '10px'}}>
                     ... 代码已截断 ...
                   </div>
                 )}
               </pre>
             ) : (
-              <pre className="text-content" style={{
-                background: '#f8f9fa',
-                padding: '15px',
-                borderRadius: '4px',
-                whiteSpace: 'pre-wrap',
-                wordWrap: 'break-word',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                fontSize: '14px',
-                lineHeight: '1.6'
-              }}>
+              <pre className="text-content">
                 {content}
                 {!isFullView && needsToggle && '...'}
               </pre>
@@ -531,15 +498,7 @@ const MessageDetail = ({
             
             {/* 渐变遮罩效果 */}
             {!isExpanded && attachment.extracted_content.length > 300 && (
-              <div style={{
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: '60px',
-                background: 'linear-gradient(transparent, rgba(255,255,255,0.95))',
-                pointerEvents: 'none'
-              }} />
+              <div className="gradient-overlay" />
             )}
           </div>
           
@@ -547,17 +506,6 @@ const MessageDetail = ({
             <button 
               className="expand-btn"
               onClick={() => toggleExpanded(index)}
-              style={{
-                width: '100%',
-                padding: '8px',
-                marginTop: '10px',
-                background: isExpanded ? '#e3f2fd' : '#f5f5f5',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                color: '#1976d2'
-              }}
             >
               {isExpanded ? '⬆ 收起内容' : '⬇ 展开显示更多'}
             </button>
@@ -569,43 +517,19 @@ const MessageDetail = ({
     return (
       <div className="attachments-list">
         {attachments.map((attachment, index) => (
-          <div key={index} className="attachment-item" style={{
-            marginBottom: '20px',
-            padding: '15px',
-            background: '#fff',
-            border: '1px solid #e1e4e8',
-            borderRadius: '6px'
-          }}>
-            <div className="attachment-header" style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              marginBottom: '10px',
-              paddingBottom: '10px',
-              borderBottom: '1px solid #f0f0f0'
-            }}>
-              <span className="attachment-icon" style={{fontSize: '20px'}}>
+          <div key={index} className="attachment-item">
+            <div className="attachment-header">
+              <span className="attachment-icon">
                 {getFileExtension(attachment.file_name) === 'md' ? '📝' : 
                  getFileExtension(attachment.file_name) === 'docx' ? '📄' : 
                  getFileExtension(attachment.file_name) === 'pdf' ? '📕' : '📎'}
               </span>
-              <span className="attachment-name" style={{
-                fontWeight: 'bold',
-                fontSize: '16px',
-                flex: 1
-              }}>{attachment.file_name || '未知文件'}</span>
-              <span className="attachment-size" style={{
-                color: '#666',
-                fontSize: '14px'
-              }}>({formatFileSize(attachment.file_size)})</span>
+              <span className="attachment-name">{attachment.file_name || '未知文件'}</span>
+              <span className="attachment-size">({formatFileSize(attachment.file_size)})</span>
             </div>
             
             {attachment.file_type && (
-              <div className="attachment-meta" style={{
-                marginBottom: '10px',
-                fontSize: '13px',
-                color: '#666'
-              }}>
+              <div className="attachment-meta">
                 <span>类型: {attachment.file_type || getFileExtension(attachment.file_name)}</span>
               </div>
             )}
@@ -613,12 +537,7 @@ const MessageDetail = ({
             {renderFileContent(attachment, index)}
             
             {attachment.created_at && (
-              <div className="attachment-timestamp" style={{
-                marginTop: '10px',
-                fontSize: '12px',
-                color: '#999',
-                fontStyle: 'italic'
-              }}>
+              <div className="attachment-timestamp">
                 创建时间: {attachment.created_at}
               </div>
             )}

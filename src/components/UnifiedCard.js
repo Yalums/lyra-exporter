@@ -24,7 +24,8 @@ export const Card = ({
 
   const handleStar = (e) => {
     e.stopPropagation();
-    if (onStar) onStar(item.uuid, isStarred);
+    // 传递item.uuid和原始的星标状态（item.is_starred）给StarManager
+    if (onStar) onStar(item.uuid, item.is_starred || false);
   };
 
   const handleRemove = (e) => {

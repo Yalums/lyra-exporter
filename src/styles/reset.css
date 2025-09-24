@@ -1,0 +1,79 @@
+/* =================== 全局重置和基础样式 =================== */
+
+/* 全局重置 */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* 星标样式 */
+.star {
+  color: #f1e05a;
+  font-size: 16px;
+  filter: drop-shadow(0 0 2px rgba(241, 224, 90, 0.3));
+}
+
+/* 基础HTML元素 */
+html, body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+/* 链接样式 */
+a {
+  color: var(--text-link);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-secondary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-primary);
+}
+
+/* 代码块基础样式 */
+code {
+  font-family: 'SF Mono', Monaco, Consolas, 'Courier New', monospace;
+  background: var(--bg-tertiary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+pre {
+  font-family: 'SF Mono', Monaco, Consolas, 'Courier New', monospace;
+  background: var(--bg-tertiary);
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+pre code {
+  background: transparent;
+  padding: 0;
+}

@@ -1,6 +1,6 @@
 ﻿// App.js - 大幅简化版本
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import './styles/base.css';
+import './styles/index.css';
 
 // 组件导入
 import WelcomePage from './components/WelcomePage';
@@ -377,7 +377,8 @@ function App() {
   const handleStarToggle = (conversationUuid, nativeIsStarred) => {
     if (starManagerRef.current) {
       starManagerRef.current.toggleStar(conversationUuid, nativeIsStarred);
-      setSelectedConversation(prev => prev);
+      // 强制重新渲染以更新星标显示
+      setSortVersion(v => v + 1);
     }
   };
 
@@ -598,7 +599,6 @@ function App() {
               
               {!isFullExportConversationMode && (
                 <div className="search-box">
-                  <span className="search-icon">🔍</span>
                   <input 
                     type="text" 
                     className="search-input"

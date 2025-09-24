@@ -1,0 +1,90 @@
+/* =================== CSS变量和主题定义 =================== */
+
+/* CSS变量定义（只定义一次） */
+:root {
+  /* 深色主题（默认） */
+  --bg-primary: #262624;
+  --bg-secondary: #2a2a2a;
+  --bg-tertiary: #3a3a3a;
+  --bg-overlay: rgba(38, 38, 36, 0.95);
+  
+  --border-primary: #404040;
+  --border-secondary: #555555;
+  --border-active: #4475A5;
+  --border-color: #404040; /* SettingsPanel别名 */
+  
+  --text-primary: #f5f5f5;
+  --text-secondary: #d1d5db;
+  --text-tertiary: #9ca3af;
+  --text-link: #f59e0b;
+  
+  --accent-primary: #d97706;
+  --accent-color: #d97706; /* SettingsPanel别名 */
+  --accent-secondary: #C2C0B6;
+  --accent-danger: #dc2626;
+  --accent-warning: #f59e0b;
+  --accent-info: #FAF9F5;
+  
+  --gradient-primary: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+  
+  /* 代码和字体 */
+  --bg-code: #1a1a1a;
+  --text-code: #e1e1e1;
+  --font-mono: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', monospace;
+  --font-system: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+  
+  /* 头像颜色 */
+  --avatar-human-bg: #C2C0B6;
+  --avatar-human-text: #272725;
+  --avatar-ai-bg: #D97757;
+  --avatar-ai-text: white;
+  
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.7);
+  
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  
+  --transition-fast: 0.2s ease;
+  --transition-normal: 0.3s ease;
+}
+
+/* 浅色主题 */
+[data-theme="light"] {
+  --bg-primary: #F2F0E9;
+  --bg-secondary: #faf8f7;
+  --bg-tertiary: #f5f1ef;
+  --bg-overlay: rgba(242, 240, 233, 0.95);
+  
+  --border-primary: #e7e2df;
+  --border-secondary: #d6ccc6;
+  --border-active: #4475A5;
+  --border-color: #e7e2df;
+  
+  --text-primary: #1f2937;
+  --text-secondary: #4b5563;
+  --text-tertiary: #6b7280;
+  --text-link: #c2410c;
+  
+  --accent-primary: #ea580c;
+  --accent-color: #ea580c;
+  --accent-secondary: #C2C0B6;
+  --accent-danger: #dc2626;
+  --accent-warning: #d97706;
+  --accent-info: #141413;
+  
+  --gradient-primary: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
+  
+  /* 代码和字体 */
+  --bg-code: #f8f8f8;
+  --text-code: #333333;
+  --font-mono: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', monospace;
+  --font-system: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+  
+  --shadow-sm: 0 1px 3px rgba(194, 65, 12, 0.1);
+  --shadow-md: 0 4px 12px rgba(194, 65, 12, 0.15);
+  --shadow-lg: 0 12px 24px rgba(194, 65, 12, 0.2);
+}

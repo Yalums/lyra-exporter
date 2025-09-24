@@ -1,0 +1,45 @@
+/* =================== Lyra Exporter 样式主文件 =================== */
+/* 
+ * 这是主CSS文件，负责按正确顺序导入所有模块化的样式文件
+ * 确保导入顺序正确：变量 -> 重置 -> 组件 -> 特定功能 -> 响应式
+ */
+
+/* 1. CSS变量和主题 - 必须首先加载 */
+@import './variables.css';
+
+/* 2. 全局重置和基础样式 */
+@import './reset.css';
+
+/* 3. 通用组件（按钮、模态框、输入框等） */
+@import './components.css';
+
+/* 4. App布局和主界面样式 */
+@import './app.css';
+
+/* 5. 导出面板样式 */
+@import './export.css';
+
+/* 6. 卡片视图和时间线样式 */
+@import './cards-timeline.css';
+
+/* 7. 消息详情样式 */
+@import './message-detail.css';
+
+/* 8. 筛选器和设置面板样式 */
+@import './filters-settings.css';
+
+/* 9. 响应式设计 - 必须最后加载以覆盖前面的样式 */
+@import './responsive.css';
+
+/* =================== 文件说明 =================== */
+/*
+ * variables.css       - CSS变量定义、深色/浅色主题
+ * reset.css          - 全局重置、基础HTML元素样式
+ * components.css     - 可复用的UI组件样式
+ * app.css           - App主结构、导航栏、欢迎页面
+ * export.css        - 导出面板、导出选项样式
+ * cards-timeline.css - 卡片网格、时间线、分支切换器
+ * message-detail.css - 消息详情、Markdown渲染、代码高亮
+ * filters-settings.css - 筛选器面板、设置面板
+ * responsive.css    - 响应式设计、打印样式、无障碍访问
+ */
