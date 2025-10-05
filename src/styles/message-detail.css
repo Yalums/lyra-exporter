@@ -704,3 +704,61 @@
   white-space: pre-wrap;
   word-wrap: break-word;
 }
+
+
+/* LaTeX 数学公式样式优化 */
+
+/* 行内公式 */
+.message-text .katex,
+.thinking-text .katex,
+.markdown-content .katex {
+  font-size: 1.1em;
+}
+
+/* 块级公式 */
+.message-text .katex-display,
+.thinking-text .katex-display,
+.markdown-content .katex-display {
+  margin: 1.5em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.5em 0;
+}
+
+/* 公式滚动条美化 */
+.katex-display::-webkit-scrollbar {
+  height: 6px;
+}
+
+.katex-display::-webkit-scrollbar-track {
+  background: var(--bg-secondary, #f1f1f1);
+  border-radius: 3px;
+}
+
+.katex-display::-webkit-scrollbar-thumb {
+  background: var(--border-color, #888);
+  border-radius: 3px;
+}
+
+.katex-display::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary, #555);
+}
+
+/* 暗色模式下的公式优化（如果你的应用有暗色模式） */
+@media (prefers-color-scheme: dark) {
+  .katex {
+    color: #e8e8e8;
+  }
+  
+  .katex-display {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 4px;
+  }
+}
+
+/* 确保公式在移动端也能正常显示 */
+@media (max-width: 768px) {
+  .katex-display {
+    font-size: 0.9em;
+  }
+}

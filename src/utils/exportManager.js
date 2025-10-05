@@ -195,6 +195,13 @@ export class MarkdownGenerator {
 
     lines.push('');
 
+  // 思考过程（前置）- 仅对非人类消息，且格式为 codeblock 或 xml
+  const thinkingFormat = this.config.thinkingFormat || 'codeblock';
+  if (msg.thinking && this.config.includeThinking && msg.sender !== 'human' && 
+      (thinkingFormat === 'codeblock' || thinkingFormat === 'xml')) {
+    lines.push(this.formatThinking(msg.thinking));
+  }
+
   // 正文
   if (msg.display_text) {
     lines.push(msg.display_text, '');
@@ -205,8 +212,9 @@ export class MarkdownGenerator {
       lines.push(this.formatAttachments(msg.attachments));
     }
 
-    // 思考过程（仅对非人类消息）
-    if (msg.thinking && this.config.includeThinking && msg.sender !== 'human') {
+    // 思考过程（后置）- 仅对非人类消息，且格式为 emoji
+    if (msg.thinking && this.config.includeThinking && msg.sender !== 'human' && 
+        thinkingFormat === 'emoji') {
       lines.push(this.formatThinking(msg.thinking));
     }
 
@@ -236,16 +244,38 @@ export class MarkdownGenerator {
    * 格式化思考过程
    */
   formatThinking(thinking) {
-    return [
-      '<details>',
-      '<summary>💭 思考过程</summary>',
-      '',
-      '```',
-      thinking,
-      '```',
-      '</details>',
-      ''
-    ].join('\n');
+    const format = this.config.thinkingFormat || 'codeblock';
+    
+    switch (format) {
+      case 'codeblock':
+        // 代码块格式（思考前置）
+        return [
+          '```thinking',
+          thinking,
+          '```',
+          ''
+        ].join('\n');
+      
+      case 'xml':
+        // XML标签格式（思考前置）
+        return [
+          '<anthropic_thinking>',
+          thinking,
+          '</anthropic_thinking>',
+          ''
+        ].join('\n');
+      
+      case 'emoji':
+      default:
+        // Emoji格式（内容后置）
+        return [
+          '💭 思考过程:',
+          '```',
+          thinking,
+          '```',
+          ''
+        ].join('\n');
+    }
   }
 
   /**

@@ -22,6 +22,7 @@ const ExportConfigManager = {
       assistantLabel: 'Claude',
       includeHeaderPrefix: true,
       headerLevel: 2, // 1-6 对应 # 到 ##
+      thinkingFormat: 'codeblock', // 'codeblock', 'xml', 'emoji'
       
       // 内容设置（从导出选项面板移过来）
       includeTimestamps: false,
@@ -64,7 +65,8 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
       includeThinking: false,
       includeArtifacts: true,
       includeTools: false,
-      includeCitations: false
+      includeCitations: false,
+      thinkingFormat: 'codeblock'
     }
   });
 
@@ -318,6 +320,17 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
               </select>
             </SettingItem>
             
+            <SettingItem label="思考过程格式" description="选择思考过程在复制和导出时的显示格式">
+              <select 
+                className="setting-select"
+                value={settings.exportOptions.thinkingFormat || 'codeblock'}
+                onChange={(e) => handleExportOptionChange('thinkingFormat', e.target.value)}
+              >
+                <option value="codeblock">代码块格式（思考前置）</option>
+                <option value="xml">XML标签格式（思考前置）</option>
+                <option value="emoji">Emoji格式（内容后置）</option>
+              </select>
+            </SettingItem>
 
           </SettingsSection>
 
@@ -364,7 +377,7 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
           {/* 关于 */}
           <SettingsSection title="关于">
             <SettingItem label="Lyra Exporter" description="强大的对话导出和管理工具" static={true} />
-            <SettingItem label="版本" description="v1.5.1" static={true} />
+            <SettingItem label="版本" description="v1.5.2" static={true} />
             <SettingItem label="GitHub" description="开源项目，欢迎贡献和反馈" static={true} />
           </SettingsSection>
         </div>

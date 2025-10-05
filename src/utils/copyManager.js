@@ -8,10 +8,14 @@ import { StorageUtils, TextUtils } from './commonUtils.js';
  */
 export class CopyConfigManager {
   static getConfig() {
+    // 获取导出配置中的思考格式设置
+    const exportConfig = StorageUtils.getLocalStorage('export-config', {});
+    
     return StorageUtils.getLocalStorage('copy_options', {
       includeThinking: false,
       includeArtifacts: false,
-      includeMetadata: true
+      includeMetadata: true,
+      thinkingFormat: exportConfig.thinkingFormat || 'codeblock'
     });
   }
 
@@ -24,6 +28,39 @@ export class CopyConfigManager {
  * 消息格式化器
  */
 export class MessageFormatter {
+  /**
+   * 格式化思考过程
+   */
+  static formatThinking(thinking, format = 'codeblock') {
+    switch (format) {
+      case 'codeblock':
+        // 代码块格式（思考前置）
+        return [
+          '```thinking',
+          thinking,
+          '```'
+        ].join('\n');
+      
+      case 'xml':
+        // XML标签格式（思考前置）
+        return [
+          '<anthropic_thinking>',
+          thinking,
+          '</anthropic_thinking>'
+        ].join('\n');
+      
+      case 'emoji':
+      default:
+        // Emoji格式（内容后置）
+        return [
+          '💭 思考过程:',
+          '```',
+          thinking,
+          '```'
+        ].join('\n');
+    }
+  }
+
   static format(message, options = {}) {
     const config = {
       ...CopyConfigManager.getConfig(),
@@ -41,20 +78,23 @@ export class MessageFormatter {
       );
     }
     
+    // 思考过程（前置）- 格式为 codeblock 或 xml
+    const thinkingFormat = config.thinkingFormat || 'codeblock';
+    if (config.includeThinking && message.thinking && 
+        (thinkingFormat === 'codeblock' || thinkingFormat === 'xml')) {
+      const thinkingText = this.formatThinking(message.thinking, thinkingFormat);
+      parts.push('', thinkingText);
+    }
+    
     // 添加主要内容
     if (message.display_text) {
       parts.push(message.display_text);
     }
     
-    // 添加思考过程
-    if (config.includeThinking && message.thinking) {
-      parts.push(
-        '',
-        '💭 思考过程:',
-        '```',
-        message.thinking,
-        '```'
-      );
+    // 思考过程（后置）- 格式为 emoji
+    if (config.includeThinking && message.thinking && thinkingFormat === 'emoji') {
+      const thinkingText = this.formatThinking(message.thinking, thinkingFormat);
+      parts.push('', thinkingText);
     }
     
     // 添加Artifacts

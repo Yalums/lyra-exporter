@@ -662,6 +662,26 @@
   border-color: var(--avatar-ai-bg);
 }
 
+/* 平台特定的AI头像颜色 */
+.timeline-avatar.assistant.platform-gemini,
+.timeline-avatar.assistant.platform-aistudio {
+  background: #ffffff;
+  color: #1a73e8;
+  border-color: #e8f0fe;
+}
+
+.timeline-avatar.assistant.platform-notebooklm {
+  background: #000000;
+  color: #ffffff;
+  border-color: #333333;
+}
+
+.timeline-avatar.assistant.platform-claude {
+  background: var(--avatar-ai-bg);
+  color: var(--avatar-ai-text);
+  border-color: var(--avatar-ai-bg);
+}
+
 .sender-info {
   display: flex;
   flex-direction: column;

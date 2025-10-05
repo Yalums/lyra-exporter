@@ -561,17 +561,17 @@ const ConversationTimeline = ({
     return marks[markType]?.has(messageIndex) || false;
   };
 
-  const getPlatformAvatar = (sender, platform) => {
-    if (sender === 'human') return '👤';
+  const getPlatformAvatarClass = (sender, platform) => {
+    if (sender === 'human') return 'human';
     
-    return (
-      <PlatformIcon 
-        platform={platform?.toLowerCase() || 'claude'} 
-        format={PlatformUtils.getFormatFromPlatform(platform)} 
-        size={20} 
-        style={{ backgroundColor: 'transparent' }}
-      />
-    );
+    // AI头像根据平台切换颜色
+    const platformLower = platform?.toLowerCase() || 'claude';
+    
+    if (platformLower.includes('gemini')) return 'assistant platform-gemini';
+    if (platformLower.includes('ai studio') || platformLower.includes('aistudio')) return 'assistant platform-aistudio';
+    if (platformLower.includes('notebooklm')) return 'assistant platform-notebooklm';
+    
+    return 'assistant platform-claude';
   };
   
   const getFilePreview = (direction) => {
@@ -763,8 +763,15 @@ const ConversationTimeline = ({
                     >
                       <div className="timeline-header">
                         <div className="timeline-sender">
-                          <div className={`timeline-avatar ${msg.sender === 'human' ? 'human' : 'assistant'}`}>
-                            {getPlatformAvatar(msg.sender, conversationInfo?.platform)}
+                          <div className={`timeline-avatar ${getPlatformAvatarClass(msg.sender, conversationInfo?.platform)}`}>
+                            {msg.sender === 'human' ? '👤' : (
+                              <PlatformIcon 
+                                platform={conversationInfo?.platform?.toLowerCase() || 'claude'} 
+                                format={PlatformUtils.getFormatFromPlatform(conversationInfo?.platform)} 
+                                size={20} 
+                                style={{ backgroundColor: 'transparent' }}
+                              />
+                            )}
                           </div>
                           <div className="sender-info">
                             <div className="sender-name">

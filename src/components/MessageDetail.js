@@ -4,6 +4,10 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { getImageDisplayData } from '../utils/fileParser';
 
+import remarkMath from 'remark-math'; // 增加LaTex渲染
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
+
 const MessageDetail = ({ 
   processedData, 
   selectedMessageIndex, 
@@ -419,7 +423,8 @@ const MessageDetail = ({
             {isMarkdown ? (
               <div className="markdown-content">
                 <ReactMarkdown 
-                  remarkPlugins={[remarkGfm]}
+                  remarkPlugins={[remarkGfm, remarkMath]}  // 添加 remarkMath
+                  rehypePlugins={[rehypeKatex]}  // 添加 rehypeKatex
                   components={{
                     // 自定义代码块样式
                     code: ({node, inline, className, children, ...props}) => {
@@ -638,7 +643,8 @@ const MessageDetail = ({
             
             <div className="message-text">
               <ReactMarkdown 
-                remarkPlugins={[remarkGfm]}
+                remarkPlugins={[remarkGfm, remarkMath]}  // 添加 remarkMath
+                rehypePlugins={[rehypeKatex]}  // 添加 rehypeKatex
                 components={MarkdownComponents}
               >
                 {filterImageReferences(currentMessage.display_text || '')}
@@ -659,7 +665,8 @@ const MessageDetail = ({
             {currentMessage.thinking ? (
               <div className="thinking-text">
                 <ReactMarkdown 
-                  remarkPlugins={[remarkGfm]}
+                  remarkPlugins={[remarkGfm, remarkMath]}  // 添加 remarkMath
+                  rehypePlugins={[rehypeKatex]}  // 添加 rehypeKatex
                   components={MarkdownComponents}
                 >
                   {filterImageReferences(currentMessage.thinking)}

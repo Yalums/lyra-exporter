@@ -3,13 +3,9 @@ import React, { useState, useEffect } from 'react';
 // 平台图标映射 - 使用多个备选源和base64后备
 const PLATFORM_ICONS = {
   claude: {
-    sources: [
-      'https://www.anthropic.com/favicon.ico',
-      'https://claude.ai/favicon.ico',
-      'https://www.google.com/s2/favicons?sz=32&domain=claude.ai'
-    ],
-    // Claude的base64图标（简化版橙色圆圈）
-    base64: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNEOTczMUYiLz4KPHN2ZyB4PSI4IiB5PSI4IiB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSI+CjxwYXRoIGQ9Ik04IDJDNC42ODYgMiAyIDQuNjg2IDIgOEM2IDExLjMxNCA4LjY4NiAxNCA4IDE0QzExLjMxNCAxNCAxNCA4LjY4NiAxNCA4QzE0IDQuNjg2IDExLjMxNCAyIDggMloiIGZpbGw9IndoaXRlIi8+CjwvcGF0aD4KPC9zdmc+Cjwvc3ZnPg=='
+    // 修复后的Claude base64图标（橙色圆圈内带白色C形状）
+    base64: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHNoYXBlLXJlbmRlcmluZz0iZ2VvbWV0cmljUHJlY2lzaW9uIiB0ZXh0LXJlbmRlcmluZz0iZ2VvbWV0cmljUHJlY2lzaW9uIiBpbWFnZS1yZW5kZXJpbmc9Im9wdGltaXplUXVhbGl0eSIgZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIHZpZXdCb3g9IjAgMCA1MTIgNTA5LjY0Ij48cGF0aCBmaWxsPSIjRDc3NjU1IiBkPSJNMTE1LjYxMiAwaDI4MC43NzVDNDU5Ljk3NCAwIDUxMiA1Mi4wMjYgNTEyIDExNS42MTJ2Mjc4LjQxNWMwIDYzLjU4Ny01Mi4wMjYgMTE1LjYxMi0xMTUuNjEzIDExNS42MTJIMTE1LjYxMkM1Mi4wMjYgNTA5LjYzOSAwIDQ1Ny42MTQgMCAzOTQuMDI3VjExNS42MTJDMCA1Mi4wMjYgNTIuMDI2IDAgMTE1LjYxMiAweiIvPjxwYXRoIGZpbGw9IiNGQ0YyRUUiIGZpbGwtcnVsZT0ibm9uemVybyIgZD0iTTE0Mi4yNyAzMTYuNjE5bDczLjY1NS00MS4zMjYgMS4yMzgtMy41ODktMS4yMzgtMS45OTYtMy41ODktLjAwMS0xMi4zMS0uNzU5LTQyLjA4NC0xLjEzOC0zNi40OTgtMS41MTYtMzUuMzYxLTEuODk2LTguODk3LTEuODk1LTguMzQtMTAuOTk1Ljg1OS01LjQ4NCA3LjQ4Mi01LjAzIDEwLjcxNy45MzUgMjMuNjgzIDEuNjE3IDM1LjUzNyAyLjQ1MiAyNS43ODIgMS41MTcgMzguMTkzIDMuOTY4aDYuMDY0bC44Ni0yLjQ1MS0yLjA3My0xLjUxNy0xLjYxOC0xLjUxNy0zNi43NzYtMjQuOTIyLTM5LjgxLTI2LjMzOC0yMC44NTItMTUuMTY2LTExLjI3My03LjY4My01LjY4Ny03LjIwNC0yLjQ1MS0xNS43MjEgMTAuMjM3LTExLjI3MyAxMy43NS45MzUgMy41MTMuOTM2IDEzLjkyOCAxMC43MTYgMjkuNzQ5IDIzLjAyNyAzOC44NDggMjguNjEyIDUuNjg3IDQuNzI3IDIuMjc1LTEuNjE3LjI3OC0xLjEzOC0yLjU1My00LjI3MS0yMS4xMy0zOC4xOTMtMjIuNTQ2LTM4Ljg0OC0xMC4wMzUtMTYuMTAxLTIuNjU0LTkuNjU1Yy0uOTM1LTMuOTY4LTEuNjE3LTcuMzA0LTEuNjE3LTExLjM3NGwxMS42NTItMTUuODIzIDYuNDQ1LTIuMDczIDE1LjU0NSAyLjA3MyA2LjU0NyA1LjY4NyA5LjY1NSAyMi4wOTIgMTUuNjQ2IDM0Ljc4IDI0LjI2NSA0Ny4yOTEgNy4xMDMgMTQuMDI4IDMuNzkxIDEyLjk5MiAxLjQxNiAzLjk2OCAyLjQ0OS0uMDAxdi0yLjI3NWwxLjk5Ny0yNi42NDEgMy42OS0zMi43MDcgMy41ODktNDIuMDg0IDEuMjM5LTExLjg1NCA1Ljg2My0xNC4yMDYgMTEuNjUyLTcuNjgzIDkuMDk5IDQuMzQ4IDcuNDgyIDEwLjcxNi0xLjAzNiA2LjkyNi00LjQ0OSAyOC45MTUtOC43MiA0NS4yOTQtNS42ODcgMzAuMzMxaDMuMzEzbDMuNzkyLTMuNzkxIDE1LjM0Mi0yMC4zNzIgMjUuNzgyLTMyLjIyNyAxMS4zNzQtMTIuNzg5IDEzLjI3LTE0LjEyOSA4LjUxNy02LjcyNCAxNi4xLS4wMDEgMTEuODU0IDE3LjYxNy01LjMwNyAxOC4xOTktMTYuNTgxIDIxLjAyOS0xMy43NSAxNy44MTktMTkuNzE2IDI2LjU0LTEyLjMwOSAyMS4yMzEgMS4xMzggMS42OTQgMi45MzItLjI3OCA0NC41MzYtOS40NzkgMjQuMDYyLTQuMzQ3IDI4LjcxNC00LjkyOCAxMi45OTIgNi4wNjYgMS40MTYgNi4xNjctNS4xMDYgMTIuNjEzLTMwLjcxIDcuNTgzLTM2LjAxOCA3LjIwNC01My42MzYgMTIuNjg5LS42NTcuNDguNzU4LjkzNSAyNC4xNjQgMi4yNzUgMTAuMzM3LjU1NmgyNS4zMDFsNDcuMTE0IDMuNTE0IDEyLjMwOSA4LjEzOSA3LjM4MSA5Ljk1OS0xLjIzOCA3LjU4My0xOC45NTcgOS42NTUtMjUuNTc5LTYuMDY2LTU5LjcwMi0xNC4yMDUtMjAuNDc0LTUuMTA2LTIuODMtLjAwMXYxLjY5NGwxNy4wNjEgMTYuNjgyIDMxLjI2NiAyOC4yMzMgMzkuMTUyIDM2LjM5NyAxLjk5NyA4Ljk5OS01LjAzIDcuMTAyLTUuMzA3LS43NTgtMzQuNDAxLTI1Ljg4My0xMy4yNy0xMS42NTEtMzAuMDUzLTI1LjMwMi0xLjk5Ni0uMDAxdjIuNjU0bDYuOTI2IDEwLjEzNiAzNi41NzQgNTQuOTc1IDEuODk1IDE2Ljg1OS0yLjY1MyA1LjQ4NS05LjQ3OSAzLjMxMS0xMC40MTQtMS44OTUtMjEuNDA4LTMwLjA1NC0yMi4wOTItMzMuODQ0LTE3LjgxOS0zMC4zMzEtMi4xNzMgMS4yMzgtMTAuNTE1IDExMy4yNjEtNC45MjkgNS43ODgtMTEuMzc0IDQuMzQ4LTkuNDc4LTcuMjA0LTUuMDMtMTEuNjUyIDUuMDMtMjMuMDI3IDYuMDY2LTMwLjA1MiA0LjkyOC0yMy44ODYgNC40NDktMjkuNjc0IDIuNjU0LTkuODU4LS4xNzctLjY1Ny0yLjE3My4yNzgtMjIuMzcgMzAuNzEtMzQuMDIxIDQ1Ljk3Ny0yNi45MTkgMjguODE1LTYuNDQ1IDIuNTUzLTExLjE3My01Ljc4OSAxLjAzNy0xMC4zMzcgNi4yNDMtOS4yIDM3LjI1Ny00Ny4zOTIgMjIuNDctMjkuMzcxIDE0LjUwOC0xNi45NjEtLjEwMS0yLjQ1MWgtLjg1OWwtOTguOTU0IDY0LjI1MS0xNy42MTggMi4yNzUtNy41ODMtNy4xMDMuOTM2LTExLjY1MiAzLjU4OS0zLjc5MSAyOS43NDktMjAuNDc0LS4xMDEuMTAyLjAyNC4xMDF6Ii8+PC9zdmc+',
+    sources: [] // 添加空的sources数组，避免undefined错误
   },
   gemini: {
     sources: [
@@ -17,21 +13,18 @@ const PLATFORM_ICONS = {
       'https://www.gstatic.com/lamda/images/gemini_sparkle_red_4ed1cbfcbc6c9e84c31b987da73fc4168aec8445.svg',
       'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://www.google.com/s2/favicons?sz=32&domain=gemini.google.com')
     ],
-    fallback: '✨',
-    // Gemini的base64图标（蓝色星形）
     base64: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiMxQTczRTgiLz4KPHN2ZyB4PSI2IiB5PSI2IiB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSI+CjxwYXRoIGQ9Ik0xMCAyTDEyLjA5IDcuMjZMMTggOEwxMi4wOSA4Ljc0TDEwIDE0TDcuOTEgOC43NEwyIDhMNy45MSA3LjI2TDEwIDJaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNMTAgMTBMMTEuMDkgMTIuMjZMMTQgMTNMMTEuMDkgMTMuNzRMMTAgMTZMOC45MSAxMy43NEw2IDEzTDguOTEgMTIuMjZMMTAgMTBaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4KPC9zdmc+'
   },
   notebooklm: {
     sources: [
       'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://www.google.com/s2/favicons?sz=32&domain=notebooklm.google')
     ],
-    fallback: '✨',
     base64: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiMxQTczRTgiLz4KPHN2ZyB4PSI2IiB5PSI2IiB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSI+CjxwYXRoIGQ9Ik0xMCAyTDEyLjA5IDcuMjZMMTggOEwxMi4wOSA4Ljc0TDEwIDE0TDcuOTEgOC43NEwyIDhMNy45MSA3LjI2TDEwIDJaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNMTAgMTBMMTEuMDkgMTIuMjZMMTQgMTNMMTEuMDkgMTMuNzRMMTAgMTZMOC45MSAxMy43NEw2IDEzTDguOTEgMTIuMjZMMTAgMTBaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4KPC9zdmc+'
   }
 };
 
 // 版本号用于缓存刷新
-const CACHE_VERSION = 'v4'; // 增加版本号强制刷新
+const CACHE_VERSION = 'v5'; // 更新版本号强制刷新
 
 // 调试模式
 const DEBUG_MODE = false; // 关闭调试以减少控制台输出
@@ -157,6 +150,15 @@ const PlatformIcon = ({ platform, format, size = 16, style = {} }) => {
     const tryLoadIcon = async () => {
       if (DEBUG_MODE) console.log(`[PlatformIcon] 开始尝试加载: ${iconKey}`);
       
+      // 如果没有sources或sources为空，直接使用base64
+      if (!iconConfig.sources || iconConfig.sources.length === 0) {
+        if (DEBUG_MODE) console.log(`[PlatformIcon] 无外部源，直接使用base64: ${iconKey}`);
+        setIconSrc(iconConfig.base64);
+        setHasError(false);
+        localStorage.setItem(cacheKey, 'use_base64');
+        return;
+      }
+      
       // 尝试所有源
       for (let i = 0; i < iconConfig.sources.length; i++) {
         const url = iconConfig.sources[i];
@@ -227,6 +229,7 @@ const PlatformIcon = ({ platform, format, size = 16, style = {} }) => {
 
   // 显示fallback或真实图标
   if (!iconSrc || hasError) {
+    const fallback = iconConfig.fallback || '✨';
     return (
       <span 
         style={{ 
@@ -237,7 +240,7 @@ const PlatformIcon = ({ platform, format, size = 16, style = {} }) => {
           ...style 
         }}
       >
-        {iconConfig.fallback}
+        {fallback}
       </span>
     );
   }
