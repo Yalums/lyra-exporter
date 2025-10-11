@@ -1,5 +1,28 @@
 // utils/commonUtils.js
-// 通用工具函数模块 - 整合所有重复的工具函数
+// 通用工具函数模块 - 国际化支持版本
+
+/**
+ * 获取当前语言设置
+ * @returns {string} 语言代码
+ */
+const getCurrentLocale = () => {
+  try {
+    const saved = localStorage.getItem('lyra_exporter_language') || 'en';
+    // 处理中文简繁体
+    if (saved === 'zh') {
+      const browserLang = navigator.language || navigator.userLanguage || '';
+      const lowerLang = browserLang.toLowerCase();
+      if (lowerLang.includes('tw') || lowerLang.includes('hk') || 
+          lowerLang.includes('mo') || lowerLang.includes('hant')) {
+        return 'zh-TW';
+      }
+      return 'zh-CN';
+    }
+    return saved;
+  } catch {
+    return 'en';
+  }
+};
 
 /**
  * 日期时间格式化工具
@@ -7,10 +30,17 @@
 export const DateTimeUtils = {
   // 格式化日期
   formatDate(dateStr) {
-    if (!dateStr) return '未知时间';
+    if (!dateStr) {
+      // 根据语言返回不同的默认值
+      const locale = getCurrentLocale();
+      return locale.startsWith('zh') ? '未知时间' : 'Unknown time';
+    }
+    
     try {
       const date = new Date(dateStr);
-      return date.toLocaleDateString('zh-CN', {
+      const locale = getCurrentLocale();
+      
+      return date.toLocaleDateString(locale, {
         year: 'numeric',
         month: 'short',
         day: 'numeric'
@@ -23,9 +53,12 @@ export const DateTimeUtils = {
   // 格式化时间
   formatTime(timestamp) {
     if (!timestamp) return '';
+    
     try {
       const date = new Date(timestamp);
-      return date.toLocaleTimeString('zh-CN', {
+      const locale = getCurrentLocale();
+      
+      return date.toLocaleTimeString(locale, {
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit'
@@ -37,10 +70,16 @@ export const DateTimeUtils = {
 
   // 格式化日期时间
   formatDateTime(timestamp) {
-    if (!timestamp) return '未知时间';
+    if (!timestamp) {
+      const locale = getCurrentLocale();
+      return locale.startsWith('zh') ? '未知时间' : 'Unknown time';
+    }
+    
     try {
       const date = new Date(timestamp);
-      return date.toLocaleString('zh-CN', {
+      const locale = getCurrentLocale();
+      
+      return date.toLocaleString(locale, {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
@@ -143,21 +182,24 @@ export const FileUtils = {
     return `${(size / (1024 * 1024)).toFixed(1)}MB`;
   },
 
-  // 获取文件类型文本
+  // 获取文件类型文本（需要配合 i18n）
   getFileTypeText(format, platform, model) {
+    const locale = getCurrentLocale();
+    const isChinese = locale.startsWith('zh');
+    
     switch (format) {
       case 'claude':
         return PlatformUtils.getModelDisplay(model);
       case 'claude_conversations':
-        return '对话列表';
+        return isChinese ? '对话列表' : 'Conversation List';
       case 'claude_full_export':
-        return '完整导出';
+        return isChinese ? '完整导出' : 'Full Export';
       case 'gemini_notebooklm':
         if (platform === 'notebooklm') return 'NotebookLM';
         if (platform === 'aistudio') return 'Google AI Studio';
         return 'Gemini';
       default:
-        return '未知格式';
+        return isChinese ? '未知格式' : 'Unknown Format';
     }
   }
 };

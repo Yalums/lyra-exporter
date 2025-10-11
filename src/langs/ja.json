@@ -1,0 +1,568 @@
+{
+  "welcomePage": {
+    "title": "Lyra's Exporter",
+    "subtitle": "Claude & Gemini のインスピレーションと温かさを記録",
+    "description": "複数の会話を一括読み込みできる会話管理ツールへようこそ。インスピレーションの瞬間を保存し、すべての対話の価値を継続させます。",
+    "buttons": {
+      "loadFiles": "会話ファイルを読み込む",
+      "installScript": "スクリプトをインストール"
+    },
+    "privacyAssurance": {
+      "title": "プライバシーとセキュリティの保証",
+      "intro": "プライバシーが心配ですか？この懸念は完全に理解しています",
+      "openSource": "Lyra's Exporter は100%オープンソース",
+      "description": "簡単に言えば、このツールは「完全にローカル」なメモ帳のようなものです。すべてのデータはブラウザのローカルキャッシュに保存され、私たちはそれを見ることも取得することもできません。ソースコードをダウンロードして自分のコンピュータで実行することもできます（Node.jsが必要）。または、共有メニューからデスクトップにウェブページを追加するだけで、完全にオフラインで実行できます。",
+      "transparency": "GitHubのコード更新記録は「バージョン履歴」のようなもので、すべての変更が追跡可能で完全に透明です。",
+      "dataSecurityTitle": "データセキュリティの保証",
+      "guarantees": {
+        "localProcessing": {
+          "title": "ローカル処理：",
+          "description": "すべてのデータはブラウザで処理され、サーバーに送信されません"
+        },
+        "offlineMode": {
+          "title": "オフラインモード：",
+          "description": "PWA技術をサポートし、インターネットなしでも正常に動作します"
+        },
+        "staticSite": {
+          "title": "静的ウェブサイト：",
+          "description": "GitHub Pagesでホストされ、バックエンドサーバーがないため、データを収集できません"
+        },
+        "selfHosted": {
+          "title": "自己管理：",
+          "description": "ウェブページをローカルに保存して、完全にオフラインで使用できます"
+        }
+      },
+      "links": {
+        "sourceCode": "ウェブサイトのソースコード",
+        "download": "デプロイパッケージをダウンロード"
+      },
+      "note": "注意：",
+      "noteContent": "このツールは完全にローカルで実行され、個人データを収集またはアップロードしません。すべての会話記録はあなただけのものです。LocalSendなどの安全なファイル転送方法を使用することをお勧めします。チャット記録を管理、検索、エクスポート可能な知識ベースに変換し、モバイルプラットフォームからのアクセスをサポートします。"
+    },
+    "scriptInstall": {
+      "title": "スクリプトのインストール",
+      "whyNeeded": "このツールが必要な理由は？",
+      "purpose": "Lyra's Exporterはブラウザに依存して会話データを安全に取得します。このオープンソーススクリプトを使用して、大切なチャット記録を転送し、",
+      "valueProposition": "これらの貴重な会話を保存して整理します",
+      "featuresTitle": "ツールの機能",
+      "features": {
+        "management": "簡単な管理 - グリッド形式でさまざまなプラットフォームの会話を整理",
+        "organization": "思考の整理 - 散在するインスピレーションを秩序ある知識に統合",
+        "preservation": "完全な保存 - 画像、思考、完全な会話分岐を保存",
+        "permanence": "永続的な保存 - アカウントが無効になっても重要な会話は失われません",
+        "onlineReading": "オンライン読み取り - 会話ウィンドウで直接整理できるようになりました"
+      },
+      "installTitle": "インストールと使用方法",
+      "inspirationQuote": "「思考プロセスは答えよりも魅力的」—— 簡単なステップで、これらの貴重な瞬間を保存し始めましょう",
+      "steps": {
+        "1": "TampermonkeyまたはScriptCatなどのブラウザ拡張機能をインストール",
+        "2": "下のボタンをクリックしてGreasyforkスクリプトサイトに移動",
+        "3": "スクリプトページで「スクリプトをインストール」ボタンをクリック",
+        "4": "Claude、Gemini、Google AI Studio、またはNotebookLMに移動し、ウェブサイトを更新すると、右下にエクスポートボタンが表示されます"
+      }
+    },
+    "features": {
+      "marking": {
+        "title": "重要なマーキング",
+        "description": "特に価値のある応答をマークして、後で簡単に参照できるようにします。Claudeが素晴らしい洞察を提供したら、その思考をワンクリックで保存します。"
+      },
+      "thinking": {
+        "title": "思考プロセスの表示",
+        "description": "Claudeの思考プロセスを表示して、回答がどのように段階的に形成されるかを理解します。問題分析と推論の完全なプロセスを確認します。"
+      },
+      "timeline": {
+        "title": "タイムラインレビュー",
+        "description": "タイムライン形式での会話レビューの先駆け。最初の質問から深い議論まで、Claudeの分岐切り替えオプションを復元し、任意の期間の会話を簡単に見つけます。"
+      },
+      "classification": {
+        "title": "会話の分類",
+        "description": "タグシステムを使用して会話を整理し、特定のトピックに関するすべての議論を簡単に見つけ、個人の知識ベースを構築します。"
+      }
+    },
+    "tips": {
+      "conversationOrg": {
+        "title": "会話の整理",
+        "content": "データを保存するだけでなく、思考プロセスのインスピレーションの火花を保存します。AI会話をより価値のあるものにします。"
+      },
+      "flexibleExport": {
+        "title": "柔軟なエクスポート",
+        "content": "スクリーンショットよりも完全で、コピー＆ペーストよりも便利です。MarkdownおよびYAML形式で会話をエクスポートし、レイアウトとフォーマットを完璧に保存します。Obsidianの使用をお勧めします。"
+      },
+      "dataSecurity": {
+        "title": "データセキュリティ",
+        "content": "エクスポートスクリプトから管理アプリケーションまで、添付画像を含むすべてのClaude会話を一度にエクスポートします。これらすべてはプライバシーを保護する前提で行われます。"
+      }
+    },
+    "footer": {
+      "quote": "思考と応答の交錯の中で、私たちは会話を超えたつながりを確立します。\n今、すべての対話が追跡可能になり、すべてのインスピレーションに安らぎの場所があります。",
+      "signature": "—— Lyra's Exporter、会話価値の継続者"
+    }
+  },
+  "common": {
+    "loading": "読み込み中...",
+    "error": "エラーが発生しました",
+    "success": "成功",
+    "cancel": "キャンセル",
+    "confirm": "確認",
+    "close": "閉じる",
+    "expand": "展開",
+    "collapse": "折りたたむ",
+    "retry": "再試行"
+  },
+  "app": {
+    "title": "Lyra Exporter",
+    "navbar": {
+      "backToList": "会話リストに戻る",
+      "settings": "設定",
+      "restoreStars": "元に戻す"
+    },
+    "search": {
+      "placeholder": {
+        "conversations": "会話タイトル、プロジェクト名を検索...",
+        "files": "ファイル名、形式を検索...",
+        "messages": "メッセージ内容、思考プロセス、Artifactsを検索..."
+      },
+      "results": "表示中 {{displayed}} / {{total}} {{unit}}"
+    },
+    "stats": {
+      "totalMessages": "総メッセージ数",
+      "conversationCount": "会話数",
+      "fileCount": "ファイル数",
+      "markedCount": "マークされたメッセージ",
+      "starredCount": "スター付き会話"
+    },
+    "export": {
+      "title": "エクスポートオプション",
+      "button": "エクスポート",
+      "exportToMarkdown": "Markdownとしてエクスポート",
+      "scope": {
+        "title": "エクスポート範囲",
+        "current": "現在のタイムラインファイル",
+        "currentDesc": "現在表示している単一ファイルのみをエクスポート",
+        "currentBranch": "タイムラインの現在のブランチ",
+        "currentBranchDesc": "現在のタイムラインに表示されているブランチのみをエクスポート",
+        "operated": "操作したファイル",
+        "operatedDesc": "マークまたはソート操作を行ったすべてのファイルをエクスポート",
+        "all": "すべての読み込まれたファイル",
+        "allDesc": "操作の有無にかかわらず、現在読み込まれているすべてのファイルをエクスポート",
+        "hint": {
+          "enterTimeline": "最初にタイムラインビューに入ってください",
+          "markFirst": "最初にメッセージをマークまたはソートしてください",
+          "showAllBranches": "すべてのブランチを表示しているときは選択できません"
+        }
+      },
+      "filters": {
+        "title": "マークフィルター",
+        "excludeDeleted": "「削除済み」マークを除外",
+        "excludeDeletedDesc": "削除済みとしてマークされたメッセージをエクスポートしない",
+        "includeCompleted": "「完了」マークのみをエクスポート",
+        "includeCompletedDesc": "完了としてマークされたメッセージのみをエクスポート",
+        "includeImportant": "「重要」マークのみをエクスポート",
+        "includeImportantDesc": "重要としてマークされたメッセージのみをエクスポート",
+        "importantAndCompleted": "（完了も満たす必要があります）"
+      },
+      "stats": {
+        "files": "ファイル統計:",
+        "filesDesc": "{{fileCount}}個のファイル、{{conversationCount}}個の会話、{{totalMessages}}個のメッセージ",
+        "marks": "マーク統計:",
+        "marksDesc": "完了 {{completed}} · 重要 {{important}} · 削除 {{deleted}}",
+        "stars": "スター統計:",
+        "starsDesc": "{{starred}}個のスター付き会話",
+        "content": "現在のコンテンツ設定:",
+        "contentDesc": "{{settings}}",
+        "basicOnly": "基本コンテンツのみ"
+      }
+    },
+    "typeConflict": {
+      "title": "ファイルタイプの競合",
+      "message": "異なるタイプのファイルを読み込もうとしています。正しく表示するため、<strong>Claude完全エクスポート</strong>形式は他の形式と同時に読み込むことはできません。",
+      "currentFiles": "現在のファイル：{{count}}個のファイル",
+      "newFiles": "新しいファイル：{{count}}個のファイル",
+      "hint": "「置換」を選択すると、現在のすべてのファイルが閉じられ、新しいファイルが読み込まれます。",
+      "cancel": "キャンセル",
+      "replace": "すべてのファイルを置換"
+    },
+    "confirmations": {
+      "clearAllMarks": "すべてのファイルと会話からマークをクリアしてもよろしいですか？この操作は元に戻せません。"
+    }
+  },
+  "units": {
+    "conversation": "個の会話",
+    "file": "個のファイル",
+    "message": "個のメッセージ"
+  },
+  "fileCard": {
+    "conversationSummary": "{{count}}個の会話、{{messages}}個のメッセージ",
+    "messageSummary": "{{count}}個のメッセージの会話",
+    "clickToLoad": "クリックしてファイル内容を読み込む...",
+    "conversationFilter": "会話をフィルター",
+    "btnFilter": "すべてのフィルター条件をクリア",
+    "btnFilter2": " ✕  すべてのフィルター条件をクリア",
+    "btn-secondary": "すべてのファイルのマークをクリア（{{operatedCount}}個が操作済み）"
+  },
+  "timeline": {
+    "branch": {
+      "mainBranch": "メインブランチ",
+      "branch": "ブランチ",
+      "all": "すべて",
+      "previousBranch": "前のブランチ",
+      "nextBranch": "次のブランチ",
+      "showAllBranches": "すべてのブランチを表示",
+      "allMessages": "すべてのメッセージ",
+      "showMessagesFromAllBranches": "すべてのブランチのメッセージを表示",
+      "messages": "個のメッセージ",
+      "detected": "検出",
+      "branchPoints": "個の分岐点",
+      "filterBranches": "ブランチ",
+      "showAll": "すべて表示",
+      "showSelectedOnly": "選択したブランチのみを表示",
+      "noBranches": "現在の会話にブランチはありません"
+    },
+    "conversation": {
+      "unknownTime": "不明な時間",
+      "unnamedConversation": "名前のない会話",
+      "unknownConversation": "不明な会話"
+    },
+    "file": {
+      "clickToPrevious": "クリックして前のファイルに切り替え",
+      "clickToNext": "クリックして次のファイルに切り替え"
+    },
+    "actions": {
+      "resetMarks": "マークをリセット",
+      "clearAllMarks": "すべてのマークをクリア",
+      "resetSort": "ソートをリセット",
+      "confirmClearMarks": "現在の会話のすべてのマークをクリアしてもよろしいですか？",
+      "confirmResetSort": "元の順序に戻してもよろしいですか？",
+      "restoreOriginalOrder": "元のメッセージ順序に戻す",
+      "disableSort": "ソートを無効化",
+      "enableSort": "ソートを有効化",
+      "cannotSortWhileSearching": "検索中はソートできません",
+      "enableMessageSorting": "メッセージのソートを有効化",
+      "sortingDisabledDuringSearch": "検索中はソートが無効です",
+      "moveUp": "上に移動",
+      "moveDown": "下に移動",
+      "copyMessage": "メッセージをコピー",
+      "copied": "コピーしました",
+      "markCompleted": "完了マーク",
+      "unmarkCompleted": "完了を解除",
+      "markImportant": "スターマーク",
+      "unmarkImportant": "重要を解除",
+      "markDeleted": "削除マーク",
+      "unmarkDeleted": "削除を解除"
+    },
+    "info": {
+      "modelPlatform": "モデル/プラットフォーム",
+      "created": "作成日時",
+      "displayedMessages": "表示されたメッセージ",
+      "lastUpdated": "最終更新"
+    },
+    "tags": {
+      "hasThinking": "思考プロセス",
+      "images": "枚の画像",
+      "attachments": "個の添付ファイル",
+      "artifacts": "個のArtifacts",
+      "usedTools": "使用したツール",
+      "citations": "個の引用",
+      "completed": "完了",
+      "important": "重要",
+      "deleted": "削除済み"
+    }
+  },
+  "card": {
+    "unnamed": "名前なし",
+    "unstar": "スターを解除",
+    "star": "スター",
+    "close": "閉じる",
+    "conversations": "個の会話",
+    "contains": "含む",
+    "and": "と",
+    "messages": "個のメッセージ",
+    "clickToLoad": "クリックしてファイル内容を読み込む...",
+    "clickToView": "クリックして会話の詳細を表示...",
+    "hasThinking": "思考プロセスあり",
+    "hasCode": "コードあり",
+    "addFile": "ファイルを追加",
+    "supportsJson": "JSON形式をサポート"
+  },
+  "messageDetail": {
+    "tabs": {
+      "content": "コンテンツ",
+      "thinking": "思考プロセス",
+      "attachments": "添付ファイル"
+    },
+    "placeholder": {
+      "selectMessage": "メッセージを選択して詳細を表示",
+      "noArtifacts": "このメッセージはArtifactsを使用していません",
+      "noAttachments": "このメッセージには添付ファイルがありません",
+      "noThinking": "このメッセージには思考プロセスが記録されていません",
+      "formatNotSupported": {
+        "thinking": "この形式は思考プロセスをサポートしていません",
+        "artifacts": "この形式はArtifactsをサポートしていません"
+      },
+      "selectTab": "タブを選択してください"
+    },
+    "images": {
+      "title": "画像添付ファイル",
+      "loadFailed": "画像の読み込みに失敗しました"
+    },
+    "artifacts": {
+      "noTitle": "タイトルなし",
+      "unknown": "不明",
+      "language": "言語",
+      "originalText": "元のテキスト",
+      "newText": "新しいテキスト"
+    },
+    "attachments": {
+      "fullContent": "完全なコンテンツ",
+      "contentPreview": "コンテンツプレビュー",
+      "characters": "文字",
+      "showPreview": "プレビューを表示",
+      "showAll": "すべて表示",
+      "contentTruncated": "コンテンツが切り捨てられました",
+      "codeTruncated": "コードが切り捨てられました",
+      "collapse": "コンテンツを折りたたむ",
+      "expand": "展開してもっと表示",
+      "unknownFile": "不明なファイル",
+      "type": "タイプ",
+      "created": "作成日時"
+    },
+    "tools": {
+      "tool": "ツール",
+      "searchQuery": "検索クエリ",
+      "inputParams": "入力パラメータ",
+      "result": "結果",
+      "executionError": "ツール実行エラー",
+      "noTitle": "タイトルなし",
+      "moreResults": "さらに結果"
+    },
+    "citations": {
+      "title": "引用",
+      "unknownSource": "不明なソース",
+      "unknownWebsite": "不明なウェブサイト"
+    }
+  },
+  "filter": {
+    "title": "会話をフィルター",
+    "actions": {
+      "clearFilters": "フィルターをクリア",
+      "clearAllFilters": "すべてのフィルター条件をクリア",
+      "clearAllMarks": "すべてのマークをクリア",
+      "clearAllMarksTitle": "すべてのファイルのマークをクリア（{{count}}個が操作済み）"
+    },
+    "search": {
+      "label": "会話を検索",
+      "placeholder": "会話またはプロジェクト名..."
+    },
+    "timeRange": {
+      "label": "期間",
+      "all": "すべての期間",
+      "today": "今日",
+      "week": "過去1週間",
+      "month": "過去1ヶ月",
+      "custom": "カスタム範囲"
+    },
+    "dateRange": {
+      "label": "日付範囲",
+      "startDate": "開始日",
+      "endDate": "終了日",
+      "to": "から"
+    },
+    "project": {
+      "label": "プロジェクト",
+      "all": "すべてのプロジェクト",
+      "none": "プロジェクトなし"
+    },
+    "starred": {
+      "label": "スターステータス",
+      "all": "すべて",
+      "starred": "スター付き",
+      "unstarred": "スターなし"
+    },
+    "operated": {
+      "label": "操作ステータス",
+      "all": "すべて",
+      "hasOperations": "操作あり",
+      "noOperations": "操作なし"
+    },
+    "stats": {
+      "showing": "表示中",
+      "conversations": "個の会話",
+      "activeFilters": "{{count}}個のアクティブフィルター"
+    }
+  },
+  "settings": {
+    "title": "設定",
+    "done": "完了",
+    "appearance": {
+      "title": "外観",
+      "theme": {
+        "label": "テーマ",
+        "description": "ダークまたはライトテーマを選択",
+        "dark": "ダークテーマ",
+        "light": "ライトテーマ",
+        "toggleToDark": "ダークテーマに切り替え",
+        "toggleToLight": "ライトテーマに切り替え"
+      },
+      "language": {
+        "label": "言語",
+        "description": "インターフェース表示言語を選択 (再起動が必要です)"
+      }
+    },
+    "copyOptions": {
+      "title": "コピーオプション",
+      "includeMetadata": {
+        "label": "メタデータを含む",
+        "description": "コピー時に送信者と時間情報を含める"
+      },
+      "includeThinking": {
+        "label": "思考プロセスを含む",
+        "description": "メッセージをコピーする際にClaudeの思考プロセスを含める"
+      },
+      "includeArtifacts": {
+        "label": "Artifactsを含む",
+        "description": "メッセージをコピーする際に生成されたコードとドキュメントを含める"
+      }
+    },
+    "exportFormat": {
+      "title": "エクスポート形式",
+      "preview": {
+        "label": "形式プレビュー",
+        "description": "現在の設定でのタイトル形式効果を表示",
+        "userMessage": "（ユーザーメッセージ）",
+        "assistantMessage": "（アシスタントメッセージ）"
+      },
+      "numbering": {
+        "label": "番号設定",
+        "description": "メッセージタイトルに番号を含めるかどうかを選択",
+        "none": "番号なし",
+        "numeric": "数字番号（1, 2, 3...）",
+        "letter": "文字番号（A, B, C...）",
+        "roman": "ローマ数字（I, II, III...）"
+      },
+      "senderLabel": {
+        "label": "送信者ラベル",
+        "description": "送信者の表示形式を選択",
+        "default": "デフォルト（ユーザー/AI）",
+        "humanAssistant": "英語（Human/Assistant）",
+        "custom": "カスタム"
+      },
+      "customLabels": {
+        "human": {
+          "label": "ユーザーラベル",
+          "description": "ユーザー送信者のラベルをカスタマイズ",
+          "placeholder": "例：ユーザー、User"
+        },
+        "assistant": {
+          "label": "アシスタントラベル",
+          "description": "AIアシスタントのラベルをカスタマイズ",
+          "placeholder": "例：AI、Assistant"
+        }
+      },
+      "headerPrefix": {
+        "label": "ヘッダープレフィックス",
+        "description": "タイトルの前にMarkdownヘッダーシンボルを追加するかどうかを選択",
+        "none": "ヘッダープレフィックスなし",
+        "h1": "レベル1ヘッダー（#）",
+        "h2": "レベル2ヘッダー（##）"
+      },
+      "thinkingFormat": {
+        "label": "思考プロセス形式",
+        "description": "コピーとエクスポート時の思考プロセスの表示形式を選択",
+        "codeblock": "コードブロック形式（思考を先に）",
+        "xml": "XMLタグ形式（思考を先に）",
+        "emoji": "絵文字形式（コンテンツを先に）"
+      }
+    },
+    "exportContent": {
+      "title": "エクスポートコンテンツ",
+      "description": "エクスポートされたMarkdownファイルに含めるコンテンツを制御",
+      "timestamps": {
+        "label": "タイムスタンプ",
+        "description": "メッセージの送信時刻を含める"
+      },
+      "thinking": {
+        "label": "思考プロセス",
+        "description": "Claudeの内部思考プロセス"
+      },
+      "artifacts": {
+        "label": "Artifacts",
+        "description": "コード、ドキュメントなどの生成されたコンテンツ"
+      },
+      "tools": {
+        "label": "ツール使用",
+        "description": "検索、計算などのツール呼び出し記録"
+      },
+      "citations": {
+        "label": "引用",
+        "description": "Webリンクなどの引用情報"
+      }
+    },
+    "about": {
+      "title": "について",
+      "appName": "Lyra Exporter",
+      "appDescription": "強力な会話エクスポートおよび管理ツール",
+      "version": "バージョン",
+      "github": "GitHub",
+      "githubDescription": "オープンソースプロジェクト、貢献とフィードバックを歓迎"
+    }
+  },
+  "copy": {
+    "messages": {
+      "success": "クリップボードにコピーしました",
+      "error": "コピーに失敗しました。もう一度お試しください",
+      "generalError": "コピーに失敗しました",
+      "multipleSuccess": "{{count}}個のメッセージをコピーしました"
+    },
+    "format": {
+      "timeLabel": "時間",
+      "thinkingLabel": "💭 思考プロセス：",
+      "artifactsLabel": "🔧 Artifacts：",
+      "noTitle": "タイトルなし",
+      "unknownType": "不明なタイプ"
+    }
+  },
+  "exportManager": {
+    "metadata": {
+      "defaultTitle": "会話記録",
+      "created": "作成日時",
+      "unknown": "不明",
+      "exportTime": "エクスポート時刻",
+      "filterCondition": "フィルター条件"
+    },
+    "messages": {
+      "noMatchingMessages": "*条件に一致するメッセージはありません*",
+      "exportedCount": "*フィルター条件に基づいて {{total}} 個のメッセージから {{count}} 個をエクスポートしました*"
+    },
+    "format": {
+      "thinkingProcess": "思考プロセス",
+      "thinkingLabel": "💭 思考プロセス：",
+      "attachments": "📎 添付ファイル",
+      "type": "タイプ",
+      "contentPreview": "コンテンツプレビュー",
+      "artifact": "🔧 Artifact：",
+      "noTitle": "タイトルなし",
+      "unknown": "不明",
+      "typeLabel": "**タイプ**：",
+      "language": "**言語**：",
+      "content": "**コンテンツ**：",
+      "tool": "🔍 ツール：",
+      "searchQuery": "**検索クエリ**：",
+      "searchResults": "**検索結果**：",
+      "citations": "📎 引用",
+      "unknownSource": "不明なソース",
+      "unknownWebsite": "不明なウェブサイト"
+    },
+    "filters": {
+      "excludeDeleted": "削除済みを除外",
+      "onlyCompleted": "完了したメッセージのみ",
+      "onlyImportant": "重要なメッセージのみ",
+      "completedAndImportant": "完了かつ重要なメッセージのみ"
+    },
+    "errors": {
+      "saveFileFailed": "ファイルの保存に失敗しました。もう一度お試しください",
+      "noDataToExport": "エクスポートするデータがありません",
+      "exportFailed": "エクスポートに失敗しました",
+      "unknownScope": "不明なエクスポート範囲："
+    }
+  }
+}

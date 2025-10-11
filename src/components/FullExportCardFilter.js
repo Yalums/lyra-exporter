@@ -1,5 +1,7 @@
 // components/FullExportCardFilter.js
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import LanguageSwitcher from './LanguageSwitcher';
+import { useI18n } from '../hooks/useI18n';
 
 const FullExportCardFilter = ({
   filters,
@@ -11,6 +13,20 @@ const FullExportCardFilter = ({
   operatedCount = 0,
   className = ""
 }) => {
+  const { t } = useI18n();
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // 检测是否为移动端
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
     try {
@@ -20,15 +36,34 @@ const FullExportCardFilter = ({
     }
   };
 
+  // 智能日期同步处理
+  const handleStartDateChange = (value) => {
+    onFilterChange('customDateStart', value);
+    
+    // 如果结束日期为空或早于开始日期，自动设置为相同日期或稍后
+    if (!filters.customDateEnd || new Date(value) > new Date(filters.customDateEnd)) {
+      onFilterChange('customDateEnd', value);
+    }
+  };
+
+  const handleEndDateChange = (value) => {
+    onFilterChange('customDateEnd', value);
+    
+    // 如果开始日期为空或晚于结束日期，自动设置为相同日期或稍早
+    if (!filters.customDateStart || new Date(value) < new Date(filters.customDateStart)) {
+      onFilterChange('customDateStart', value);
+    }
+  };
+
   return (
     <div className={`conversation-filter ${className}`}>
-      {/* 筛选器面板 */}
+      {/* Filter panel */}
       <div className="filter-panel">
-        {/* 筛选器标题和重置按钮 */}
+        {/* Filter header and reset button */}
         <div className="filter-header">
           <div className="filter-title">
             <span className="filter-icon">🔍</span>
-            <span className="filter-text">筛选对话</span>
+            <span className="filter-text">{t('filter.title')}</span>
             {filterStats.hasActiveFilters && (
               <span className="filter-badge">{filterStats.activeFilterCount}</span>
             )}
@@ -38,86 +73,90 @@ const FullExportCardFilter = ({
               <button 
                 className="btn-secondary small"
                 onClick={onReset}
-                title="清除所有筛选条件"
+                title={t('filter.actions.clearAllFilters')}
               >
-                ✕ 清除筛选
+                ✕ {t('filter.actions.clearFilters')}
               </button>
             )}
             {onClearAllMarks && operatedCount > 0 && (
               <button 
                 className="btn-secondary small"
                 onClick={onClearAllMarks}
-                title={`清除所有文件的标记（${operatedCount}个有操作）`}
+                title={t('filter.actions.clearAllMarksTitle', { count: operatedCount })}
               >
-                🔄 清除全部标记
+                🔄 {t('filter.actions.clearAllMarks')}
               </button>
             )}
           </div>
         </div>
 
-        <div className="filter-sections">
-          {/* 名称搜索 */}
+        <div className={`filter-sections ${filters.dateRange === 'custom' ? 'has-custom-date' : ''}`}>
+          {/* Name search */}
           <div className="filter-section">
-            <label className="filter-label">搜索对话</label>
+            <label className="filter-label">{t('filter.search.label')}</label>
             <input
               type="text"
               className="filter-input"
-              placeholder="搜索对话名称或项目名称..."
+              placeholder={t('filter.search.placeholder')}
               value={filters.name}
               onChange={(e) => onFilterChange('name', e.target.value)}
             />
           </div>
 
-          {/* 时间范围 */}
-          <div className="filter-section">
-            <label className="filter-label">时间范围</label>
+          {/* Time range - 单独占一行，以便自定义日期能在下一行 */}
+          <div className="filter-section time-range-section">
+            <label className="filter-label">{t('filter.timeRange.label')}</label>
             <select
               className="filter-select"
               value={filters.dateRange}
               onChange={(e) => onFilterChange('dateRange', e.target.value)}
             >
-              <option value="all">全部时间</option>
-              <option value="today">今天</option>
-              <option value="week">最近一周</option>
-              <option value="month">最近一月</option>
-              <option value="custom">自定义范围</option>
+              <option value="all">{t('filter.timeRange.all')}</option>
+              <option value="today">{t('filter.timeRange.today')}</option>
+              <option value="week">{t('filter.timeRange.week')}</option>
+              <option value="month">{t('filter.timeRange.month')}</option>
+              <option value="custom">{t('filter.timeRange.custom')}</option>
             </select>
           </div>
 
-          {/* 自定义日期范围 */}
+          {/* Custom date range - 现在作为独立的行 */}
           {filters.dateRange === 'custom' && (
-            <div className="filter-section date-range-section">
-              <label className="filter-label">日期范围</label>
+            <div className={`filter-section custom-date-section ${isMobile ? 'mobile' : 'desktop'}`}>
+              <label className="filter-label">{t('filter.dateRange.label')}</label>
               <div className="date-range-inputs">
                 <input
                   type="date"
                   className="filter-input date-input"
                   value={formatDate(filters.customDateStart)}
-                  onChange={(e) => onFilterChange('customDateStart', e.target.value)}
-                  title="开始日期"
+                  onChange={(e) => handleStartDateChange(e.target.value)}
+                  title={t('filter.dateRange.startDate')}
+                  placeholder={t('filter.dateRange.startDate')}
                 />
-                <span className="date-separator">至</span>
+                {!isMobile && (
+                  <span className="date-separator">{t('filter.dateRange.to')}</span>
+                )}
                 <input
                   type="date"
                   className="filter-input date-input"  
                   value={formatDate(filters.customDateEnd)}
-                  onChange={(e) => onFilterChange('customDateEnd', e.target.value)}
-                  title="结束日期"
+                  onChange={(e) => handleEndDateChange(e.target.value)}
+                  title={t('filter.dateRange.endDate')}
+                  placeholder={t('filter.dateRange.endDate')}
                 />
               </div>
             </div>
           )}
 
-          {/* 项目筛选 */}
+          {/* Project filter */}
           <div className="filter-section">
-            <label className="filter-label">项目</label>
+            <label className="filter-label">{t('filter.project.label')}</label>
             <select
               className="filter-select"
               value={filters.project}
               onChange={(e) => onFilterChange('project', e.target.value)}
             >
-              <option value="all">全部项目</option>
-              <option value="no_project">📄 无项目</option>
+              <option value="all">{t('filter.project.all')}</option>
+              <option value="no_project">📄 {t('filter.project.none')}</option>
               {availableProjects.map(project => (
                 <option key={project.uuid} value={project.uuid}>
                   📁 {project.name}
@@ -126,44 +165,44 @@ const FullExportCardFilter = ({
             </select>
           </div>
 
-          {/* 星标筛选 */}
+          {/* Star filter */}
           <div className="filter-section">
-            <label className="filter-label">星标状态</label>
+            <label className="filter-label">{t('filter.starred.label')}</label>
             <select
               className="filter-select"
               value={filters.starred}
               onChange={(e) => onFilterChange('starred', e.target.value)}
             >
-              <option value="all">全部</option>
-              <option value="starred">⭐ 已星标</option>
-              <option value="unstarred">○ 未星标</option>
+              <option value="all">{t('filter.starred.all')}</option>
+              <option value="starred">⭐ {t('filter.starred.starred')}</option>
+              <option value="unstarred">○ {t('filter.starred.unstarred')}</option>
             </select>
           </div>
 
-          {/* 操作状态筛选 */}
+          {/* Operation status filter */}
           <div className="filter-section">
-            <label className="filter-label">操作状态</label>
+            <label className="filter-label">{t('filter.operated.label')}</label>
             <select
               className="filter-select"
               value={filters.operated || 'all'}
               onChange={(e) => onFilterChange('operated', e.target.value)}
             >
-              <option value="all">全部</option>
-              <option value="operated">✏️ 有过操作</option>
-              <option value="unoperated">○ 未操作</option>
+              <option value="all">{t('filter.operated.all')}</option>
+              <option value="operated">✏️ {t('filter.operated.hasOperations')}</option>
+              <option value="unoperated">○ {t('filter.operated.noOperations')}</option>
             </select>
           </div>
         </div>
 
-        {/* 筛选统计 */}
+        {/* Filter statistics */}
         <div className="filter-footer">
           <div className="filter-stats">
             <span className="stats-text">
-              显示 <strong>{filterStats.filtered}</strong> / {filterStats.total} 个对话
+              {t('filter.stats.showing')} <strong>{filterStats.filtered}</strong> / {filterStats.total} {t('filter.stats.conversations')}
             </span>
             {filterStats.hasActiveFilters && (
               <span className="active-filters-text">
-                （{filterStats.activeFilterCount} 个筛选条件生效）
+                ({t('filter.stats.activeFilters', { count: filterStats.activeFilterCount })})
               </span>
             )}
           </div>

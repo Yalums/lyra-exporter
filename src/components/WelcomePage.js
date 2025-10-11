@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, MessageCircle, Download, Database, Info} from 'lucide-react';
+import { FileText, MessageCircle, Download, Database, Info, Star, Brain, Clock, FolderTree, Moon, Sun} from 'lucide-react';
 import { useI18n } from '../hooks/useI18n.js';
 import LanguageSwitcher from '../components/LanguageSwitcher.js';
+import { ThemeUtils } from '../utils/commonUtils.js';
 
-// 隐私保障说明组件 - 国际化版本
+// 隐私保障说明组件 - 国际化版本（简化版）
 const PrivacyAssurance = () => {
   const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
@@ -35,82 +36,62 @@ const PrivacyAssurance = () => {
       
       {expanded && (
         <div className="mt-4 text-gray-700">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-4">
-            <div>
-              <p className="mb-4 text-sm leading-relaxed">
-                {t('welcomePage.privacyAssurance.intro')} <span className="text-green-600 font-medium">{t('welcomePage.privacyAssurance.openSource')}</span> {t('welcomePage.privacyAssurance.description')}
-              </p>
-              <div className="bg-green-50 rounded-lg p-4 shadow-sm border border-green-100">
-                <span>{t('welcomePage.privacyAssurance.transparency')}</span>
+          <p className="mb-4 text-sm leading-relaxed">
+            {t('welcomePage.privacyAssurance.intro')} <span className="text-green-600 font-medium">{t('welcomePage.privacyAssurance.openSource')}</span> {t('welcomePage.privacyAssurance.description')}
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="privacy-feature">
+              <span className="privacy-icon">✓</span>
+              <div>
+                <span className="font-medium">{t('welcomePage.privacyAssurance.guarantees.localProcessing.title')}</span>
+                {t('welcomePage.privacyAssurance.guarantees.localProcessing.description')}
               </div>
             </div>
-            
-            <div>
-              <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                {t('welcomePage.privacyAssurance.dataSecurityTitle')}
-              </h4>
-              <div className="space-y-3 text-sm mb-4">
-                <div className="flex items-start">
-                  <span className="inline-flex items-center justify-center bg-green-100 text-green-700 w-6 h-6 rounded-full mr-3 flex-shrink-0 font-bold text-xs">✓</span>
-                  <div>
-                    <span className="font-medium">{t('welcomePage.privacyAssurance.guarantees.localProcessing.title')}</span>{t('welcomePage.privacyAssurance.guarantees.localProcessing.description')}
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <span className="inline-flex items-center justify-center bg-green-100 text-green-700 w-6 h-6 rounded-full mr-3 flex-shrink-0 font-bold text-xs">✓</span>
-                  <div>
-                    <span className="font-medium">{t('welcomePage.privacyAssurance.guarantees.offlineMode.title')}</span>{t('welcomePage.privacyAssurance.guarantees.offlineMode.description')}
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <span className="inline-flex items-center justify-center bg-green-100 text-green-700 w-6 h-6 rounded-full mr-3 flex-shrink-0 font-bold text-xs">✓</span>
-                  <div>
-                    <span className="font-medium">{t('welcomePage.privacyAssurance.guarantees.staticSite.title')}</span>{t('welcomePage.privacyAssurance.guarantees.staticSite.description')}
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <span className="inline-flex items-center justify-center bg-green-100 text-green-700 w-6 h-6 rounded-full mr-3 flex-shrink-0 font-bold text-xs">✓</span>
-                  <div>
-                    <span className="font-medium">{t('welcomePage.privacyAssurance.guarantees.selfHosted.title')}</span>{t('welcomePage.privacyAssurance.guarantees.selfHosted.description')}
-                  </div>
-                </div>
+            <div className="privacy-feature">
+              <span className="privacy-icon">✓</span>
+              <div>
+                <span className="font-medium">{t('welcomePage.privacyAssurance.guarantees.offlineMode.title')}</span>
+                {t('welcomePage.privacyAssurance.guarantees.offlineMode.description')}
               </div>
-              <div className="mt-4 flex flex-wrap gap-3">
-                <a 
-                  href="https://github.com/Yalums/lyra-exporter/tree/gh-pages" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200 text-sm"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                  </svg>
-                  {t('welcomePage.privacyAssurance.links.sourceCode')}
-                </a>
-                <a 
-                  href="https://github.com/Yalums/lyra-exporter/releases" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  {t('welcomePage.privacyAssurance.links.download')}
-                </a>
+            </div>
+            <div className="privacy-feature">
+              <span className="privacy-icon">✓</span>
+              <div>
+                <span className="font-medium">{t('welcomePage.privacyAssurance.guarantees.staticSite.title')}</span>
+                {t('welcomePage.privacyAssurance.guarantees.staticSite.description')}
+              </div>
+            </div>
+            <div className="privacy-feature">
+              <span className="privacy-icon">✓</span>
+              <div>
+                <span className="font-medium">{t('welcomePage.privacyAssurance.guarantees.selfHosted.title')}</span>
+                {t('welcomePage.privacyAssurance.guarantees.selfHosted.description')}
               </div>
             </div>
           </div>
-
-          <div className="bg-blue-50 rounded-lg p-4 mt-4 text-sm border border-blue-100">
-            <p className="text-gray-700 flex items-start">
-              <Info className="h-5 w-5 text-blue-600 mr-2 flex-shrink-0 mt-0.5" /> 
-              <span>
-                <span className="font-medium">{t('welcomePage.privacyAssurance.note')}</span> 
-                {t('welcomePage.privacyAssurance.noteContent')}
-              </span>
-            </p>
+          
+          <div className="flex flex-wrap gap-3 mt-4">
+            <a 
+              href="https://github.com/Yalums/lyra-exporter/tree/gh-pages" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="privacy-link primary"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+              </svg>
+              {t('welcomePage.privacyAssurance.links.sourceCode')}
+            </a>
+            <a 
+              href="https://github.com/Yalums/lyra-exporter/releases" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="privacy-link secondary"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              {t('welcomePage.privacyAssurance.links.download')}
+            </a>
           </div>
         </div>
       )}
@@ -121,11 +102,11 @@ const PrivacyAssurance = () => {
 // 内联的脚本安装指南组件 - 国际化版本
 const ScriptInstallGuide = () => {
   const { t } = useI18n();
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   
   // 跳转到油猴脚本安装页面
   const goToScriptInstall = () => {
-    window.open('https://greasyfork.org/zh-CN/scripts/540633-lyra-s-fetch', '_blank');
+    window.open('https://greasyfork.org/en/scripts/539579-lyra-s-exporter-fetch', '_blank');
   };
 
   return (
@@ -225,7 +206,9 @@ const FeatureTip = ({ icon, titleKey, contentKey }) => {
   return (
     <div className="bg-white rounded-lg p-5 shadow-md hover:shadow-lg transition-all duration-300 border border-gray-200">
       <div className="flex items-center mb-3">
-        {icon}
+        <div className="p-2 rounded-full bg-orange-100 text-orange-600">
+          {icon}
+        </div>
         <h3 className="text-lg font-semibold text-gray-800 ml-3">{t(titleKey)}</h3>
       </div>
       <p className="text-gray-600 text-sm leading-relaxed">{t(contentKey)}</p>
@@ -234,58 +217,13 @@ const FeatureTip = ({ icon, titleKey, contentKey }) => {
 };
 
 // 功能特色卡片组件 - 国际化版本
-const FeatureCard = ({ icon, titleKey, descriptionKey, color }) => {
+const FeatureCard = ({ titleKey, descriptionKey }) => {
   const { t } = useI18n();
   
-  // 根据color参数使用预定义的类名组合
-  const getColorClasses = (colorName) => {
-    switch(colorName) {
-      case 'blue':
-        return {
-          bgColor: 'bg-blue-50',
-          borderColor: 'border-blue-100',
-          iconBgColor: 'bg-blue-100',
-          iconTextColor: 'text-blue-600',
-          titleColor: 'text-blue-700'
-        };
-      case 'purple':
-        return {
-          bgColor: 'bg-purple-50',
-          borderColor: 'border-purple-100',
-          iconBgColor: 'bg-purple-100',
-          iconTextColor: 'text-purple-600',
-          titleColor: 'text-purple-700'
-        };
-      case 'green':
-        return {
-          bgColor: 'bg-green-50',
-          borderColor: 'border-green-100',
-          iconBgColor: 'bg-green-100',
-          iconTextColor: 'text-green-600',
-          titleColor: 'text-green-700'
-        };
-      default:
-        return {
-          bgColor: 'bg-gray-50',
-          borderColor: 'border-gray-100',
-          iconBgColor: 'bg-gray-100',
-          iconTextColor: 'text-gray-600',
-          titleColor: 'text-gray-700'
-        };
-    }
-  };
-  
-  const colorClasses = getColorClasses(color);
-  
   return (
-    <div className={`${colorClasses.bgColor} rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-300 border ${colorClasses.borderColor}`}>
-      <div className="flex items-center mb-3">
-        <div className={`p-2 rounded-full ${colorClasses.iconBgColor} ${colorClasses.iconTextColor}`}>
-          {icon}
-        </div>
-        <h3 className={`ml-3 font-bold ${colorClasses.titleColor}`}>{t(titleKey)}</h3>
-      </div>
-      <p className="text-gray-700 text-sm leading-relaxed">{t(descriptionKey)}</p>
+    <div className="bg-white rounded-lg p-5 border border-gray-200">
+      <h3 className="font-bold text-gray-800 mb-3">{t(titleKey)}</h3>
+      <p className="text-gray-600 text-sm leading-relaxed">{t(descriptionKey)}</p>
     </div>
   );
 };
@@ -293,6 +231,18 @@ const FeatureCard = ({ icon, titleKey, descriptionKey, color }) => {
 // 主欢迎页面组件 - 国际化版本
 const WelcomePage = ({ handleLoadClick }) => {
   const { t, isReady } = useI18n();
+  const [currentTheme, setCurrentTheme] = useState(ThemeUtils.getCurrentTheme());
+  
+  // 处理主题切换（不刷新）
+  const handleThemeToggle = () => {
+    const newTheme = ThemeUtils.toggleTheme();
+    setCurrentTheme(newTheme);
+  };
+  
+  // 处理语言切换（强制刷新）
+  const handleLanguageChange = () => {
+    setTimeout(() => window.location.reload(), 300);
+  };
   
   // 模拟打字效果 - 使用国际化文本
   const [welcomeText, setWelcomeText] = useState("");
@@ -334,7 +284,31 @@ const WelcomePage = ({ handleLoadClick }) => {
   return (
     <div 
       className="welcome-page flex flex-col items-center w-full px-6 pb-6 overflow-auto scrollable hide-scrollbar non-selectable"
-    >
+          >
+      {/* 右上角控制面板 */}
+      <div className="welcome-control-panel">
+        <div className="control-panel">
+          {/* 主题切换按钮 */}
+          <button 
+            onClick={handleThemeToggle}
+            className="control-button"
+            title={currentTheme === 'dark' ? '切换到浅色模式' : '切换到深色模式'}
+          >
+            {currentTheme === 'dark' ? (
+              <Sun className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )}
+          </button>
+          
+          {/* 语言切换器 */}
+          <LanguageSwitcher 
+            variant="compact"
+            showText={false}
+            onLanguageChange={handleLanguageChange}
+          />
+        </div>
+      </div>
       
       {/* 欢迎区 */}
       <div className="w-full max-w-4xl mt-8 mb-8 text-center">
@@ -372,43 +346,39 @@ const WelcomePage = ({ handleLoadClick }) => {
           <FeatureCard 
             titleKey="welcomePage.features.marking.title"
             descriptionKey="welcomePage.features.marking.description"
-            color="blue"
           />
           
           <FeatureCard 
             titleKey="welcomePage.features.thinking.title"
             descriptionKey="welcomePage.features.thinking.description"
-            color="purple"
           />
           
           <FeatureCard 
             titleKey="welcomePage.features.timeline.title"
             descriptionKey="welcomePage.features.timeline.description"
-            color="green"
           />
           
           <FeatureCard 
             titleKey="welcomePage.features.classification.title"
             descriptionKey="welcomePage.features.classification.description"
-            color="blue"
           />
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <FeatureTip 
-            icon={<MessageCircle className="h-5 w-5 text-blue-600" />}
+            icon={<MessageCircle className="h-5 w-5" />}
             titleKey="welcomePage.tips.conversationOrg.title"
             contentKey="welcomePage.tips.conversationOrg.content"
           />
           
           <FeatureTip 
-            icon={<Download className="h-5 w-5 text-blue-600" />}
+            icon={<Download className="h-5 w-5" />}
             titleKey="welcomePage.tips.flexibleExport.title"
             contentKey="welcomePage.tips.flexibleExport.content"
           />
           
           <FeatureTip 
-            icon={<Database className="h-5 w-5 text-blue-600" />}
+            icon={<Database className="h-5 w-5" />}
             titleKey="welcomePage.tips.dataSecurity.title"
             contentKey="welcomePage.tips.dataSecurity.content"
           />
@@ -430,7 +400,6 @@ const WelcomePage = ({ handleLoadClick }) => {
         </p>
       </div>
       
-      {/* 保持原有的CSS样式 */}
       <style>
         {`
           @keyframes fadeIn {
@@ -441,166 +410,206 @@ const WelcomePage = ({ handleLoadClick }) => {
             animation: fadeIn 0.5s ease-out forwards;
           }
           
-          /* 确保欢迎页面不会在标题栏下添加额外空间 */
+          /* 控制面板容器 - 响应式定位 */
+          .welcome-control-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 50;
+          }
+          
+          @media (max-width: 768px) {
+            .welcome-control-panel {
+              top: 16px;
+              right: 16px;
+            }
+          }
+          
+          /* 控制面板样式 - 无动画版本 */
+          .control-panel {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px;
+            border-radius: 16px;
+            background: var(--bg-overlay);
+            box-shadow: var(--shadow-md);
+          }
+          
+          /* 控制按钮样式 - 无动画版本 */
+          .control-button {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: none;
+            outline: none;
+            background: transparent;
+            color: var(--text-primary);
+          }
+          
+          .control-button:hover {
+            background: var(--bg-tertiary);
+          }
+          
+          .control-button:active {
+            opacity: 0.7;
+          }
+          
+          /* 欢迎页面基础样式 */
           .welcome-page {
             margin-top: 0;
             padding-top: 0;
-            /* 使用主题背景色变量 */
             background-color: var(--bg-primary);
-            /* 确保欢迎页面背景色跟随主题变化 */
-            transition: background-color var(--transition-normal, 0.3s ease);
+            transition: background-color var(--transition-normal);
           }
           
-          /* 为欢迎页面的文本元素添加主题支持 */
           .welcome-page h1 {
-            color: var(--text-primary, #1f2937);
+            color: var(--text-primary);
           }
           
           .welcome-page p {
-            color: var(--text-secondary, #4b5563);
+            color: var(--text-secondary);
           }
           
           .welcome-page .text-gray-500 {
-            color: var(--text-tertiary, #6b7280) !important;
+            color: var(--text-tertiary) !important;
           }
           
           .welcome-page .text-gray-600 {
-            color: var(--text-secondary, #4b5563) !important;
+            color: var(--text-secondary) !important;
           }
           
           .welcome-page .text-gray-700 {
-            color: var(--text-secondary, #4b5563) !important;
+            color: var(--text-secondary) !important;
           }
           
           .welcome-page .text-gray-800 {
-            color: var(--text-primary, #1f2937) !important;
+            color: var(--text-primary) !important;
           }
           
-          /* 为卡片添加主题背景 */
+          /* 卡片样式 */
           .welcome-page .bg-white {
-            background-color: var(--bg-secondary, #ffffff) !important;
-            border-color: var(--border-primary, #e7e2df) !important;
-            /* 深色模式下的柔和阴影 */
+            background-color: var(--bg-secondary) !important;
+            border-color: var(--border-primary) !important;
             box-shadow: var(--shadow-sm) !important;
           }
           
+          .welcome-page .bg-white:hover {
+            box-shadow: var(--shadow-md) !important;
+          }
+          
+          /* 图标背景 - FeatureTip组件 */
+          .welcome-page .bg-orange-100 {
+            background: var(--gradient-primary);
+          }
+          
+          .welcome-page .bg-orange-100 svg {
+            color: #FFFFFF !important;
+          }
+          
           .welcome-page .bg-gray-50 {
-            background-color: var(--bg-tertiary, #f5f1ef) !important;
-            border-color: var(--border-secondary, #d6ccc6) !important;
+            background-color: var(--bg-tertiary) !important;
+            border-color: var(--border-secondary) !important;
           }
           
-          /* 功能卡片背景色适配 */
-          .welcome-page .bg-blue-50 {
-            background-color: var(--bg-tertiary, #f5f1ef) !important;
-            border-color: var(--border-primary, #e7e2df) !important;
-          }
-          
-          .welcome-page .bg-purple-50 {
-            background-color: var(--bg-tertiary, #f5f1ef) !important;
-            border-color: var(--border-primary, #e7e2df) !important;
-          }
-          
+          /* 功能卡片背景 */
+          .welcome-page .bg-blue-50,
+          .welcome-page .bg-purple-50,
           .welcome-page .bg-green-50 {
-            background-color: var(--bg-tertiary, #f5f1ef) !important;
-            border-color: var(--border-primary, #e7e2df) !important;
+            background-color: var(--bg-tertiary) !important;
+            border-color: var(--border-primary) !important;
           }
           
-          /* 边框颜色统一 */
-          .welcome-page .border-gray-200 {
-            border-color: var(--border-primary, #e7e2df) !important;
+          /* 边框颜色 */
+          .welcome-page .border-gray-200,
+          .welcome-page .border-blue-100,
+          .welcome-page .border-purple-100,
+          .welcome-page .border-green-100 {
+            border-color: var(--border-primary) !important;
           }
           
           .welcome-page .border-gray-100 {
-            border-color: var(--border-secondary, #d6ccc6) !important;
+            border-color: var(--border-secondary) !important;
           }
           
-          .welcome-page .border-blue-100 {
-            border-color: var(--border-primary, #e7e2df) !important;
-          }
-          
-          .welcome-page .border-purple-100 {
-            border-color: var(--border-primary, #e7e2df) !important;
-          }
-          
-          .welcome-page .border-green-100 {
-            border-color: var(--border-primary, #e7e2df) !important;
-          }
-          
-          /* 功能卡片图标背景适配 */
-          .welcome-page .bg-blue-100 {
-            background-color: var(--accent-primary, #ea580c) !important;
-            color: white !important;
-          }
-          
-          .welcome-page .bg-purple-100 {
-            background-color: var(--accent-primary, #ea580c) !important;
-            color: white !important;
-          }
-          
-          .welcome-page .bg-green-100 {
-            background-color: var(--accent-primary, #ea580c) !important;
-            color: white !important;
-          }
-          
-          .welcome-page .bg-gray-100 {
-            background-color: var(--accent-secondary, #C2C0B6) !important;
-            color: var(--text-primary, #1f2937) !important;
-          }
-          
-          /* 图标颜色适配 */
-          .welcome-page .text-blue-600 {
-            color: var(--accent-primary, #ea580c) !important;
-          }
-          
-          .welcome-page .text-purple-600 {
-            color: var(--accent-primary, #ea580c) !important;
-          }
-          
+          /* 图标颜色 */
+          .welcome-page .text-blue-600,
+          .welcome-page .text-purple-600,
           .welcome-page .text-green-600 {
-            color: var(--accent-primary, #ea580c) !important;
+            color: var(--accent-primary) !important;
           }
           
-          .welcome-page .text-gray-600 {
-            color: var(--text-secondary, #4b5563) !important;
-          }
-          
-          /* 标题颜色适配 */
-          .welcome-page .text-blue-700 {
-            color: var(--text-primary, #1f2937) !important;
-          }
-          
-          .welcome-page .text-purple-700 {
-            color: var(--text-primary, #1f2937) !important;
-          }
-          
+          .welcome-page .text-blue-700,
+          .welcome-page .text-purple-700,
           .welcome-page .text-green-700 {
-            color: var(--text-primary, #1f2937) !important;
+            color: var(--text-primary) !important;
           }
           
-          /* 深色模式下的特殊处理 */
-          [data-theme="dark"] .welcome-page .shadow-md {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+          /* 隐私保障特性样式 */
+          .privacy-feature {
+            display: flex;
+            align-items: start;
+            padding: 12px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            background: var(--bg-tertiary);
           }
           
-          [data-theme="dark"] .welcome-page .shadow-lg {
-            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4) !important;
+          .privacy-feature:hover {
+            background: var(--bg-primary);
           }
           
-          [data-theme="dark"] .welcome-page .shadow-sm {
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+          .privacy-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            margin-right: 12px;
+            flex-shrink: 0;
+            font-weight: bold;
+            font-size: 14px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
           }
           
-          /* 浅色模式下的柔和阴影 */
-          [data-theme="light"] .welcome-page .shadow-md {
-            box-shadow: 0 4px 12px rgba(194, 65, 12, 0.08) !important;
+          .privacy-link {
+            display: inline-flex;
+            align-items: center;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
           }
           
-          [data-theme="light"] .welcome-page .shadow-lg {
-            box-shadow: 0 12px 24px rgba(194, 65, 12, 0.12) !important;
+          .privacy-link.primary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-primary);
           }
           
-          [data-theme="light"] .welcome-page .shadow-sm {
-            box-shadow: 0 1px 3px rgba(194, 65, 12, 0.05) !important;
+          .privacy-link.primary:hover {
+            background: var(--bg-primary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+          }
+          
+          .privacy-link.secondary {
+            background: var(--accent-primary);
+            color: white;
+          }
+          
+          .privacy-link.secondary:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
           }
         `}
       </style>

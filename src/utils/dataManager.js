@@ -3,7 +3,7 @@
 
 import { ValidationUtils, StorageUtils } from './commonUtils';
 import { generateFileCardUuid, generateConversationCardUuid } from '../utils/uuidManager';
-
+import { getRenameManager } from './renameManager';
 /**
  * PostMessage处理器类
  */
@@ -235,26 +235,32 @@ export class StatsCalculator {
   /**
    * 获取搜索结果统计
    */
-  static getSearchResultStats(viewMode, filteredMessages, allCards, sortedMessages, timelineMessages) {
-    if (viewMode === 'conversations') {
-      const hasConversationCards = allCards.some(card => card.type === 'conversation');
-      const unit = hasConversationCards ? '个对话' : '个文件';
-      
-      return {
-        displayed: filteredMessages.length,
-        total: allCards.length,
-        unit
-      };
-    } else {
-      const messages = Array.isArray(sortedMessages) ? sortedMessages : timelineMessages;
-      
-      return {
-        displayed: filteredMessages.length,
-        total: messages.length,
-        unit: '条消息'
-      };
-    }
+  static getSearchResultStats(viewMode, filteredMessages, allCards, sortedMessages, timelineMessages, t) {
+  if (!t || typeof t !== 'function') {
+    console.error('getSearchResultStats: t is not a function', t);
+    t = (key) => key;
   }
+  if (viewMode === 'conversations') {
+    const hasConversationCards = allCards.some(card => card.type === 'conversation');
+    const unit = hasConversationCards ? 
+      t('units.conversation') : 
+      t('units.file');
+    
+    return {
+      displayed: filteredMessages.length,
+      total: allCards.length,
+      unit
+    };
+  } else {
+    const messages = Array.isArray(sortedMessages) ? sortedMessages : timelineMessages;
+    
+    return {
+      displayed: filteredMessages.length,
+      total: messages.length,
+      unit: t('units.message')
+    };
+  }
+}
 
   /**
    * 获取当前统计（从App.js移入以简化主文件）
@@ -328,15 +334,23 @@ export class DataProcessor {
    */
   static getRawConversations(viewMode, processedData, currentFileIndex, files) {
     if (viewMode === 'conversations' && processedData?.format === 'claude_full_export') {
-      return processedData.views?.conversationList?.map(conv => ({
-        type: 'conversation',
-        ...conv,
-        fileIndex: currentFileIndex,
-        fileName: files[currentFileIndex]?.name || 'unknown',
-        fileFormat: processedData.format,
-        uuid: generateConversationCardUuid(currentFileIndex, conv.uuid, files[currentFileIndex]),
-        is_starred: conv.is_starred || false
-      })) || [];
+      const renameManager = getRenameManager();
+      return processedData.views?.conversationList?.map(conv => {
+        const convUuid = generateConversationCardUuid(currentFileIndex, conv.uuid, files[currentFileIndex]);
+        // 应用重命名
+        const displayName = renameManager.getRename(convUuid, conv.name);
+        return {
+          type: 'conversation',
+          ...conv,
+          name: displayName,  // 使用重命名后的名称
+          originalName: conv.name,  // 保留原始名称
+          fileIndex: currentFileIndex,
+          fileName: files[currentFileIndex]?.name || 'unknown',
+          fileFormat: processedData.format,
+          uuid: convUuid,
+          is_starred: conv.is_starred || false
+        };
+      }) || [];
     }
     return [];
   }
@@ -344,45 +358,61 @@ export class DataProcessor {
   /**
    * 生成文件卡片数据
    */
-  static getFileCards(viewMode, processedData, files, currentFileIndex, fileMetadata) {
-    if (viewMode !== 'conversations' || processedData?.format === 'claude_full_export') {
-      return [];
-    }
-    
-    return files.map((file, fileIndex) => {
-      const isCurrentFile = fileIndex === currentFileIndex;
-      const fileData = isCurrentFile ? processedData : null;
-      const metadata = fileMetadata[file.name] || {};
+  static getFileCards(viewMode, processedData, files, currentFileIndex, fileMetadata, t) {
+  if (!t || typeof t !== 'function') {
+    console.error('getFileCards: t is not a function', t);
+    // 提供降级方案
+    t = (key) => key;
+  }
+  
+  if (viewMode !== 'conversations' || processedData?.format === 'claude_full_export') {
+    return [];
+  }
+  
+  const renameManager = getRenameManager();
+  
+  return files.map((file, fileIndex) => {
+  const isCurrentFile = fileIndex === currentFileIndex;
+  const fileData = isCurrentFile ? processedData : null;
+  const metadata = fileMetadata[file.name] || {};
+  
+  const format = fileData?.format || metadata.format || 'unknown';
+  const messageCount = fileData?.chat_history?.length || metadata.messageCount || 0;
+  const conversationCount = fileData?.format === 'claude_full_export' ? 
+    (fileData?.views?.conversationList?.length || 0) : 
+    (metadata.conversationCount || (fileData ? 1 : 0));
+  
+  const model = fileData?.meta_info?.model || metadata.model || (format === 'claude' ? '' : 'Claude');
       
-      const format = fileData?.format || metadata.format || 'unknown';
-      const messageCount = fileData?.chat_history?.length || metadata.messageCount || 0;
-      const conversationCount = fileData?.format === 'claude_full_export' ? 
-        (fileData?.views?.conversationList?.length || 0) : 
-        (metadata.conversationCount || (fileData ? 1 : 0));
-      
-      const model = fileData?.meta_info?.model || metadata.model || (format === 'claude' ? '' : 'Claude');
+      const fileUuid = generateFileCardUuid(fileIndex, file);
+      const originalName = metadata.title ? metadata.title.replace('.json', '') : file.name.replace('.json', '');
+      // 应用重命名
+      const displayName = renameManager.getRename(fileUuid, originalName);
       
       return {
-        type: 'file',
-        uuid: generateFileCardUuid(fileIndex, file),
-        name: metadata.title ? metadata.title.replace('.json', '') : file.name.replace('.json', ''),
-        fileName: file.name,
-        fileIndex,
-        isCurrentFile,
-        fileData,
-        format,
-        model,
-        messageCount,
-        conversationCount,
-        created_at: metadata.created_at || (file.lastModified ? new Date(file.lastModified).toISOString() : null),
-        platform: metadata.platform || 'claude',
-        summary: format === 'claude_full_export' ? 
-          `${conversationCount}个对话，${messageCount}条消息` :
-          (format !== 'unknown' ? `${messageCount}条消息的对话` : '点击加载文件内容...'),
-        size: file.size
-      };
-    });
-  }
+      type: 'file',
+      uuid: fileUuid,
+      name: displayName,  // 使用重命名后的名称
+        originalName: originalName,  // 保留原始名称
+      fileName: file.name,
+      fileIndex,
+      isCurrentFile,
+      fileData,
+      format,
+      model,
+      messageCount,
+      conversationCount,
+      created_at: metadata.created_at || (file.lastModified ? new Date(file.lastModified).toISOString() : null),
+      platform: metadata.platform || 'claude',
+      summary: format === 'claude_full_export' ? 
+        t('fileCard.conversationSummary', { count: conversationCount, messages: messageCount }) :
+        (format !== 'unknown' ? 
+          t('fileCard.messageSummary', { count: messageCount }) : 
+          t('fileCard.clickToLoad')),
+      size: file.size
+    };
+  });
+}
 
   /**
    * 获取时间线消息
@@ -414,6 +444,7 @@ export class DataProcessor {
    */
   static getCurrentConversation(params) {
     const { viewMode, selectedFileIndex, selectedConversationUuid, processedData, files, currentFileIndex, fileMetadata, starActions } = params;
+    const renameManager = getRenameManager();
     
     if (viewMode === 'timeline' && selectedFileIndex !== null) {
       const dataSource = selectedFileIndex === currentFileIndex ? processedData : null;
@@ -426,9 +457,13 @@ export class DataProcessor {
         );
         if (conversation && files[selectedFileIndex]) {
           const convUuid = generateConversationCardUuid(selectedFileIndex, conversation.uuid, files[selectedFileIndex]);
+          // 应用重命名
+          const displayName = renameManager.getRename(convUuid, conversation.name);
           return {
             ...conversation,
             uuid: convUuid,
+            name: displayName,
+            originalName: conversation.name,
             is_starred: starActions?.isStarred?.(convUuid, conversation.is_starred) || conversation.is_starred
           };
         }
@@ -439,11 +474,16 @@ export class DataProcessor {
           const metadata = fileMetadata[file.name] || {};
           const isCurrentFile = selectedFileIndex === currentFileIndex;
           const fileData = isCurrentFile ? dataSource : null;
+          const fileUuid = generateFileCardUuid(selectedFileIndex, file);
+          const originalName = fileData?.meta_info?.title || metadata.title || file.name.replace('.json', '');
+          // 应用重命名
+          const displayName = renameManager.getRename(fileUuid, originalName);
           
           return {
             type: 'file',
-            uuid: generateFileCardUuid(selectedFileIndex, file),
-            name: fileData?.meta_info?.title || metadata.title || file.name.replace('.json', ''),
+            uuid: fileUuid,
+            name: displayName,
+            originalName: originalName,
             fileName: file.name,
             fileIndex: selectedFileIndex,
             isCurrentFile,

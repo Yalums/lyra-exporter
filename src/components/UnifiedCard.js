@@ -1,9 +1,11 @@
 // components/UnifiedCard.js
-// 统一的卡片组件 - 修正样式版本
+// 统一的卡片组件 - 支持重命名功能
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import PlatformIcon from './PlatformIcon';
 import { DateTimeUtils, FileUtils, PlatformUtils } from '../utils/commonUtils';
+import { useI18n } from '../hooks/useI18n';
+import { getRenameManager } from '../utils/renameManager';
 
 /**
  * 通用卡片组件
@@ -16,8 +18,14 @@ export const Card = ({
   onSelect,
   onStar,
   onRemove,
+  onRename,  // 新增：重命名回调
   className = ''
 }) => {
+  const { t } = useI18n();
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [renameManager] = useState(() => getRenameManager());
+  
   const handleClick = () => {
     if (onSelect) onSelect(item);
   };
@@ -32,6 +40,29 @@ export const Card = ({
     e.stopPropagation();
     if (onRemove) onRemove(item.fileIndex || item.uuid);
   };
+  
+  const handleRename = (e) => {
+    e.stopPropagation();
+    setNewName(item.originalName || item.name || '');
+    setShowRenameDialog(true);
+  };
+  
+  const handleSaveRename = () => {
+    const trimmedName = newName.trim();
+    if (trimmedName && item.uuid) {
+      renameManager.setRename(item.uuid, trimmedName);
+      // 通知父组件更新
+      if (onRename) {
+        onRename(item.uuid, trimmedName);
+      }
+    }
+    setShowRenameDialog(false);
+  };
+  
+  const handleCancelRename = () => {
+    setShowRenameDialog(false);
+    setNewName('');
+  };
 
   const isFile = item.type === 'file';
   const cardClass = `
@@ -45,17 +76,56 @@ export const Card = ({
   return (
     <div className={cardClass} onClick={handleClick}>
       <CardHeader 
-        title={item.name || '未命名'}
+        title={item.name || t('card.unnamed')}
         isStarred={isStarred}
         onStar={!isFile && onStar ? handleStar : null}
+        onRename={handleRename}
         onRemove={onRemove ? handleRemove : null}
+        t={t}
       />
       
       <CardMeta item={item} />
       
-      <CardPreview content={getPreviewContent(item)} />
+      <CardPreview content={getPreviewContent(item, t)} />
       
-      <CardStats stats={getStatsItems(item)} />
+      <CardStats stats={getStatsItems(item, t)} />
+      
+      {/* 重命名对话框 */}
+      {showRenameDialog && (
+        <div className="modal-overlay" onClick={handleCancelRename}>
+          <div className="modal-content rename-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{t('rename.title')}</h3>
+              <button className="close-btn" onClick={handleCancelRename}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>{t('rename.label')}</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') handleSaveRename();
+                    if (e.key === 'Escape') handleCancelRename();
+                  }}
+                  autoFocus
+                  placeholder={t('rename.placeholder')}
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={handleCancelRename}>
+                {t('common.cancel')}
+              </button>
+              <button className="btn-primary" onClick={handleSaveRename}>
+                {t('common.confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -63,7 +133,7 @@ export const Card = ({
 /**
  * 卡片头部组件
  */
-const CardHeader = ({ title, isStarred, onStar, onRemove }) => (
+const CardHeader = ({ title, isStarred, onStar, onRename, onRemove, t }) => (
   <div className="tile-header">
     <div className="tile-title">
       <span>{title}</span>
@@ -74,9 +144,20 @@ const CardHeader = ({ title, isStarred, onStar, onRemove }) => (
         <button
           className={`star-btn ${isStarred ? 'starred' : ''}`}
           onClick={onStar}
-          title={isStarred ? '取消星标' : '添加星标'}
+          title={isStarred ? t('card.unstar') : t('card.star')}
         >
           {isStarred ? '⭐' : '☆'}
+        </button>
+      )}
+      
+      {/* 重命名按钮 */}
+      {onRename && (
+        <button
+          className="rename-btn"
+          onClick={onRename}
+          title={t('rename.action')}
+        >
+          ✏️
         </button>
       )}
       
@@ -84,7 +165,7 @@ const CardHeader = ({ title, isStarred, onStar, onRemove }) => (
         <button
           className="file-close-btn"
           onClick={onRemove}
-          title="关闭"
+          title={t('card.close')}
         >
           ×
         </button>
@@ -97,7 +178,8 @@ const CardHeader = ({ title, isStarred, onStar, onRemove }) => (
  * 卡片元数据组件
  */
 const CardMeta = ({ item }) => {
-  const metaItems = getMetaItems(item);
+  const { t } = useI18n();
+  const metaItems = getMetaItems(item, t);
   
   return (
     <div className="tile-meta">
@@ -148,7 +230,7 @@ const CardStats = ({ stats }) => {
 /**
  * 获取元数据项
  */
-function getMetaItems(item) {
+function getMetaItems(item, t) {
   const items = [];
   
   // 平台/模型信息
@@ -189,7 +271,7 @@ function getMetaItems(item) {
   if (item.type === 'file' && item.conversationCount > 1) {
     items.push({
       icon: '✉️',
-      text: `${item.conversationCount}个对话`
+      text: `${item.conversationCount}${t('card.conversations')}`
     });
   }
   
@@ -199,30 +281,30 @@ function getMetaItems(item) {
 /**
  * 获取预览内容
  */
-function getPreviewContent(item) {
+function getPreviewContent(item, t) {
   if (item.type === 'file') {
     if (item.format === 'unknown') {
-      return '点击加载文件内容...';
+      return t('card.clickToLoad');
     }
-    return item.summary || `包含 ${item.conversationCount || 0} 个对话和 ${item.messageCount || 0} 条消息`;
+    return item.summary || `${t('card.contains')} ${item.conversationCount || 0} ${t('card.conversations')}${t('card.and')}${item.messageCount || 0} ${t('card.messages')}`;
   }
-  return item.summary || '点击查看对话详情...';
+  return item.summary || t('card.clickToView');
 }
 
 /**
  * 获取统计项
  */
-function getStatsItems(item) {
+function getStatsItems(item, t) {
   const stats = [];
   
   if (item.messageCount > 0) {
-    stats.push({ icon: '💬', text: `${item.messageCount}条消息` });
+    stats.push({ icon: '💬', text: `${item.messageCount}${t('card.messages')}` });
   }
   if (item.hasThinking) {
-    stats.push({ icon: '💭', text: '含思考' });
+    stats.push({ icon: '💭', text: t('card.hasThinking') });
   }
   if (item.hasArtifacts) {
-    stats.push({ icon: '🔧', text: '含代码' });
+    stats.push({ icon: '🔧', text: t('card.hasCode') });
   }
   
   return stats;
@@ -238,6 +320,7 @@ export const CardGrid = ({
   onItemSelect,
   onItemStar,
   onItemRemove,
+  onItemRename,  // 新增：重命名回调
   onAddItem,
   className = ''
 }) => {
@@ -248,10 +331,11 @@ export const CardGrid = ({
           key={item.uuid}
           item={item}
           isSelected={selectedItem === item.uuid || item.isCurrentFile}
-          isStarred={starredItems.get(item.uuid) || item.is_starred}
+          isStarred={starredItems.has(item.uuid) ? starredItems.get(item.uuid) : (item.is_starred || false)}
           onSelect={onItemSelect}
           onStar={onItemStar}
           onRemove={onItemRemove}
+          onRename={onItemRename}
         />
       ))}
       
@@ -263,14 +347,18 @@ export const CardGrid = ({
 /**
  * 添加卡片组件
  */
-const AddCard = ({ onClick }) => (
-  <div className="conversation-tile add-file-tile" onClick={onClick}>
-    <div className="add-file-content">
-      <div className="add-file-icon">+</div>
-      <div className="add-file-text">添加文件</div>
-      <div className="add-file-hint">支持JSON格式</div>
+const AddCard = ({ onClick }) => {
+  const { t } = useI18n();
+  
+  return (
+    <div className="conversation-tile add-file-tile" onClick={onClick}>
+      <div className="add-file-content">
+        <div className="add-file-icon">+</div>
+        <div className="add-file-text">{t('card.addFile')}</div>
+        <div className="add-file-hint">{t('card.supportsJson')}</div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default CardGrid;

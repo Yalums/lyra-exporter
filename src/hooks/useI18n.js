@@ -93,10 +93,6 @@ export const useI18n = () => {
     const translation = getNestedValue(translations, key);
     
     if (translation === null || translation === undefined) {
-      // 开发模式下显示警告
-      if (process.env.NODE_ENV === 'development') {
-        console.warn(`Translation missing for key: ${key}`);
-      }
       
       // 返回键的最后一部分作为fallback
       const fallback = key.split('.').pop();

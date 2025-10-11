@@ -53,7 +53,7 @@ export class StarManager {
    * 切换星标状态
    */
   toggleStar(conversationUuid, nativeIsStarred = false) {
-    if (!this.enabled) return this.starredConversations;
+    if (!this.enabled) return new Map(this.starredConversations);
 
     const currentStarred = this.isStarred(conversationUuid, nativeIsStarred);
     
@@ -78,7 +78,8 @@ export class StarManager {
     }
     
     this.saveToStorage();
-    return this.starredConversations;
+    // 返回新的Map实例，这样React能检测到变化
+    return new Map(this.starredConversations);
   }
 
   /**
@@ -100,19 +101,15 @@ export class StarManager {
    * 清除所有手动星标设置（恢复到原生状态）
    */
   clearAllStars() {
-    if (!this.enabled) return;
+    if (!this.enabled) return new Map(this.starredConversations);
 
-    const confirmed = window.confirm(
-      '确定要恢复所有对话的原始星标状态吗？\n' +
-      '这将清除您手动设置的所有星标更改。'
-    );
+    this.starredConversations.clear();
+    const storageKey = `${STAR_STORAGE_PREFIX}${STAR_STORAGE_VERSION}`;
+    localStorage.removeItem(storageKey);
+    console.log('[StarSystem] 已清除所有手动星标设置');
     
-    if (confirmed) {
-      this.starredConversations.clear();
-      const storageKey = `${STAR_STORAGE_PREFIX}${STAR_STORAGE_VERSION}`;
-      localStorage.removeItem(storageKey);
-      console.log('[StarSystem] 已清除所有手动星标设置');
-    }
+    // 返回新的Map实例，这样React能检测到变化
+    return new Map(this.starredConversations);
   }
 
   /**

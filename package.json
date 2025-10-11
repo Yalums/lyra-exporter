@@ -1,6 +1,6 @@
 {
   "name": "lyra-exporter",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "private": true,
   "homepage": "https://yalums.github.io/lyra-exporter",
   "description": "A handy tool for exporting chat conversations.",
@@ -9,13 +9,17 @@
   },
   "dependencies": {
     "file-saver": "^2.0.5",
+    "jszip": "^3.10.1",
+    "katex": "^0.16.23",
     "lucide-react": "^0.511.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-markdown": "^8.0.7",
     "react-scripts": "5.0.1",
     "react-syntax-highlighter": "^15.5.0",
-    "remark-gfm": "^3.0.1"
+    "rehype-katex": "^7.0.1",
+    "remark-gfm": "^3.0.1",
+    "remark-math": "^6.0.0"
   },
   "scripts": {
     "start": "cross-env HOST=0.0.0.0 PORT=3789 PUBLIC_URL=/lyra-exporter react-scripts start",

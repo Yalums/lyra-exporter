@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { getImageDisplayData } from '../utils/fileParser';
+import { useI18n } from '../hooks/useI18n';
 
 import remarkMath from 'remark-math'; // 增加LaTex渲染
 import rehypeKatex from 'rehype-katex';
@@ -17,6 +18,7 @@ const MessageDetail = ({
   onTabChange, // 可选的标签页切换回调
   showTabs = true // 新增属性，控制是否显示标签页
 }) => {
+  const { t } = useI18n();
   const contentRef = useRef(null);
   const [imageLoadErrors, setImageLoadErrors] = useState({});
   const [internalActiveTab, setInternalActiveTab] = useState(activeTab);
@@ -53,7 +55,7 @@ const MessageDetail = ({
 
   // 根据格式决定显示哪些标签页
   const getAvailableTabs = () => {
-    const baseTabs = [{ id: 'content', label: '内容' }];
+    const baseTabs = [{ id: 'content', label: t('messageDetail.tabs.content') }];
     
     // 如果没有选中消息，返回基础标签
     if (!currentMessage) {
@@ -65,13 +67,13 @@ const MessageDetail = ({
       // 人类消息不显示思考过程和Artifacts
       // 但如果有附件，显示附件选项卡
       if (currentMessage.attachments && currentMessage.attachments.length > 0) {
-        baseTabs.push({ id: 'attachments', label: '附加文件' });
+        baseTabs.push({ id: 'attachments', label: t('messageDetail.tabs.attachments') });
       }
     } else {
       // 助手消息的处理（仅Claude格式显示思考过程和Artifacts）
       if (format === 'claude' || format === 'claude_full_export' || !format) {
         if (currentMessage.thinking) {
-          baseTabs.push({ id: 'thinking', label: '思考过程' });
+          baseTabs.push({ id: 'thinking', label: t('messageDetail.tabs.thinking') });
         }
         if (currentMessage.artifacts && currentMessage.artifacts.length > 0) {
           baseTabs.push({ id: 'artifacts', label: 'Artifacts' });
@@ -229,7 +231,7 @@ const MessageDetail = ({
 
     return (
       <div className="message-images">
-        <h4>图片附件 ({images.length})</h4>
+        <h4>{t('messageDetail.images.title')} ({images.length})</h4>
         <div className="image-grid">
           {images.map((image, index) => {
             const imageData = getImageDisplayData(image);
@@ -246,7 +248,7 @@ const MessageDetail = ({
                   {hasError ? (
                     <div className="image-error">
                       <span className="error-icon">🖼️</span>
-                      <span className="error-text">图片加载失败</span>
+                      <span className="error-text">{t('messageDetail.images.loadFailed')}</span>
                       <span className="error-filename">{image.file_name}</span>
                     </div>
                   ) : (
@@ -303,22 +305,22 @@ const MessageDetail = ({
   // 渲染Artifacts
   const renderArtifacts = (artifacts) => {
     if (!artifacts || artifacts.length === 0) {
-      return <div className="placeholder">此消息没有使用Artifacts</div>;
+      return <div className="placeholder">{t('messageDetail.placeholder.noArtifacts')}</div>;
     }
 
     return artifacts.map((artifact, index) => (
       <div key={index} className="artifact-item">
-        <h4>Artifact {index + 1}: {artifact.title || '无标题'}</h4>
+        <h4>Artifact {index + 1}: {artifact.title || t('messageDetail.artifacts.noTitle')}</h4>
         <div className="artifact-meta">
-          <span>ID: {artifact.id || '未知'}</span>
-          <span>类型: {artifact.type || '未知'}</span>
-          <span>操作: {artifact.command || '未知'}</span>
+          <span>ID: {artifact.id || t('messageDetail.artifacts.unknown')}</span>
+          <span>{t('messageDetail.artifacts.type')}: {artifact.type || t('messageDetail.artifacts.unknown')}</span>
+          <span>{t('messageDetail.artifacts.operation')}: {artifact.command || t('messageDetail.artifacts.unknown')}</span>
         </div>
         
         {artifact.command === 'create' && (
           <div className="artifact-content">
             {artifact.language && (
-              <div className="language-tag">语言: {artifact.language}</div>
+              <div className="language-tag">{t('messageDetail.artifacts.language')}: {artifact.language}</div>
             )}
             <pre className="artifact-code">
               <code>{artifact.content || ''}</code>
@@ -329,11 +331,11 @@ const MessageDetail = ({
         {(artifact.command === 'update' || artifact.command === 'rewrite') && (
           <div className="artifact-content">
             <div className="artifact-change">
-              <h5>原始文本:</h5>
+              <h5>{t('messageDetail.artifacts.originalText')}:</h5>
               <pre><code>{artifact.old_str || ''}</code></pre>
             </div>
             <div className="artifact-change">
-              <h5>新文本:</h5>
+              <h5>{t('messageDetail.artifacts.newText')}:</h5>
               <pre><code>{artifact.new_str || ''}</code></pre>
             </div>
           </div>
@@ -345,7 +347,7 @@ const MessageDetail = ({
   // 渲染附件
   const renderAttachments = (attachments) => {
     if (!attachments || attachments.length === 0) {
-      return <div className="placeholder">此消息没有附件</div>;
+      return <div className="placeholder">{t('messageDetail.placeholder.noAttachments')}</div>;
     }
 
     const formatFileSize = (bytes) => {
@@ -398,9 +400,9 @@ const MessageDetail = ({
         <div className="attachment-content">
           <div className="content-header">
             <h5>
-              {isFullView ? '完整内容' : '内容预览'}
+              {isFullView ? t('messageDetail.attachments.fullContent') : t('messageDetail.attachments.contentPreview')}
               {attachment.extracted_content.length > 50 && (
-                <span className="content-length"> ({attachment.extracted_content.length} 字符)</span>
+                <span className="content-length"> ({attachment.extracted_content.length} {t('messageDetail.attachments.characters')})</span>
               )}
             </h5>
             {needsToggle && (
@@ -408,7 +410,7 @@ const MessageDetail = ({
                 className="toggle-view-btn"
                 onClick={() => toggleViewMode(index)}
               >
-                {isFullView ? '显示预览' : '显示全部'}
+                {isFullView ? t('messageDetail.attachments.showPreview') : t('messageDetail.attachments.showAll')}
               </button>
             )}
           </div>
@@ -481,7 +483,7 @@ const MessageDetail = ({
                     color: 'var(--text-secondary)',
                     fontSize: '14px'
                   }}>
-                    ... 内容已截断 ...
+                    ... {t('messageDetail.attachments.contentTruncated')} ...
                   </div>
                 )}
               </div>
@@ -490,7 +492,7 @@ const MessageDetail = ({
                 <code>{content}</code>
                 {!isFullView && needsToggle && (
                   <div style={{color: 'var(--text-secondary)', marginTop: '10px'}}>
-                    ... 代码已截断 ...
+                    ... {t('messageDetail.attachments.codeTruncated')} ...
                   </div>
                 )}
               </pre>
@@ -512,7 +514,7 @@ const MessageDetail = ({
               className="expand-btn"
               onClick={() => toggleExpanded(index)}
             >
-              {isExpanded ? '⬆ 收起内容' : '⬇ 展开显示更多'}
+              {isExpanded ? `⬆ ${t('messageDetail.attachments.collapse')}` : `⬇ ${t('messageDetail.attachments.expand')}`}
             </button>
           )}
         </div>
@@ -529,13 +531,13 @@ const MessageDetail = ({
                  getFileExtension(attachment.file_name) === 'docx' ? '📄' : 
                  getFileExtension(attachment.file_name) === 'pdf' ? '📕' : '📎'}
               </span>
-              <span className="attachment-name">{attachment.file_name || '未知文件'}</span>
+              <span className="attachment-name">{attachment.file_name || t('messageDetail.attachments.unknownFile')}</span>
               <span className="attachment-size">({formatFileSize(attachment.file_size)})</span>
             </div>
             
             {attachment.file_type && (
               <div className="attachment-meta">
-                <span>类型: {attachment.file_type || getFileExtension(attachment.file_name)}</span>
+                <span>{t('messageDetail.attachments.type')}: {attachment.file_type || getFileExtension(attachment.file_name)}</span>
               </div>
             )}
             
@@ -543,7 +545,7 @@ const MessageDetail = ({
             
             {attachment.created_at && (
               <div className="attachment-timestamp">
-                创建时间: {attachment.created_at}
+                {t('messageDetail.attachments.created')}: {attachment.created_at}
               </div>
             )}
           </div>
@@ -560,26 +562,26 @@ const MessageDetail = ({
 
     return tools.map((tool, index) => (
       <div key={index} className="tool-item">
-        <h4>工具: {tool.name}</h4>
+        <h4>{t('messageDetail.tools.tool')}: {tool.name}</h4>
         
         {tool.query && (
           <div className="tool-query">
-            <strong>搜索查询:</strong> {tool.query}
+            <strong>{t('messageDetail.tools.searchQuery')}:</strong> {tool.query}
           </div>
         )}
         
         {tool.input && (
           <div className="tool-input">
-            <strong>输入参数:</strong>
+            <strong>{t('messageDetail.tools.inputParams')}:</strong>
             <pre><code>{JSON.stringify(tool.input, null, 2)}</code></pre>
           </div>
         )}
         
         {tool.result && (
           <div className="tool-result">
-            <strong>结果:</strong>
+            <strong>{t('messageDetail.tools.result')}:</strong>
             {tool.result.is_error && (
-              <div className="error-notice">⚠️ 工具执行出错</div>
+              <div className="error-notice">⚠️ {t('messageDetail.tools.executionError')}</div>
             )}
             
             {tool.name === 'web_search' && tool.result.content && (
@@ -587,13 +589,13 @@ const MessageDetail = ({
                 {tool.result.content.slice(0, 5).map((item, idx) => (
                   <div key={idx} className="search-result-item">
                     <a href={item.url || '#'} target="_blank" rel="noopener noreferrer">
-                      {item.title || '无标题'}
+                      {item.title || t('messageDetail.tools.noTitle')}
                     </a>
                   </div>
                 ))}
                 {tool.result.content.length > 5 && (
                   <div className="more-results">
-                    ...还有 {tool.result.content.length - 5} 个结果
+                    ...{t('messageDetail.tools.moreResults', { count: tool.result.content.length - 5 })}
                   </div>
                 )}
               </div>
@@ -632,7 +634,7 @@ const MessageDetail = ({
   // 主要渲染逻辑
   const renderTabContent = () => {
     if (!currentMessage) {
-      return <div className="placeholder">选择一条消息查看详情</div>;
+      return <div className="placeholder">{t('messageDetail.placeholder.selectMessage')}</div>;
     }
 
     switch (currentActiveTab) {
@@ -658,7 +660,7 @@ const MessageDetail = ({
 
       case 'thinking':
         if (format !== 'claude' && format !== 'claude_full_export' && format) {
-          return <div className="placeholder">此格式不支持思考过程</div>;
+          return <div className="placeholder">{t('messageDetail.placeholder.formatNotSupported.thinking')}</div>;
         }
         return (
           <div className="thinking-content">
@@ -673,14 +675,14 @@ const MessageDetail = ({
                 </ReactMarkdown>
               </div>
             ) : (
-              <div className="placeholder">此消息没有思考过程记录</div>
+              <div className="placeholder">{t('messageDetail.placeholder.noThinking')}</div>
             )}
           </div>
         );
 
       case 'artifacts':
         if (format !== 'claude' && format !== 'claude_full_export' && format) {
-          return <div className="placeholder">此格式不支持Artifacts</div>;
+          return <div className="placeholder">{t('messageDetail.placeholder.formatNotSupported.artifacts')}</div>;
         }
         return (
           <div className="artifacts-content">
@@ -696,7 +698,7 @@ const MessageDetail = ({
         );
 
       default:
-        return <div className="placeholder">请选择一个标签页</div>;
+        return <div className="placeholder">{t('messageDetail.placeholder.selectTab')}</div>;
     }
   };
 

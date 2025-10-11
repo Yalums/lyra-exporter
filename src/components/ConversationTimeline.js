@@ -1,5 +1,5 @@
 // components/ConversationTimeline.js
-// 增强版时间线组件，整合了分支切换功能、排序控制和复制功能
+// 增强版时间线组件,整合了分支切换功能、排序控制、复制功能和重命名功能
 import React, { useState, useEffect, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -7,8 +7,85 @@ import MessageDetail from './MessageDetail';
 import PlatformIcon from './PlatformIcon';
 import { copyMessage } from '../utils/copyManager';
 import { PlatformUtils, DateTimeUtils, TextUtils } from '../utils/commonUtils';
+import { useI18n } from '../hooks/useI18n';
+import { getRenameManager } from '../utils/renameManager';
 
-// ==================== 分支切换器组件（内嵌） ====================
+// ==================== 重命名对话框组件 ====================
+const RenameDialog = ({ 
+  isOpen, 
+  currentName, 
+  onSave, 
+  onCancel,
+  t 
+}) => {
+  const [newName, setNewName] = useState(currentName || '');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setNewName(currentName || '');
+      setError('');
+    }
+  }, [isOpen, currentName]);
+
+  const handleSave = () => {
+    const trimmedName = newName.trim();
+    if (!trimmedName) {
+      setError(t('rename.error.empty'));
+      return;
+    }
+    onSave(trimmedName);
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSave();
+    } else if (e.key === 'Escape') {
+      onCancel();
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal-overlay" onClick={onCancel}>
+      <div className="modal-content rename-dialog" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>{t('rename.title')}</h3>
+          <button className="close-btn" onClick={onCancel}>×</button>
+        </div>
+        <div className="modal-body">
+          <div className="form-group">
+            <label>{t('rename.label')}</label>
+            <input
+              type="text"
+              className="form-input"
+              value={newName}
+              onChange={(e) => {
+                setNewName(e.target.value);
+                setError('');
+              }}
+              onKeyPress={handleKeyPress}
+              autoFocus
+              placeholder={t('rename.placeholder')}
+            />
+            {error && <div className="error-message">{error}</div>}
+          </div>
+        </div>
+        <div className="modal-footer">
+          <button className="btn-secondary" onClick={onCancel}>
+            {t('common.cancel')}
+          </button>
+          <button className="btn-primary" onClick={handleSave}>
+            {t('common.confirm')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ==================== 分支切换器组件(内嵌) ====================
 const BranchSwitcher = ({ 
   branchPoint, 
   availableBranches, 
@@ -18,6 +95,7 @@ const BranchSwitcher = ({
   showAllMode = false,
   className = ""
 }) => {
+  const { t } = useI18n();
   const [isExpanded, setIsExpanded] = useState(false);
   const [switchAnimation, setSwitchAnimation] = useState(false);
 
@@ -57,7 +135,7 @@ const BranchSwitcher = ({
   };
 
   const getBranchDisplayName = (branch, index) => {
-    return index === 0 ? '主分支' : `分支 ${index}`;
+    return index === 0 ? t('timeline.branch.mainBranch') : t('timeline.branch.branch') + ` ${index}`;
   };
 
   const getBranchPreview = (branch) => {
@@ -65,7 +143,7 @@ const BranchSwitcher = ({
   };
 
   const getBranchCounter = () => {
-    if (showAllMode) return `全部/${availableBranches.length}`;
+    if (showAllMode) return `${t('timeline.branch.all')}/${availableBranches.length}`;
     return `${currentBranchIndex + 1}/${availableBranches.length}`;
   };
 
@@ -79,7 +157,7 @@ const BranchSwitcher = ({
           className={`branch-arrow branch-arrow-left ${!hasPrevious ? 'disabled' : ''}`}
           onClick={handlePrevious}
           disabled={!hasPrevious}
-          title="上一个分支"
+          title={t('timeline.branch.previousBranch')}
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
             <path d="M10 12l-4-4 4-4v8z"/>
@@ -119,7 +197,7 @@ const BranchSwitcher = ({
           className={`branch-arrow branch-arrow-right ${!hasNext ? 'disabled' : ''}`}
           onClick={handleNext}
           disabled={!hasNext}
-          title="下一个分支"
+          title={t('timeline.branch.nextBranch')}
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
             <path d="M6 4l4 4-4 4V4z"/>
@@ -139,10 +217,10 @@ const BranchSwitcher = ({
             }}
           >
             <div className="branch-option-header">
-              <span className="branch-option-name">显示全部分支</span>
-              <span className="branch-option-count">全部消息</span>
+              <span className="branch-option-name">{t('timeline.branch.showAllBranches')}</span>
+              <span className="branch-option-count">{t('timeline.branch.allMessages')}</span>
             </div>
-            <div className="branch-option-preview">显示所有分支的消息</div>
+            <div className="branch-option-preview">{t('timeline.branch.showMessagesFromAllBranches')}</div>
           </div>
           
           {/* 各个分支选项 */}
@@ -157,7 +235,7 @@ const BranchSwitcher = ({
                   {getBranchDisplayName(branch, index)}
                 </span>
                 <span className="branch-option-count">
-                  {branch.messageCount}条消息
+                  {branch.messageCount}{t('timeline.branch.messages')}
                 </span>
               </div>
               <div className="branch-option-preview">
@@ -171,12 +249,88 @@ const BranchSwitcher = ({
   );
 };
 
+// ==================== 统一的消息详情面板 ====================
+const MessageDetailPanel = ({
+  data,
+  selectedMessageIndex,
+  activeTab,
+  searchQuery,
+  format,
+  onTabChange,
+  markActions,
+  displayMessages,
+  copiedMessageIndex,
+  onCopyMessage,
+  t,
+  showTabs = true // 新增:控制是否显示标签页
+}) => {
+  if (selectedMessageIndex === null) {
+    return (
+      <div className="detail-placeholder">
+        <p>{t('timeline.detail.selectMessage')}</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="detail-content">
+        <MessageDetail
+          processedData={data}
+          selectedMessageIndex={selectedMessageIndex}
+          activeTab={activeTab}
+          searchQuery={searchQuery}
+          format={format}
+          onTabChange={onTabChange}
+          showTabs={showTabs}
+        />
+      </div>
+      
+      {/* 标记按钮 */}
+      {markActions && (
+        <div className="detail-actions">
+          {/* 复制按钮 */}
+          <button 
+            className={`btn-secondary ${copiedMessageIndex === selectedMessageIndex ? 'copied' : ''}`}
+            onClick={() => {
+              const message = displayMessages.find(m => m.index === selectedMessageIndex);
+              if (message) {
+                onCopyMessage(message, selectedMessageIndex);
+              }
+            }}
+          >
+            {copiedMessageIndex === selectedMessageIndex ? `${t('timeline.actions.copied')} ✓` : `${t('timeline.actions.copyMessage')} 📋`}
+          </button>
+          
+          <button 
+            className="btn-secondary"
+            onClick={() => markActions.toggleMark(selectedMessageIndex, 'completed')}
+          >
+            {markActions.isMarked(selectedMessageIndex, 'completed') ? t('timeline.actions.unmarkCompleted') : t('timeline.actions.markCompleted')} ✓
+          </button>
+          <button 
+            className="btn-secondary"
+            onClick={() => markActions.toggleMark(selectedMessageIndex, 'important')}
+          >
+            {markActions.isMarked(selectedMessageIndex, 'important') ? t('timeline.actions.unmarkImportant') : t('timeline.actions.markImportant')} ⭐
+          </button>
+          <button 
+            className="btn-secondary"
+            onClick={() => markActions.toggleMark(selectedMessageIndex, 'deleted')}
+          >
+            {markActions.isMarked(selectedMessageIndex, 'deleted') ? t('timeline.actions.unmarkDeleted') : t('timeline.actions.markDeleted')} 🗑️
+          </button>
+        </div>
+      )}
+    </>
+  );
+};
+
 // ==================== 主时间线组件 ====================
 const ConversationTimeline = ({ 
   data, 
   messages, 
   marks, 
-  onMessageSelect,
   markActions,
   format,
   conversation = null,
@@ -188,8 +342,12 @@ const ConversationTimeline = ({
   onFileSwitch = null,
   searchQuery = '',
   branchState = null,
-  onBranchStateChange = null
+  onBranchStateChange = null,
+  onShowSettings = null, // 新增:打开设置面板
+  onHideNavbar = null, // 新增:控制导航栏显示
+  onRename = null // 新增:重命名回调
 }) => {
+  const { t } = useI18n();
   const [selectedMessageIndex, setSelectedMessageIndex] = useState(null);
   const [activeTab, setActiveTab] = useState('content');
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
@@ -197,6 +355,12 @@ const ConversationTimeline = ({
   const [showAllBranches, setShowAllBranches] = useState(branchState?.showAllBranches || false);
   const [copiedMessageIndex, setCopiedMessageIndex] = useState(null);
   const [sortingEnabled, setSortingEnabled] = useState(false);
+  const [showMobileDetail, setShowMobileDetail] = useState(false); // 新增:移动端详情显示状态
+  
+  // 重命名相关状态
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+  const [renameManager] = useState(() => getRenameManager());
+  const [customName, setCustomName] = useState('');
   
   // 滚动相关状态
   const [isHeaderHidden, setIsHeaderHidden] = useState(false);
@@ -213,6 +377,14 @@ const ConversationTimeline = ({
       }
     }
   }, [branchState]);
+  
+  // 初始化自定义名称
+  useEffect(() => {
+    if (conversation?.uuid) {
+      const savedName = renameManager.getRename(conversation.uuid, conversation.name);
+      setCustomName(savedName);
+    }
+  }, [conversation, renameManager]);
   
   // ==================== 分支分析 ====================
   
@@ -308,7 +480,12 @@ const ConversationTimeline = ({
   
   useEffect(() => {
     const handleResize = () => {
-      setIsDesktop(window.innerWidth >= 1024);
+      const newIsDesktop = window.innerWidth >= 1024;
+      setIsDesktop(newIsDesktop);
+      // 如果切换到桌面端,关闭移动端详情
+      if (newIsDesktop) {
+        setShowMobileDetail(false);
+      }
     };
     
     window.addEventListener('resize', handleResize);
@@ -475,7 +652,7 @@ const ConversationTimeline = ({
         setSortingEnabled(true);
       }
     } else {
-      // 退出显示全部时，如果有自定义排序则重置
+      // 退出显示全部时,如果有自定义排序则重置
       if (hasCustomSort && sortActions?.resetSort) {
         sortActions.resetSort();
       }
@@ -485,13 +662,51 @@ const ConversationTimeline = ({
   
   const handleMessageSelect = (messageIndex) => {
     setSelectedMessageIndex(messageIndex);
+    setActiveTab('content'); // 重置到内容标签
     if (!isDesktop) {
-      onMessageSelect(messageIndex);
+      // 移动端:显示移动端详情 modal
+      setShowMobileDetail(true);
+      // 隐藏导航栏
+      if (onHideNavbar) {
+        onHideNavbar(true);
+      }
+    }
+  };
+  
+  const handleCloseMobileDetail = () => {
+    setShowMobileDetail(false);
+    // 恢复导航栏显示
+    if (onHideNavbar) {
+      onHideNavbar(false);
+    }
+  };
+  
+  const handleNavigateMessage = (direction) => {
+    const currentIndex = displayMessages.findIndex(m => m.index === selectedMessageIndex);
+    if (currentIndex === -1) return;
+    
+    const newIndex = direction === 'prev' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex >= 0 && newIndex < displayMessages.length) {
+      setSelectedMessageIndex(displayMessages[newIndex].index);
+      setActiveTab('content');
     }
   };
   
   const handleCopyMessage = async (message, messageIndex) => {
-    const success = await copyMessage(message);
+    const success = await copyMessage(message, {
+      messages: {
+        success: t('copy.messages.success'),
+        error: t('copy.messages.error'),
+        generalError: t('copy.messages.generalError')
+      },
+      i18n: {
+        timeLabel: t('copy.format.timeLabel'),
+        thinkingLabel: t('copy.format.thinkingLabel'),
+        artifactsLabel: t('copy.format.artifactsLabel'),
+        noTitle: t('copy.format.noTitle'),
+        unknownType: t('copy.format.unknownType')
+      }
+    });
     if (success) {
       setCopiedMessageIndex(messageIndex);
       setTimeout(() => setCopiedMessageIndex(null), 2000);
@@ -510,16 +725,37 @@ const ConversationTimeline = ({
     }
   };
   
+  // 重命名处理
+  const handleOpenRename = () => {
+    setShowRenameDialog(true);
+  };
+  
+  const handleSaveRename = (newName) => {
+    if (conversation?.uuid) {
+      renameManager.setRename(conversation.uuid, newName);
+      setCustomName(newName);
+      setShowRenameDialog(false);
+      // 通知父组件更新
+      if (onRename) {
+        onRename(conversation.uuid, newName);
+      }
+    }
+  };
+  
+  const handleCancelRename = () => {
+    setShowRenameDialog(false);
+  };
+  
   // ==================== 工具函数 ====================
   
   const getLastUpdatedTime = () => {
-    if (!displayMessages || displayMessages.length === 0) return '未知时间';
+    if (!displayMessages || displayMessages.length === 0) return t('timeline.conversation.unknownTime');
     
     const lastMessage = displayMessages[displayMessages.length - 1];
     if (lastMessage?.timestamp) {
       return DateTimeUtils.formatDateTime(lastMessage.timestamp);
     }
-    return '未知时间';
+    return t('timeline.conversation.unknownTime');
   };
 
   const getConversationInfo = () => {
@@ -528,14 +764,19 @@ const ConversationTimeline = ({
     if (conversation) {
       const platformName = PlatformUtils.getPlatformName(data?.meta_info?.platform);
       
+      // 使用自定义名称或原始名称
+      const displayName = customName || conversation.name || t('timeline.conversation.unnamedConversation');
+      
       return {
-        name: conversation.name || '未命名对话',
+        name: displayName,
+        originalName: conversation.name, // 保留原始名称用于重命名对话框
         model: conversation.model || platformName,
-        created_at: conversation.created_at || '未知时间',
+        created_at: conversation.created_at || t('timeline.conversation.unknownTime'),
         updated_at: lastUpdated,
         is_starred: conversation.is_starred || false,
         messageCount: displayMessages.length,
-        platform: platformName
+        platform: platformName,
+        uuid: conversation.uuid
       };
     }
     
@@ -547,9 +788,10 @@ const ConversationTimeline = ({
     );
     
     return {
-      name: metaInfo.title || '未知对话',
+      name: metaInfo.title || t('timeline.conversation.unknownConversation'),
+      originalName: metaInfo.title,
       model: metaInfo.model || platformName,
-      created_at: metaInfo.created_at || '未知时间',
+      created_at: metaInfo.created_at || t('timeline.conversation.unknownTime'),
       updated_at: lastUpdated,
       is_starred: false,
       messageCount: displayMessages.length,
@@ -610,7 +852,7 @@ const ConversationTimeline = ({
               <div className="file-preview-inner">
                 <span className="file-preview-arrow">↑</span>
                 <span className="file-preview-name">{prevFilePreview.file.name}</span>
-                <span className="file-preview-hint">点击切换到上一个文件</span>
+                <span className="file-preview-hint">{t('timeline.file.clickToPrevious')}</span>
               </div>
             </div>
           )}
@@ -621,7 +863,24 @@ const ConversationTimeline = ({
               <h2>
                 {conversationInfo.name} 
                 {conversationInfo.is_starred && ' ⭐'}
-                <span className="platform-badge">{conversationInfo.platform}</span>
+                {/* 重命名按钮 - 替代platform-badge */}
+                <button 
+                  className="rename-btn"
+                  onClick={handleOpenRename}
+                  title={t('rename.action')}
+                  style={{ 
+                    marginLeft: '8px',
+                    padding: '2px 6px',
+                    fontSize: '14px',
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    color: 'var(--text-secondary)'
+                  }}
+                >
+                  ✏️
+                </button>
                 {/* 操作按钮组 */}
                 <span className="conversation-actions" style={{ marginLeft: '12px', display: 'inline-flex', gap: '8px' }}>
                   {/* 重置当前对话标记 */}
@@ -629,66 +888,66 @@ const ConversationTimeline = ({
                     <button 
                       className="btn-secondary small"
                       onClick={() => {
-                        if (window.confirm('确定要清除当前对话的所有标记吗？')) {
+                        if (window.confirm(t('timeline.actions.confirmClearMarks'))) {
                           markActions.clearAllMarks();
                         }
                       }}
-                      title="清除所有标记"
+                      title={t('timeline.actions.clearAllMarks')}
                       style={{ fontSize: '12px', padding: '2px 8px' }}
                     >
-                      🔄 重置标记
+                      🔄 {t('timeline.actions.resetMarks')}
                     </button>
                   )}
-                  {/* 重置排序按钮（在启用排序时显示） */}
+                  {/* 重置排序按钮(在启用排序时显示) */}
                   {sortingEnabled && sortActions && (
                     <button 
                       className="btn-secondary small"
                       onClick={() => {
-                        if (window.confirm('确定要重置为原始顺序吗？')) {
+                        if (window.confirm(t('timeline.actions.confirmResetSort'))) {
                           sortActions.resetSort();
                           setSortingEnabled(false);
                         }
                       }}
-                      title="恢复原始消息顺序"
+                      title={t('timeline.actions.restoreOriginalOrder')}
                       style={{ fontSize: '12px', padding: '2px 8px' }}
                     >
-                      🔄 重置排序
+                      🔄 {t('timeline.actions.resetSort')}
                     </button>
                   )}
                 </span>
               </h2>
               <div className="info-grid">
                 <div className="info-item">
-                  <span className="info-label">模型/平台</span>
+                  <span className="info-label">{t('timeline.info.modelPlatform')}</span>
                   <span className="info-value">{conversationInfo.model}</span>
                 </div>
                 <div className="info-item">
-                  <span className="info-label">创建时间</span>
+                  <span className="info-label">{t('timeline.info.created')}</span>
                   <span className="info-value">{conversationInfo.created_at}</span>
                 </div>
                 <div className="info-item">
-                  <span className="info-label">显示消息数</span>
+                  <span className="info-label">{t('timeline.info.displayedMessages')}</span>
                   <span className="info-value">{conversationInfo.messageCount}</span>
                 </div>
                 <div className="info-item">
-                  <span className="info-label">最后更新</span>
+                  <span className="info-label">{t('timeline.info.lastUpdated')}</span>
                   <span className="info-value">{conversationInfo.updated_at}</span>
                 </div>
               </div>
               
               {/* 分支和排序控制 */}
               <div className="timeline-control-panel" style={{ marginTop: '12px' }}>
-                {/* 分支控制 - 改进版：排序按钮在同一行 */}
+                {/* 分支控制 - 改进版:排序按钮在同一行 */}
                 {branchAnalysis.branchPoints.size > 0 && (
                   <div className="branch-control" style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span>🔀 检测到 {branchAnalysis.branchPoints.size} 个分支点</span>
+                      <span>🔀 {t('timeline.branch.detected')} {branchAnalysis.branchPoints.size} {t('timeline.branch.branchPoints')}</span>
                       <button 
                         className="btn-secondary small"
                         onClick={handleShowAllBranches}
-                        title={showAllBranches ? "只显示选中分支" : "显示全部分支"}
+                        title={showAllBranches ? t('timeline.branch.showSelectedOnly') : t('timeline.branch.showAllBranches')}
                       >
-                        {showAllBranches ? '🔍 筛选分支' : '📋 显示全部'}
+                        {showAllBranches ? `🔍 ${t('timeline.branch.filterBranches')}` : `📋 ${t('timeline.branch.showAll')}`}
                       </button>
                       {/* 排序按钮移到这里 */}
                       {showAllBranches && sortActions && (
@@ -696,16 +955,16 @@ const ConversationTimeline = ({
                           className="btn-secondary small"
                           onClick={handleToggleSort}
                           disabled={searchQuery !== ''}
-                          title={sortingEnabled ? "关闭排序" : (searchQuery !== '' ? "搜索时无法排序" : "启用消息排序")}
+                          title={sortingEnabled ? t('timeline.actions.disableSort') : (searchQuery !== '' ? t('timeline.actions.cannotSortWhileSearching') : t('timeline.actions.enableMessageSorting'))}
                         >
-                          {sortingEnabled ? '❌ 关闭排序' : '📊 启用排序'}
+                          {sortingEnabled ? `❌ ${t('timeline.actions.disableSort')}` : `📊 ${t('timeline.actions.enableSort')}`}
                         </button>
                       )}
                     </span>
                     {/* 搜索提示 */}
                     {showAllBranches && searchQuery && (
                       <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>
-                        (搜索中，排序不可用)
+                        ({t('timeline.actions.sortingDisabledDuringSearch')})
                       </span>
                     )}
                   </div>
@@ -720,18 +979,18 @@ const ConversationTimeline = ({
                     padding: '8px 0'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span>🔀 当前对话无分支</span>
+                    <span>🔀 {t('timeline.branch.noBranches')}</span>
                       <button 
                         className="btn-secondary small"
                         onClick={handleToggleSort}
                         disabled={searchQuery !== ''}
-                        title={sortingEnabled ? "关闭排序" : (searchQuery !== '' ? "搜索时无法排序" : "启用消息排序")}
+                        title={sortingEnabled ? t('timeline.actions.disableSort') : (searchQuery !== '' ? t('timeline.actions.cannotSortWhileSearching') : t('timeline.actions.enableMessageSorting'))}
                       >
-                        {sortingEnabled ? '❌ 关闭排序' : '📊 启用排序'}
+                        {sortingEnabled ? `❌ ${t('timeline.actions.disableSort')}` : `📊 ${t('timeline.actions.enableSort')}`}
                       </button>
                       {searchQuery && (
                         <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>
-                          (搜索中，排序不可用)
+                          ({t('timeline.actions.sortingDisabledDuringSearch')})
                         </span>
                       )}
                     </div>
@@ -797,7 +1056,7 @@ const ConversationTimeline = ({
                                   sortActions.moveMessage(index, 'up');
                                 }}
                                 disabled={index === 0}
-                                title="上移"
+                                title={t('timeline.actions.moveUp')}
                               >
                                 ↑
                               </button>
@@ -808,7 +1067,7 @@ const ConversationTimeline = ({
                                   sortActions.moveMessage(index, 'down');
                                 }}
                                 disabled={index === displayMessages.length - 1}
-                                title="下移"
+                                title={t('timeline.actions.moveDown')}
                               >
                                 ↓
                               </button>
@@ -851,41 +1110,41 @@ const ConversationTimeline = ({
                         {msg.sender !== 'human' && msg.thinking && (
                           <div className="timeline-tag">
                             <span>💭</span>
-                            <span>有思考过程</span>
+                            <span>{t('timeline.tags.hasThinking')}</span>
                           </div>
                         )}
                         {/* 图片 */}
                         {msg.images && msg.images.length > 0 && (
                           <div className="timeline-tag">
                             <span>🖼️</span>
-                            <span>{msg.images.length}张图片</span>
+                            <span>{msg.images.length}{t('timeline.tags.images')}</span>
                           </div>
                         )}
                         {/* 附件 - 主要用于人类消息 */}
                         {msg.attachments && msg.attachments.length > 0 && (
                           <div className="timeline-tag">
                             <span>📎</span>
-                            <span>{msg.attachments.length}个附件</span>
+                            <span>{msg.attachments.length}{t('timeline.tags.attachments')}</span>
                           </div>
                         )}
                         {/* Artifacts - 仅助手消息显示 */}
                         {msg.sender !== 'human' && msg.artifacts && msg.artifacts.length > 0 && (
                           <div className="timeline-tag">
                             <span>🔧</span>
-                            <span>{msg.artifacts.length}个Artifacts</span>
+                            <span>{msg.artifacts.length}{t('timeline.tags.artifacts')}</span>
                           </div>
                         )}
                         {/* 工具使用 - 通常只有助手消息有 */}
                         {msg.tools && msg.tools.length > 0 && (
                           <div className="timeline-tag">
                             <span>🔍</span>
-                            <span>使用了工具</span>
+                            <span>{t('timeline.tags.usedTools')}</span>
                           </div>
                         )}
                         {msg.citations && msg.citations.length > 0 && (
                           <div className="timeline-tag">
-                            <span>📎</span>
-                            <span>{msg.citations.length}个引用</span>
+                            <span>🔗</span>
+                            <span>{msg.citations.length}{t('timeline.tags.citations')}</span>
                           </div>
                         )}
                         
@@ -893,19 +1152,19 @@ const ConversationTimeline = ({
                         {isMarked(msg.index, 'completed') && (
                           <div className="timeline-tag completed">
                             <span>✓</span>
-                            <span>已完成</span>
+                            <span>{t('timeline.tags.completed')}</span>
                           </div>
                         )}
                         {isMarked(msg.index, 'important') && (
                           <div className="timeline-tag important">
                             <span>⭐</span>
-                            <span>重要</span>
+                            <span>{t('timeline.tags.important')}</span>
                           </div>
                         )}
                         {isMarked(msg.index, 'deleted') && (
                           <div className="timeline-tag deleted">
                             <span>🗑️</span>
-                            <span>已删除</span>
+                            <span>{t('timeline.tags.deleted')}</span>
                           </div>
                         )}
                       </div>
@@ -939,7 +1198,7 @@ const ConversationTimeline = ({
               <div className="file-preview-inner">
                 <span className="file-preview-arrow">↓</span>
                 <span className="file-preview-name">{nextFilePreview.file.name}</span>
-                <span className="file-preview-hint">点击切换到下一个文件</span>
+                <span className="file-preview-hint">{t('timeline.file.clickToNext')}</span>
               </div>
             </div>
           )}
@@ -949,57 +1208,144 @@ const ConversationTimeline = ({
         {isDesktop && (
           <div className="timeline-right-panel">
             <div className="message-detail-container">
-              <div className="detail-content">
-                <MessageDetail
-                  processedData={data}
+              <MessageDetailPanel
+                data={data}
+                selectedMessageIndex={selectedMessageIndex}
+                activeTab={activeTab}
+                searchQuery={searchQuery}
+                format={format}
+                onTabChange={setActiveTab}
+                markActions={markActions}
+                displayMessages={displayMessages}
+                copiedMessageIndex={copiedMessageIndex}
+                onCopyMessage={handleCopyMessage}
+                t={t}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 移动端消息详情 Modal */}
+      {!isDesktop && showMobileDetail && selectedMessageIndex !== null && (() => {
+        // 获取当前消息在列表中的索引
+        const currentMessageIndex = displayMessages.findIndex(m => m.index === selectedMessageIndex);
+        const isFirstMessage = currentMessageIndex === 0;
+        const isLastMessage = currentMessageIndex === displayMessages.length - 1;
+        
+        // 获取当前消息,检查是否有特殊标签页
+        const currentMessage = displayMessages.find(m => m.index === selectedMessageIndex);
+        const availableTabs = [{ id: 'content', label: t('messageDetail.tabs.content') }];
+        
+        if (currentMessage) {
+          // 人类消息的处理
+          if (currentMessage.sender === 'human') {
+            if (currentMessage.attachments && currentMessage.attachments.length > 0) {
+              availableTabs.push({ id: 'attachments', label: t('messageDetail.tabs.attachments') });
+            }
+          } else {
+            // 助手消息的处理(仅Claude格式显示思考过程和Artifacts)
+            if (format === 'claude' || format === 'claude_full_export' || !format) {
+              if (currentMessage.thinking) {
+                availableTabs.push({ id: 'thinking', label: t('messageDetail.tabs.thinking') });
+              }
+              if (currentMessage.artifacts && currentMessage.artifacts.length > 0) {
+                availableTabs.push({ id: 'artifacts', label: 'Artifacts' });
+              }
+            }
+          }
+        }
+        
+        return (
+          <div className="mobile-message-detail-modal" onClick={handleCloseMobileDetail}>
+            <div className="mobile-detail-content" onClick={(e) => e.stopPropagation()}>
+              <div className="mobile-detail-header">
+                {/* 左侧:消息序号和导航按钮 */}
+                <div className="mobile-header-left">
+                  {/* 新增:消息序号显示 */}
+                  <span className="message-number">
+                    #{currentMessageIndex + 1}
+                  </span>
+                  <button 
+                    className="nav-btn"
+                    onClick={() => handleNavigateMessage('prev')}
+                    disabled={isFirstMessage}
+                    title={t('timeline.actions.previousMessage')}
+                  >
+                    ←
+                  </button>
+                  <button 
+                    className="nav-btn"
+                    onClick={() => handleNavigateMessage('next')}
+                    disabled={isLastMessage}
+                    title={t('timeline.actions.nextMessage')}
+                  >
+                    →
+                  </button>
+                </div>
+                
+                {/* 中间:标签页 */}
+                <div className="mobile-header-tabs">
+                  {availableTabs.map(tab => (
+                    <button
+                      key={tab.id}
+                      className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
+                      onClick={() => setActiveTab(tab.id)}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+                
+                {/* 右侧:设置和关闭按钮 */}
+                <div className="mobile-header-right">
+                  {onShowSettings && (
+                    <button 
+                      className="action-btn"
+                      onClick={onShowSettings}
+                      title={t('app.navbar.settings')}
+                    >
+                      ⚙️
+                    </button>
+                  )}
+                  <button 
+                    className="close-btn" 
+                    onClick={handleCloseMobileDetail}
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+              
+              <div className="mobile-detail-body">
+                <MessageDetailPanel
+                  data={data}
                   selectedMessageIndex={selectedMessageIndex}
                   activeTab={activeTab}
                   searchQuery={searchQuery}
                   format={format}
                   onTabChange={setActiveTab}
+                  markActions={markActions}
+                  displayMessages={displayMessages}
+                  copiedMessageIndex={copiedMessageIndex}
+                  onCopyMessage={handleCopyMessage}
+                  t={t}
+                  showTabs={false}
                 />
               </div>
-              
-              {/* 标记按钮 */}
-              {selectedMessageIndex !== null && markActions && (
-                <div className="detail-actions">
-                  {/* 复制按钮 - 使用与其他按钮相同的样式 */}
-                  <button 
-                    className={`btn-secondary ${copiedMessageIndex === selectedMessageIndex ? 'copied' : ''}`}
-                    onClick={() => {
-                      const message = displayMessages.find(m => m.index === selectedMessageIndex);
-                      if (message) {
-                        handleCopyMessage(message, selectedMessageIndex);
-                      }
-                    }}
-                  >
-                    {copiedMessageIndex === selectedMessageIndex ? '已复制 ✓' : '复制消息 📋'}
-                  </button>
-                  
-                  <button 
-                    className="btn-secondary"
-                    onClick={() => markActions.toggleMark(selectedMessageIndex, 'completed')}
-                  >
-                    {markActions.isMarked(selectedMessageIndex, 'completed') ? '取消完成' : '标记完成'} ✓
-                  </button>
-                  <button 
-                    className="btn-secondary"
-                    onClick={() => markActions.toggleMark(selectedMessageIndex, 'important')}
-                  >
-                    {markActions.isMarked(selectedMessageIndex, 'important') ? '取消重要' : '标记重要'} ⭐
-                  </button>
-                  <button 
-                    className="btn-secondary"
-                    onClick={() => markActions.toggleMark(selectedMessageIndex, 'deleted')}
-                  >
-                    {markActions.isMarked(selectedMessageIndex, 'deleted') ? '取消删除' : '标记删除'} 🗑️
-                  </button>
-                </div>
-              )}
             </div>
           </div>
-        )}
-      </div>
+        );
+      })()}
+      
+      {/* 重命名对话框 */}
+      <RenameDialog
+        isOpen={showRenameDialog}
+        currentName={conversationInfo?.originalName || conversationInfo?.name || ''}
+        onSave={handleSaveRename}
+        onCancel={handleCancelRename}
+        t={t}
+      />
     </div>
   );
 };

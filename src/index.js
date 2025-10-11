@@ -18,27 +18,101 @@ import App from './App';
  * - 优雅的降级处理
  */
 
-// 支持的语言列表
+// 支持的语言列表（UI 显示用）
+// 注意：中文只显示一个选项，但内部会根据浏览器语言自动选择简繁体
 export const SUPPORTED_LANGUAGES = {
   zh: {
     code: 'zh',
-    name: '中文',
-    nativeName: '中文',
-    flag: '🇨🇳'
+    name: 'Mandarin',
+    nativeName: '华语',
+    flag: '🇸🇬'
   },
   en: {
     code: 'en', 
     name: 'English',
     nativeName: 'English',
     flag: '🇺🇸'
+  },
+  ja: {
+    code: 'ja',
+    name: 'Japanese',
+    nativeName: '日本語',
+    flag: '🇯🇵'
+  },
+  ko: {
+    code: 'ko',
+    name: 'Korean',
+    nativeName: '한국어',
+    flag: '🇰🇷'
   }
 };
 
 // 默认语言
-export const DEFAULT_LANGUAGE = 'zh';
+export const DEFAULT_LANGUAGE = 'en';
 
 // localStorage 键名
 export const STORAGE_KEY = 'lyra_exporter_language';
+
+/**
+ * 检测中文简繁体变体
+ * @returns {string} 'zh' 或 'zh_'
+ */
+export const detectChineseVariant = () => {
+  try {
+    const browserLang = navigator.language || navigator.userLanguage || '';
+    const lowerLang = browserLang.toLowerCase();
+    
+    // 检测繁体中文
+    if (lowerLang.includes('tw') ||    // 台湾
+        lowerLang.includes('hk') ||    // 香港
+        lowerLang.includes('mo') ||    // 澳门
+        lowerLang.includes('hant')) {  // 繁体标记
+      return 'zh_';
+    }
+    
+    // 默认使用简体中文
+    return 'zh';
+  } catch (error) {
+    console.warn('Failed to detect Chinese variant:', error);
+    return 'zh'; // 默认简体
+  }
+};
+
+/**
+ * 检测浏览器语言
+ * 自动识别中文简繁体（zh-CN, zh-TW, zh-HK）
+ * @returns {string} 检测到的语言代码
+ */
+export const detectBrowserLanguage = () => {
+  try {
+    // 获取浏览器语言设置
+    const browserLang = navigator.language || navigator.userLanguage || '';
+    const lowerLang = browserLang.toLowerCase();
+    
+    // 精确匹配
+    if (SUPPORTED_LANGUAGES[browserLang]) {
+      return browserLang;
+    }
+    
+    // 处理中文 - 统一返回 'zh'，具体简繁体由 detectChineseVariant 决定
+    if (lowerLang.startsWith('zh')) {
+      return 'zh';
+    }
+    
+    // 匹配语言前缀（例如 en-US -> en, ja-JP -> ja）
+    const langPrefix = browserLang.split('-')[0];
+    if (SUPPORTED_LANGUAGES[langPrefix]) {
+      return langPrefix;
+    }
+    
+    // 如果都没匹配到，返回默认语言
+    return DEFAULT_LANGUAGE;
+  } catch (error) {
+    console.warn('Failed to detect browser language:', error);
+    return DEFAULT_LANGUAGE;
+  }
+};
+
 
 /**
  * 获取嵌套对象的值
@@ -85,11 +159,27 @@ export const interpolate = (text, params = {}) => {
  */
 export const loadLanguagePack = async (languageCode) => {
   try {
+    // 如果是中文，根据浏览器设置自动选择简繁体
+    let actualLanguageCode = languageCode;
+    if (languageCode === 'zh') {
+      actualLanguageCode = detectChineseVariant();
+    }
+    
     // 动态导入语言文件
-    const module = await import(`./langs/${languageCode}.json`);
+    const module = await import(`./langs/${actualLanguageCode}.json`);
     return module.default || module;
   } catch (error) {
     console.warn(`Failed to load language pack for ${languageCode}:`, error);
+    
+    // 如果是中文繁体加载失败，尝试简体
+    if (languageCode === 'zh') {
+      try {
+        const fallbackModule = await import(`./langs/zh.json`);
+        return fallbackModule.default || fallbackModule;
+      } catch (fallbackError) {
+        console.error('Failed to load Chinese fallback:', fallbackError);
+      }
+    }
     
     // 如果是英语加载失败，返回空对象
     if (languageCode === 'en') {
@@ -109,6 +199,7 @@ export const loadLanguagePack = async (languageCode) => {
 
 /**
  * 获取保存的语言设置
+ * 优先级：localStorage > 浏览器检测 > 默认语言
  * @returns {string} 语言代码
  */
 export const getSavedLanguage = () => {
@@ -121,7 +212,8 @@ export const getSavedLanguage = () => {
     console.warn('Failed to read language from localStorage:', error);
   }
   
-  return DEFAULT_LANGUAGE;
+  // 如果没有保存的设置，使用浏览器检测
+  return detectBrowserLanguage();
 };
 
 /**

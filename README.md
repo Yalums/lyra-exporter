@@ -1,94 +1,28 @@
-# Lyra's Exporter - AI对话导出器 🚀
+# Lyra Exporter 功能模块代码函数文档
 
-> **专业的AI对话导出器** - 支持Claude、Gemini、NotebookLM等多平台对话记录的统一管理和导出
+> **项目概述**: Lyra Exporter 是一个专业的AI对话导出器，用于获取、管理和导出Claude、Gemini、NotebookLM对话记录。
 
 ---
 
-## 核心功能
+## 功能特性
 
-### 📁 多平台支持
-- **Claude**: 支持单对话和完整账号导出格式
-- **Gemini**: 支持Gemini和Google AI Studio导出
-- **NotebookLM**: 完整的笔记本对话支持
-- 自动格式检测和智能解析
+- 📁 **对话管理**: 加载多个Claude、Gemini、NotebookLM、Google AI Studio平台的对话JSON文件，**支持导出整个Claude账号对话数据并进行管理**
+- 🔍 **智能查找**: 搜索消息内容，查找有图片附件、思考过程和创建了 Artifacts 的对话
+- 🏷️ **标记系统**: 标记消息为完成、重要或删除，并在导出时保留特定格式
+- 📤 **灵活导出**: 导出为Markdown格式，支持批量导出
+- 🌳 **分支检测**: 自动检测和显示对话分支
+- ✉️  **全功能读取**: 智能识别图片附件、思考过程、Markdown 语法
 
-### 🎯 强大功能
-- ✉️ **全功能读取**: 对话内容、图片、附件、思考过程、Artifacts 多格式信息展现
-- 🏷️ **标记系统**: 标记消息为完成、重要或删除
-- 🌲 **分支检测**: 自动识别和导航对话分支
-- 🔍 **智能查找**: 对于 Claude_all_conversation 具有强大的筛选功能，收藏标记，自由管理
-- 📤 **批量导出**: 支持Markdown格式，可批量导出多个对话
-
-## 🏗️ 项目架构
-
-### 📂 目录结构
+## 📋 目录结构概览
 
 ```
-
-lyra-exporter/
-├── src/
-│   ├── App.js                 # 主应用入口
-│   ├── components/            # UI组件
-
-│   │   ├── ConversationTimeline.js    # 时间线视图
-│   │   ├── FullExportCardFilter.js    # 筛选器组件
-│   │   ├── MessageDetail.js           # 消息详情模态框
-│   │   ├── SettingsManager.js         # 设置管理器
-│   │   └── UnifiedCard.js             # 统一卡片视图
-│   ├── hooks/                 # 自定义Hook
-│   │   ├── useFileManager.js          # 文件管理逻辑
-│   │   └── useFullExportCardFilter.js # 筛选器逻辑
-│   ├── utils/                 # 工具函数
-│   │   ├── commonUtils.js             # 通用工具
-│   │   ├── dataManager.js             # 数据管理
-│   │   ├── exportManager.js           # 导出管理
-│   │   ├── markManager.js             # 标记管理
-│   │   ├── searchManager.js           # 搜索管理
-│   │   ├── sortManager.js             # 排序管理
-│   │   ├── starManager.js             # 星标管理
-│   │   └── uuidManager.js             # UUID管理
-│   └── styles/                # 样式文件
-
-│       ├── index.css                  # 主入口样式
-│       ├── variables.css              # CSS变量和主题
-│       ├── reset.css                  # 全局重置
-│       ├── components.css             # 通用组件
-│       ├── app.css                    # App布局
-│       ├── export.css                 # 导出面板
-│       ├── cards-timeline.css         # 卡片和时间线
-│       ├── message-detail.css         # 消息详情
-│       ├── filters-settings.css       # 筛选器和设置
-│       └── responsive.css             # 响应式设计
-├── public/
-│   └── index.html
-├── package.json
-└── README.md
+src/
+├── components/     # UI组件层
+├── hooks/
+├── utils/          # 工具函数
+├── styles/         # 样式文件
+└── i18n/          # 国际化配置
 ```
-
-### 🔄 数据流架构
-
-```mermaid
-graph TD
-    A[用户操作] --> B[App.js 状态管理]
-    B --> C[Custom Hooks]
-    C --> D[Utils Functions]
-    D --> E[Components]
-    E --> F[用户界面]
-    
-    B --> G[文件管理]
-    B --> H[视图控制]
-    B --> I[标记系统]
-    B --> J[导出系统]
-```
-
-## 🛠️ 技术栈
-
-- **前端框架**: React 18.2
-- **状态管理**: React Hooks (useState, useEffect, useMemo, useCallback)
-- **样式方案**: 模块化CSS + CSS变量
-- **文件处理**: File API + Blob
-- **数据存储**: localStorage
-- **国际化**: 自定义i18n实现
 
 ---
 
@@ -169,7 +103,7 @@ graph TD
 - `markBranchPath()`: 标记分支路径
 - `extractBranchInfo()`: 提取分支信息
 
-### `exportModule.js` - 导出管理模块
+### `exportManager.js` - 导出管理模块
 
 #### **Markdown生成**
 
@@ -411,83 +345,83 @@ graph TD
 - 自动切换到合适的视图模式
 
 ---
-## 📖 使用指南
 
-### 1. 加载对话文件
+## 📊 数据流架构图
 
-支持三种方式：
-- 点击"加载文件"按钮
-- 拖拽文件到上传区域
-- 通过postMessage API加载
-
-### 2. 视图模式
-
-- **文件视图**: 显示所有加载的文件
-- **对话视图**: 显示对话列表（claude_full_export）
-- **时间线视图**: 显示消息时间线
-
-### 3. 搜索和筛选
-
-- 实时搜索支持消息内容、图片、思考过程
-- 高级筛选器支持项目、日期、星标筛选
-
-### 4. 标记和管理
-
-- 单击标记按钮切换标记状态
-- 支持批量标记操作
-- 标记数据自动保存到localStorage
-
-### 5. 导出对话
-
-导出范围选项：
-- **当前文件**: 仅导出当前查看的文件
-- **操作过的文件**: 导出所有标记或星标过的文件
-- **所有文件**: 导出全部加载的文件
+```
+用户操作
+    ↓
+App.js (状态管理)
+    ↓
+Custom Hooks (业务逻辑)
+    ↓
+Utils Functions (数据处理)
+    ↓
+Components (UI渲染)
+    ↓
+用户界面
+```
 
 ---
 
-## 🔒 安全性设计
+## 🎯 关键设计模式
 
-1. **消息来源验证**: postMessage白名单机制
-2. **文件大小限制**: 最大100MB单文件限制
+### 1. **格式驱动UI适配**
+- 根据数据格式(`claude` `claude_full_export` `gemini`)自动选择UI模式
+- 功能差异化：基础功能通用，高级功能按格式启用
+
+### 3. **统一UUID管理**
+- 文件、对话、消息统一标识符管理
+- 支持localStorage持久化存储
+
+### 4. **分层数据处理**
+- 原始数据 → 格式检测 → 特定解析 → 标准化结构
+- 支持多平台格式的对话文件统一处理
+
+---
+
+## 🔄 主要业务流程
+
+### **文件加载流程**
+1. 用户选择文件 → `handleFileLoad`
+2. 文件验证和去重 → `loadFiles`
+3. 兼容性检查 → `checkFileTypeCompatibility`
+4. 数据解析 → `extractChatData`
+5. 格式检测 → `detectFileFormat`
+6. 特定解析器处理 → `extractXxxData`
+7. 分支检测 → `detectBranches`
+8. UI更新和视图切换
+
+### **标记系统流程**
+1. 用户点击标记 → `handleMarkToggle`
+2. 标记状态切换 → `toggleMark`
+3. localStorage存储 → `saveMarks`
+4. 统计更新 → `getMarkStats`
+5. UI反馈更新
+
+### **导出流程**
+1. 用户配置导出选项
+2. 确定导出范围 → current/operated/all
+3. 收集目标数据 → `exportCurrentFile/exportOperatedFiles/exportAllFiles`
+4. 筛选和过滤 → 根据标记和配置
+5. 生成Markdown → `exportChatAsMarkdown`
+6. 保存文件 → `saveTextFile`
+
+### **搜索筛选流程**
+1. 用户输入搜索词 → `handleSearch`
+2. 实时搜索 → `useSearch.search`
+3. 结果过滤 → `filteredMessages`
+4. 高亮显示 → UI组件处理
+
+---
+
+## 🔐 安全性考虑
+
+1. **消息来源验证**: API_CONFIG.ALLOWED_ORIGINS白名单
+2. **文件大小限制**: FILE_LIMITS.MAX_FILE_SIZE (100MB)
 3. **文件类型验证**: 仅支持JSON格式
-4. **XSS防护**: 所有用户内容经过安全处理
-5. **本地存储隔离**: UUID作为存储键前缀
-
----
-
-## 🎯 设计模式
-
-### 1. 格式驱动UI适配
-根据数据格式自动选择合适的UI模式和功能集
-
-### 2. 统一UUID管理
-文件、对话、消息使用统一的UUID标识系统
-
-### 3. 分层数据处理
-原始数据 → 格式检测 → 特定解析 → 标准化结构
-
-### 4. 响应式设计
-- 移动优先设计理念
-- 触摸手势支持
-- PWA就绪
-
----
-
-## 📱 响应式支持
-
-- 📱 **手机** (< 768px): 单列布局，优化触摸
-- 📱 **平板** (768px - 1024px): 自适应网格
-- 💻 **桌面** (> 1024px): 完整功能布局
-
----
-
-## ♿ 无障碍特性
-
-- 键盘导航支持
-- ARIA标签
-- 高对比度模式
-- 减少动画选项
+4. **XSS防护**: 所有用户内容经过处理后显示
+5. **本地存储隔离**: 使用UUID作为存储键前缀
 
 ---
 
@@ -501,16 +435,11 @@ npm install
 npm start
 ```
 
+## 使用方法
 
-## 🤝 贡献指南
-
-欢迎提交Issue和Pull Request！
-
-### 开发规范
-
-1. 遵循ESLint配置
-2. 提交前运行测试
-3. 保持代码注释完整
-4. 遵循组件命名规范
-
-MIT License
+1. 点击"加载文件"按钮，选择Claude等平台导出的JSON文件
+2. 在左侧查看文件列表和消息列表
+3. 点击消息查看详情（内容、思考过程、Artifacts）
+4. 使用搜索功能快速定位消息
+5. 标记重要消息或已完成的消息
+6. 导出所需的对话内容

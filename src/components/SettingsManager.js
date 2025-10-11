@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { ThemeUtils, StorageUtils } from '../utils/commonUtils';
 import { CopyConfigManager } from '../utils/copyManager';
 import LanguageSwitcher from './LanguageSwitcher';
+import { useI18n } from '../hooks/useI18n';
 
 /**
  * 导出配置管理器 - 直接使用 localStorage
@@ -18,8 +19,8 @@ const ExportConfigManager = {
       includeNumbering: true,
       numberingFormat: 'numeric', // 'numeric', 'letter', 'roman'
       senderFormat: 'default', // 'default', 'human-assistant', 'custom'
-      humanLabel: '人类',
-      assistantLabel: 'Claude',
+      humanLabel: 'Human',
+      assistantLabel: 'Assistant',
       includeHeaderPrefix: true,
       headerLevel: 2, // 1-6 对应 # 到 ##
       thinkingFormat: 'codeblock', // 'codeblock', 'xml', 'emoji'
@@ -42,6 +43,7 @@ const ExportConfigManager = {
  * 设置面板组件
  */
 const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => {
+  const { t } = useI18n();
   const [settings, setSettings] = useState({
     theme: 'dark',
     copyOptions: {
@@ -55,8 +57,8 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
       includeNumbering: true,
       numberingFormat: 'numeric',
       senderFormat: 'default',
-      humanLabel: '人类',
-      assistantLabel: 'Claude',
+      humanLabel: 'Human',
+      assistantLabel: 'Assistant',
       includeHeaderPrefix: true,
       headerLevel: 2,
       
@@ -76,7 +78,7 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
       setSettings({
         theme: ThemeUtils.getCurrentTheme(),
         copyOptions: CopyConfigManager.getConfig(),
-        language: StorageUtils.getLocalStorage('app-language', 'zh-CN'),
+        language: StorageUtils.getLocalStorage('app-language', 'en-US'),
         exportOptions: ExportConfigManager.getConfig()
       });
     }
@@ -108,7 +110,7 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
         newOptions.humanLabel = 'Human';
         newOptions.assistantLabel = 'Assistant';
       } else if (value === 'default') {
-        newOptions.humanLabel = '人类';
+        newOptions.humanLabel = 'Human';
         newOptions.assistantLabel = 'Claude';
       }
     }
@@ -181,18 +183,18 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content settings-modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>设置</h2>
+          <h2>{t('settings.title')}</h2>
           <button className="close-btn" onClick={onClose}>×</button>
         </div>
         
         <div className="settings-content">
           {/* 外观设置 */}
-          <SettingsSection title="外观">
-            <SettingItem label="主题" description="选择深色或浅色主题">
+          <SettingsSection title={t('settings.appearance.title')}>
+            <SettingItem label={t('settings.appearance.theme.label')} description={t('settings.appearance.theme.description')}>
               <ThemeToggle theme={settings.theme} onToggle={handleThemeChange} />
             </SettingItem>
             
-            <SettingItem label="语言" description="选择界面显示语言">
+            <SettingItem label={t('settings.appearance.language.label')} description={t('settings.appearance.language.description')}>
               <LanguageSwitcher 
                 variant="compact"
                 showText={true}
@@ -203,45 +205,45 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
           </SettingsSection>
 
           {/* 复制设置 */}
-          <SettingsSection title="复制选项">
+          <SettingsSection title={t('settings.copyOptions.title')}>
             <CheckboxSetting
-              label="包含元数据"
-              description="复制时包含发送者和时间信息"
+              label={t('settings.copyOptions.includeMetadata.label')}
+              description={t('settings.copyOptions.includeMetadata.description')}
               checked={settings.copyOptions.includeMetadata}
               onChange={(checked) => handleCopyOptionChange('includeMetadata', checked)}
             />
             
             <CheckboxSetting
-              label="包含思考过程"
-              description="复制消息时包含Claude的思考过程"
+              label={t('settings.copyOptions.includeThinking.label')}
+              description={t('settings.copyOptions.includeThinking.description')}
               checked={settings.copyOptions.includeThinking}
               onChange={(checked) => handleCopyOptionChange('includeThinking', checked)}
             />
             
             <CheckboxSetting
-              label="包含Artifacts"
-              description="复制消息时包含生成的代码和文档"
+              label={t('settings.copyOptions.includeArtifacts.label')}
+              description={t('settings.copyOptions.includeArtifacts.description')}
               checked={settings.copyOptions.includeArtifacts}
               onChange={(checked) => handleCopyOptionChange('includeArtifacts', checked)}
             />
           </SettingsSection>
 
           {/* 导出设置 - 格式部分 */}
-          <SettingsSection title="导出格式">
-            <SettingItem label="格式预览" description="查看当前设置下的标题格式效果" static={true}>
+          <SettingsSection title={t('settings.exportFormat.title')}>
+            <SettingItem label={t('settings.exportFormat.preview.label')} description={t('settings.exportFormat.preview.description')} static={true}>
               <div className="format-preview">
                 <div className="preview-item">
                   <code>{humanPreview}</code>
-                  <span className="preview-label">（用户消息）</span>
+                  <span className="preview-label">{t('settings.exportFormat.preview.userMessage')}</span>
                 </div>
                 <div className="preview-item">
                   <code>{assistantPreview}</code>
-                  <span className="preview-label">（助手消息）</span>
+                  <span className="preview-label">{t('settings.exportFormat.preview.assistantMessage')}</span>
                 </div>
               </div>
             </SettingItem>
             
-            <SettingItem label="序号设置" description="选择是否在消息标题中包含序号">
+            <SettingItem label={t('settings.exportFormat.numbering.label')} description={t('settings.exportFormat.numbering.description')}>
               <select 
                 className="setting-select"
                 value={settings.exportOptions.includeNumbering ? settings.exportOptions.numberingFormat : 'none'}
@@ -255,52 +257,52 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
                   }
                 }}
               >
-                <option value="none">不包含序号</option>
-                <option value="numeric">数字序号 (1, 2, 3...)</option>
-                <option value="letter">字母序号 (A, B, C...)</option>
-                <option value="roman">罗马数字 (I, II, III...)</option>
+                <option value="none">{t('settings.exportFormat.numbering.none')}</option>
+                <option value="numeric">{t('settings.exportFormat.numbering.numeric')}</option>
+                <option value="letter">{t('settings.exportFormat.numbering.letter')}</option>
+                <option value="roman">{t('settings.exportFormat.numbering.roman')}</option>
               </select>
             </SettingItem>
             
 
             
-            <SettingItem label="发送者标签" description="选择发送者的显示格式">
+            <SettingItem label={t('settings.exportFormat.senderLabel.label')} description={t('settings.exportFormat.senderLabel.description')}>
               <select 
                 className="setting-select"
                 value={settings.exportOptions.senderFormat}
                 onChange={(e) => handleExportOptionChange('senderFormat', e.target.value)}
               >
-                <option value="default">默认 (人类/Claude)</option>
-                <option value="human-assistant">英文 (Human/Assistant)</option>
-                <option value="custom">自定义</option>
+                <option value="default">{t('settings.exportFormat.senderLabel.default')}</option>
+                <option value="human-assistant">{t('settings.exportFormat.senderLabel.humanAssistant')}</option>
+                <option value="custom">{t('settings.exportFormat.senderLabel.custom')}</option>
               </select>
             </SettingItem>
             
             {settings.exportOptions.senderFormat === 'custom' && (
               <>
-                <SettingItem label="用户标签" description="自定义用户发送者的标签">
+                <SettingItem label={t('settings.exportFormat.customLabels.human.label')} description={t('settings.exportFormat.customLabels.human.description')}>
                   <input 
                     type="text"
                     className="setting-input"
                     value={settings.exportOptions.humanLabel}
                     onChange={(e) => handleExportOptionChange('humanLabel', e.target.value)}
-                    placeholder="例如：用户、User"
+                    placeholder={t('settings.exportFormat.customLabels.human.placeholder')}
                   />
                 </SettingItem>
                 
-                <SettingItem label="助手标签" description="自定义AI助手的标签">
+                <SettingItem label={t('settings.exportFormat.customLabels.assistant.label')} description={t('settings.exportFormat.customLabels.assistant.description')}>
                   <input 
                     type="text"
                     className="setting-input"
                     value={settings.exportOptions.assistantLabel}
                     onChange={(e) => handleExportOptionChange('assistantLabel', e.target.value)}
-                    placeholder="例如：AI、Assistant"
+                    placeholder={t('settings.exportFormat.customLabels.assistant.placeholder')}
                   />
                 </SettingItem>
               </>
             )}
             
-            <SettingItem label="标题前缀" description="选择是否在标题前添加 Markdown 标题符号">
+            <SettingItem label={t('settings.exportFormat.headerPrefix.label')} description={t('settings.exportFormat.headerPrefix.description')}>
               <select 
                 className="setting-select"
                 value={settings.exportOptions.includeHeaderPrefix ? settings.exportOptions.headerLevel.toString() : 'none'}
@@ -314,77 +316,77 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
                   }
                 }}
               >
-                <option value="none">不包含标题前缀</option>
-                <option value="1">一级标题 (#)</option>
-                <option value="2">二级标题 (##)</option>
+                <option value="none">{t('settings.exportFormat.headerPrefix.none')}</option>
+                <option value="1">{t('settings.exportFormat.headerPrefix.h1')}</option>
+                <option value="2">{t('settings.exportFormat.headerPrefix.h2')}</option>
               </select>
             </SettingItem>
             
-            <SettingItem label="思考过程格式" description="选择思考过程在复制和导出时的显示格式">
+            <SettingItem label={t('settings.exportFormat.thinkingFormat.label')} description={t('settings.exportFormat.thinkingFormat.description')}>
               <select 
                 className="setting-select"
                 value={settings.exportOptions.thinkingFormat || 'codeblock'}
                 onChange={(e) => handleExportOptionChange('thinkingFormat', e.target.value)}
               >
-                <option value="codeblock">代码块格式（思考前置）</option>
-                <option value="xml">XML标签格式（思考前置）</option>
-                <option value="emoji">Emoji格式（内容后置）</option>
+                <option value="codeblock">{t('settings.exportFormat.thinkingFormat.codeblock')}</option>
+                <option value="xml">{t('settings.exportFormat.thinkingFormat.xml')}</option>
+                <option value="emoji">{t('settings.exportFormat.thinkingFormat.emoji')}</option>
               </select>
             </SettingItem>
 
           </SettingsSection>
 
           {/* 导出设置 - 内容部分 */}
-          <SettingsSection title="导出内容">
-            <div className="section-description">控制导出的Markdown文件中包含哪些内容</div>
+          <SettingsSection title={t('settings.exportContent.title')}>
+            <div className="section-description">{t('settings.exportContent.description')}</div>
             
             <CheckboxSetting
-              label="时间戳"
-              description="包含消息的发送时间"
+              label={t('settings.exportContent.timestamps.label')}
+              description={t('settings.exportContent.timestamps.description')}
               checked={settings.exportOptions.includeTimestamps}
               onChange={(checked) => handleExportOptionChange('includeTimestamps', checked)}
             />
             
             <CheckboxSetting
-              label="思考过程"
-              description="Claude 的内部思考过程"
+              label={t('settings.exportContent.thinking.label')}
+              description={t('settings.exportContent.thinking.description')}
               checked={settings.exportOptions.includeThinking}
               onChange={(checked) => handleExportOptionChange('includeThinking', checked)}
             />
             
             <CheckboxSetting
-              label="Artifacts"
-              description="代码、文档等生成内容"
+              label={t('settings.exportContent.artifacts.label')}
+              description={t('settings.exportContent.artifacts.description')}
               checked={settings.exportOptions.includeArtifacts}
               onChange={(checked) => handleExportOptionChange('includeArtifacts', checked)}
             />
             
             <CheckboxSetting
-              label="工具使用"
-              description="搜索、计算等工具调用记录"
+              label={t('settings.exportContent.tools.label')}
+              description={t('settings.exportContent.tools.description')}
               checked={settings.exportOptions.includeTools}
               onChange={(checked) => handleExportOptionChange('includeTools', checked)}
             />
             
             <CheckboxSetting
-              label="引用来源"
-              description="网页链接等引用信息"
+              label={t('settings.exportContent.citations.label')}
+              description={t('settings.exportContent.citations.description')}
               checked={settings.exportOptions.includeCitations}
               onChange={(checked) => handleExportOptionChange('includeCitations', checked)}
             />
           </SettingsSection>
 
           {/* 关于 */}
-          <SettingsSection title="关于">
-            <SettingItem label="Lyra Exporter" description="强大的对话导出和管理工具" static={true} />
-            <SettingItem label="版本" description="v1.5.2" static={true} />
-            <SettingItem label="GitHub" description="开源项目，欢迎贡献和反馈" static={true} />
+          <SettingsSection title={t('settings.about.title')}>
+            <SettingItem label={t('settings.about.appName')} description={t('settings.about.appDescription')} static={true} />
+            <SettingItem label={t('settings.about.version')} description={'v1.5.3'} static={true} />
+            <SettingItem label={t('settings.about.github')} description={t('settings.about.githubDescription')} static={true} />
           </SettingsSection>
         </div>
         
         <div className="modal-footer">
           <button className="btn-primary" onClick={onClose}>
-            完成
+            {t('settings.done')}
           </button>
         </div>
       </div>
@@ -437,27 +439,30 @@ const CheckboxSetting = ({ label, description, checked, onChange }) => (
 /**
  * 主题切换按钮组件
  */
-const ThemeToggle = ({ theme, onToggle }) => (
-  <button 
-    className="theme-toggle-btn"
-    onClick={onToggle}
-    title={theme === 'dark' ? '切换到浅色主题' : '切换到深色主题'}
-  >
-    <span className="theme-icon">
-      {theme === 'dark' ? '🌙' : '☀️'}
-    </span>
-    <span className="theme-text">
-      {theme === 'dark' ? '深色主题' : '浅色主题'}
-    </span>
-  </button>
-);
+const ThemeToggle = ({ theme, onToggle }) => {
+  const { t } = useI18n();
+  return (
+    <button 
+      className="theme-toggle-btn"
+      onClick={onToggle}
+      title={theme === 'dark' ? t('settings.appearance.theme.toggleToLight') : t('settings.appearance.theme.toggleToDark')}
+    >
+      <span className="theme-icon">
+        {theme === 'dark' ? '🌙' : '☀️'}
+      </span>
+      <span className="theme-text">
+        {theme === 'dark' ? t('settings.appearance.theme.dark') : t('settings.appearance.theme.light')}
+      </span>
+    </button>
+  );
+};
 
 /**
  * 快速主题切换器（用于工具栏）
  */
 export const QuickThemeToggle = () => {
   const [theme, setTheme] = useState(ThemeUtils.getCurrentTheme());
-
+  const { t } = useI18n();
   const handleToggle = () => {
     const newTheme = ThemeUtils.toggleTheme();
     setTheme(newTheme);
@@ -467,9 +472,8 @@ export const QuickThemeToggle = () => {
     <button 
       className="quick-theme-toggle"
       onClick={handleToggle}
-      title={theme === 'dark' ? '切换到浅色主题' : '切换到暗色主题'}
+      title={theme === 'dark' ? t('settings.appearance.theme.toggleToLight') : t('settings.appearance.theme.toggleToDark')}
     >
-      {theme === 'dark' ? '🐻' : '🐻‍❄️'}
     </button>
   );
 };

@@ -30,9 +30,13 @@ import { SearchManager } from './utils/searchManager';
 // Hooks导入
 import { useFileManager } from './hooks/useFileManager';
 import { useFullExportCardFilter } from './hooks/useFullExportCardFilter';
+import { useI18n } from './hooks/useI18n';
 
 function App() {
   // ==================== Hooks和状态管理 ====================
+  // i18n
+  const { t } = useI18n();
+  
   const { 
     files, 
     currentFile, 
@@ -53,12 +57,14 @@ function App() {
   const [selectedFileIndex, setSelectedFileIndex] = useState(null);
   const [selectedConversationUuid, setSelectedConversationUuid] = useState(null);
   const [selectedConversation, setSelectedConversation] = useState(null);
-  const [showMessageDetail, setShowMessageDetail] = useState(false);
+  const [hideNavbar, setHideNavbar] = useState(false); // 新增：控制导航栏显示
   const [operatedFiles, setOperatedFiles] = useState(new Set());
   const [scrollPositions, setScrollPositions] = useState({});
   const [error, setError] = useState(null);
   const [sortVersion, setSortVersion] = useState(0);
   const [markVersion, setMarkVersion] = useState(0);
+  const [renameVersion, setRenameVersion] = useState(0);
+  const [starredConversations, setStarredConversations] = useState(new Map());
   const [currentBranchState, setCurrentBranchState] = useState({
     showAllBranches: false,
     currentBranchIndexes: new Map()
@@ -107,8 +113,11 @@ function App() {
       if (!starManagerRef.current) {
         starManagerRef.current = new StarManager(true);
       }
+      // 同步星标状态到state
+      setStarredConversations(new Map(starManagerRef.current.getStarredConversations()));
     } else {
       starManagerRef.current = null;
+      setStarredConversations(new Map());
     }
   }, [shouldUseStarSystem]);
 
@@ -128,7 +137,7 @@ function App() {
   
   const rawConversations = useMemo(() => 
     DataProcessor.getRawConversations(viewMode, processedData, currentFileIndex, files),
-    [viewMode, processedData, currentFileIndex, files]
+    [viewMode, processedData, currentFileIndex, files, renameVersion]
   );
 
   const {
@@ -140,8 +149,8 @@ function App() {
   } = useFullExportCardFilter(rawConversations, operatedFiles);
 
   const fileCards = useMemo(() => 
-    DataProcessor.getFileCards(viewMode, processedData, files, currentFileIndex, fileMetadata),
-    [files, currentFileIndex, processedData, fileMetadata, viewMode]
+    DataProcessor.getFileCards(viewMode, processedData, files, currentFileIndex, fileMetadata, t),
+    [files, currentFileIndex, processedData, fileMetadata, viewMode, t, renameVersion]
   );
 
   const allCards = useMemo(() => {
@@ -226,7 +235,7 @@ function App() {
       fileMetadata,
       starActions: starManagerRef.current
     });
-  }, [viewMode, selectedFileIndex, selectedConversationUuid, processedData, files, currentFileIndex, fileMetadata]);
+  }, [viewMode, selectedFileIndex, selectedConversationUuid, processedData, files, currentFileIndex, fileMetadata, renameVersion]);
 
   const isFullExportConversationMode = viewMode === 'conversations' && processedData?.format === 'claude_full_export';
 
@@ -251,7 +260,6 @@ function App() {
     }
     
     setSelectedMessageIndex(null);
-    setShowMessageDetail(false);
     setSearchQuery('');
     setSortVersion(v => v + 1);
     
@@ -350,11 +358,6 @@ function App() {
     }, 0);
   };
 
-  const handleMessageSelect = (messageIndex) => {
-    setSelectedMessageIndex(messageIndex);
-    setShowMessageDetail(true);
-  };
-
   const handleMarkToggle = (messageIndex, markType) => {
     if (markManagerRef.current) {
       markManagerRef.current.toggleMark(messageIndex, markType);
@@ -376,17 +379,26 @@ function App() {
 
   const handleStarToggle = (conversationUuid, nativeIsStarred) => {
     if (starManagerRef.current) {
-      starManagerRef.current.toggleStar(conversationUuid, nativeIsStarred);
-      // 强制重新渲染以更新星标显示
-      setSortVersion(v => v + 1);
+      const newStars = starManagerRef.current.toggleStar(conversationUuid, nativeIsStarred);
+      setStarredConversations(newStars);
     }
+  };
+  
+  const handleItemRename = (uuid, newName) => {
+    // 强制刷新视图以应用重命名
+    setRenameVersion(v => v + 1);
+    setSortVersion(v => v + 1);
+    setMarkVersion(v => v + 1);
   };
 
   // 导出功能 - 使用exportManager中的handleExport
   const handleExportClick = async () => {
     const { handleExport } = await import('./utils/exportManager');
     const success = await handleExport({
-      exportOptions,
+      exportOptions: {
+        ...exportOptions,
+        selectedConversationUuid // 传递当前选中的对话UUID
+      },
       processedData,
       sortManagerRef,
       sortedMessages,
@@ -448,7 +460,7 @@ function App() {
   };
 
   const handleClearAllFilesMarks = () => {
-    if (!window.confirm('确定要清除所有文件和对话的标记吗？这个操作不可恢复。')) {
+    if (!window.confirm(t('app.confirmations.clearAllMarks'))) {
       return;
     }
     
@@ -497,16 +509,16 @@ function App() {
 
   const getSearchPlaceholder = () => {
     if (isFullExportConversationMode) {
-      return "搜索对话标题、项目名称...";
+      return t('app.search.placeholder.conversations');
     } else if (viewMode === 'conversations') {
-      return "搜索文件名称、格式...";
+      return t('app.search.placeholder.files');
     } else {
-      return "搜索消息内容、思考过程、Artifacts...";
+      return t('app.search.placeholder.messages');
     }
   };
 
   const searchStats = StatsCalculator.getSearchResultStats(
-    viewMode, displayedItems, allCards, sortedMessages, timelineMessages
+    viewMode, displayedItems, allCards, sortedMessages, timelineMessages, t
   );
 
   // ==================== 副作用 ====================
@@ -582,7 +594,7 @@ function App() {
       ) : (
         <>
           {/* 顶部导航栏 */}
-          <nav className="navbar-redesigned">
+          <nav className={`navbar-redesigned ${hideNavbar ? 'hide-on-mobile' : ''}`}>
             <div className="navbar-left">
               <div className="logo">
                 <span className="logo-text">Lyra Exporter</span>
@@ -592,9 +604,9 @@ function App() {
                 <button 
                   className="btn-secondary small"
                   onClick={handleBackToConversations}
-                >
-                  ← 返回对话列表
-                </button>
+                  >
+                  ← {t('app.navbar.backToList')}
+                  </button>
               )}
               
               {!isFullExportConversationMode && (
@@ -608,7 +620,11 @@ function App() {
                   />
                   {searchQuery && (
                     <div className="search-stats">
-                      显示 {searchStats.displayed} / {searchStats.total} {searchStats.unit}
+                      {t('app.search.results', {
+                        displayed: searchStats.displayed,
+                        total: searchStats.total,
+                        unit: searchStats.unit
+                      })}
                     </div>
                   )}
                 </div>
@@ -618,18 +634,21 @@ function App() {
               <button 
                 className="btn-secondary small"
                 onClick={() => setShowSettingsPanel(true)}
-                title="设置"
+                title={t('app.navbar.settings')}
               >
-                ⚙️ 设置
+                ⚙️ {t('app.navbar.settings')}
               </button>
               
               {isFullExportConversationMode && shouldUseStarSystem && starManagerRef.current && (
                 <button 
                   className="btn-secondary small"
-                  onClick={() => starManagerRef.current.clearAllStars()}
-                  title="重置所有星标为原始状态"
+                  onClick={() => {
+                    const newStars = starManagerRef.current.clearAllStars();
+                    setStarredConversations(newStars);
+                  }}
+                  title={t('app.navbar.restoreStars')}
                 >
-                  ⭐ 恢复原始
+                  ⭐ {t('app.navbar.restoreStars')}
                 </button>
               )}
             </div>
@@ -643,24 +662,24 @@ function App() {
                 <div className="stats-grid">
                   <div className="stat-card">
                     <div className="stat-value">{getStats().totalMessages}</div>
-                    <div className="stat-label">总消息数</div>
+                    <div className="stat-label">{t('app.stats.totalMessages')}</div>
                   </div>
                   <div className="stat-card">
                     <div className="stat-value">{getStats().conversationCount}</div>
-                    <div className="stat-label">对话数</div>
+                    <div className="stat-label">{t('app.stats.conversationCount')}</div>
                   </div>
                   <div className="stat-card">
                     <div className="stat-value">{getStats().fileCount}</div>
-                    <div className="stat-label">文件数</div>
+                    <div className="stat-label">{t('app.stats.fileCount')}</div>
                   </div>
                   <div className="stat-card">
                     <div className="stat-value">{getStats().markedCount}</div>
-                    <div className="stat-label">标记消息</div>
+                    <div className="stat-label">{t('app.stats.markedCount')}</div>
                   </div>
                   {isFullExportConversationMode && shouldUseStarSystem && (
                     <div className="stat-card">
                       <div className="stat-value">{getStats().starredCount}</div>
-                      <div className="stat-label">星标对话</div>
+                      <div className="stat-label">{t('app.stats.starredCount')}</div>
                     </div>
                   )}
                 </div>
@@ -685,10 +704,11 @@ function App() {
                   <CardGrid
                     items={displayedItems}
                     selectedItem={selectedConversation}
-                    starredItems={starManagerRef.current ? starManagerRef.current.getStarredConversations() : new Map()}
+                    starredItems={starredConversations}
                     onItemSelect={handleCardSelect}
                     onItemStar={isFullExportConversationMode && shouldUseStarSystem ? handleStarToggle : null}
                     onItemRemove={handleFileRemove}
+                    onItemRename={handleItemRename}
                     onAddItem={() => fileInputRef.current?.click()}
                   />
                 ) : (
@@ -697,7 +717,6 @@ function App() {
                     conversation={currentConversation}
                     messages={displayedItems}
                     marks={currentMarks}
-                    onMessageSelect={handleMessageSelect}
                     markActions={markActions}
                     format={processedData?.format}
                     sortActions={sortActions}
@@ -721,6 +740,9 @@ function App() {
                     searchQuery={searchQuery}
                     branchState={currentBranchState}
                     onBranchStateChange={setCurrentBranchState}
+                    onShowSettings={() => setShowSettingsPanel(true)}
+                    onHideNavbar={setHideNavbar}
+                    onRename={handleItemRename}
                   />
                 )}
               </div>
@@ -730,94 +752,31 @@ function App() {
           {/* 悬浮导出按钮 */}
           <FloatingActionButton 
             onClick={() => setShowExportPanel(true)}
-            title="导出"
+            title={t('app.export.button')}
           />
-
-          {/* 消息详情模态框 */}
-          {showMessageDetail && selectedMessageIndex !== null && (
-            <div className="modal-overlay" onClick={() => setShowMessageDetail(false)}>
-              <div className="modal-content large" onClick={e => e.stopPropagation()}>
-                <div className="modal-header">
-                  <h2>消息详情</h2>
-                  <button className="close-btn" onClick={() => setShowMessageDetail(false)}>×</button>
-                </div>
-                <div className="modal-tabs">
-                  <button 
-                    className={`tab ${activeTab === 'content' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('content')}
-                  >
-                    内容
-                  </button>
-                  <button 
-                    className={`tab ${activeTab === 'thinking' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('thinking')}
-                  >
-                    思考过程
-                  </button>
-                  <button 
-                    className={`tab ${activeTab === 'artifacts' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('artifacts')}
-                  >
-                    Artifacts
-                  </button>
-                </div>
-                <div className="modal-body">
-                  <MessageDetail
-                    processedData={processedData}
-                    selectedMessageIndex={selectedMessageIndex}
-                    activeTab={activeTab}
-                    searchQuery={searchQuery}
-                    format={processedData?.format}
-                    onTabChange={setActiveTab}
-                    showTabs={false}
-                  />
-                </div>
-                <div className="modal-footer">
-                  <button 
-                    className="btn-secondary"
-                    onClick={() => handleMarkToggle(selectedMessageIndex, 'completed')}
-                  >
-                    {markActions.isMarked(selectedMessageIndex, 'completed') ? '取消完成' : '标记完成'} ✓
-                  </button>
-                  <button 
-                    className="btn-secondary"
-                    onClick={() => handleMarkToggle(selectedMessageIndex, 'important')}
-                  >
-                    {markActions.isMarked(selectedMessageIndex, 'important') ? '取消重要' : '标记重要'} ⭐
-                  </button>
-                  <button 
-                    className="btn-secondary"
-                    onClick={() => handleMarkToggle(selectedMessageIndex, 'deleted')}
-                  >
-                    {markActions.isMarked(selectedMessageIndex, 'deleted') ? '取消删除' : '标记删除'} 🗑️
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* 文件类型冲突模态框 */}
           {showTypeConflictModal && (
             <div className="modal-overlay" onClick={() => fileActions.cancelReplaceFiles()}>
               <div className="modal-content" onClick={e => e.stopPropagation()}>
                 <div className="modal-header">
-                  <h2>文件类型冲突</h2>
+                  <h2>{t('app.typeConflict.title')}</h2>
                   <button className="close-btn" onClick={() => fileActions.cancelReplaceFiles()}>×</button>
                 </div>
                 <div className="modal-body">
-                  <p>你正在尝试加载不同类型的文件。为了保证正常显示，<strong>Claude 完整导出</strong>格式不能与其他格式同时加载。</p>
+                  <p dangerouslySetInnerHTML={{ __html: t('app.typeConflict.message') }} />
                   <br />
-                  <p><strong>当前文件：</strong> {files.length} 个文件</p>
-                  <p><strong>新文件：</strong> {pendingFiles.length} 个文件</p>
+                  <p><strong>{t('app.typeConflict.currentFiles', { count: files.length })}</strong></p>
+                  <p><strong>{t('app.typeConflict.newFiles', { count: pendingFiles.length })}</strong></p>
                   <br />
-                  <p>选择"替换"将关闭当前所有文件并加载新文件。</p>
+                  <p>{t('app.typeConflict.hint')}</p>
                 </div>
                 <div className="modal-footer">
                   <button className="btn-secondary" onClick={() => fileActions.cancelReplaceFiles()}>
-                    取消
+                    {t('app.typeConflict.cancel')}
                   </button>
                   <button className="btn-primary" onClick={() => fileActions.confirmReplaceFiles()}>
-                    替换所有文件
+                    {t('app.typeConflict.replace')}
                   </button>
                 </div>
               </div>
@@ -837,13 +796,13 @@ function App() {
             <div className="modal-overlay" onClick={() => setShowExportPanel(false)}>
               <div className="modal-content export-modal" onClick={e => e.stopPropagation()}>
                 <div className="modal-header">
-                  <h2>导出选项</h2>
+                  <h2>{t('app.export.title')}</h2>
                   <button className="close-btn" onClick={() => setShowExportPanel(false)}>×</button>
                 </div>
                 
                 <div className="export-options">
                   <div className="option-group">
-                    <h3>导出范围</h3>
+                    <h3>{t('app.export.scope.title')}</h3>
                     <label className="radio-option">
                       <input 
                         type="radio" 
@@ -854,13 +813,13 @@ function App() {
                         disabled={viewMode !== 'timeline'}
                       />
                       <div className="option-label">
-                        <span>当前时间线文件</span>
+                        <span>{t('app.export.scope.current')}</span>
                         {viewMode === 'timeline' ? (
                           <span className="option-description">
-                            仅导出当前正在查看的单个文件
+                            {t('app.export.scope.currentDesc')}
                           </span>
                         ) : (
-                          <span className="hint">请先进入时间线视图</span>
+                          <span className="hint">{t('app.export.scope.hint.enterTimeline')}</span>
                         )}
                       </div>
                     </label>
@@ -874,17 +833,17 @@ function App() {
                         disabled={viewMode !== 'timeline' || currentBranchState.showAllBranches}
                       />
                       <div className="option-label">
-                        <span>当前时间线的当前分支</span>
+                        <span>{t('app.export.scope.currentBranch')}</span>
                         {viewMode === 'timeline' ? (
                           currentBranchState.showAllBranches ? (
-                            <span className="hint">显示全部分支时不可选择</span>
+                            <span className="hint">{t('app.export.scope.hint.showAllBranches')}</span>
                           ) : (
                             <span className="option-description">
-                              仅导出当前时间线中展示的分支
+                              {t('app.export.scope.currentBranchDesc')}
                             </span>
                           )
                         ) : (
-                          <span className="hint">请先进入时间线视图</span>
+                          <span className="hint">{t('app.export.scope.hint.enterTimeline')}</span>
                         )}
                       </div>
                     </label>
@@ -898,13 +857,13 @@ function App() {
                         disabled={operatedFiles.size === 0}
                       />
                       <div className="option-label">
-                        <span>有过操作的文件 <span className="option-count">({operatedFiles.size}个)</span></span>
+                        <span>{t('app.export.scope.operated')} <span className="option-count">({operatedFiles.size}个)</span></span>
                         {operatedFiles.size > 0 ? (
                           <span className="option-description">
-                            导出所有进行过标记或排序操作的文件
+                            {t('app.export.scope.operatedDesc')}
                           </span>
                         ) : (
-                          <span className="hint">请先对消息进行标记或排序</span>
+                          <span className="hint">{t('app.export.scope.hint.markFirst')}</span>
                         )}
                       </div>
                     </label>
@@ -917,16 +876,16 @@ function App() {
                         onChange={(e) => setExportOptions({...exportOptions, scope: e.target.value})}
                       />
                       <div className="option-label">
-                        <span>所有加载的文件 <span className="option-count">({files.length}个)</span></span>
+                        <span>{t('app.export.scope.all')} <span className="option-count">({files.length}个)</span></span>
                         <span className="option-description">
-                          导出当前已加载的全部文件，无论是否有过操作
+                          {t('app.export.scope.allDesc')}
                         </span>
                       </div>
                     </label>
                   </div>
                   
                   <div className="option-group">
-                    <h3>标记筛选</h3>
+                    <h3>{t('app.export.filters.title')}</h3>
                     <label className="checkbox-option">
                       <input 
                         type="checkbox" 
@@ -934,9 +893,9 @@ function App() {
                         onChange={(e) => setExportOptions({...exportOptions, excludeDeleted: e.target.checked})}
                       />
                       <div className="option-label">
-                        <span>排除"已删除"标记</span>
+                        <span>{t('app.export.filters.excludeDeleted')}</span>
                         <span className="option-description">
-                          不导出标记为已删除的消息
+                          {t('app.export.filters.excludeDeletedDesc')}
                         </span>
                       </div>
                     </label>
@@ -947,9 +906,9 @@ function App() {
                         onChange={(e) => setExportOptions({...exportOptions, includeCompleted: e.target.checked})}
                       />
                       <div className="option-label">
-                        <span>仅导出"已完成"标记</span>
+                        <span>{t('app.export.filters.includeCompleted')}</span>
                         <span className="option-description">
-                          只导出标记为已完成的消息
+                          {t('app.export.filters.includeCompletedDesc')}
                         </span>
                       </div>
                     </label>
@@ -960,9 +919,9 @@ function App() {
                         onChange={(e) => setExportOptions({...exportOptions, includeImportant: e.target.checked})}
                       />
                       <div className="option-label">
-                        <span>仅导出"重要"标记</span>
+                        <span>{t('app.export.filters.includeImportant')}</span>
                         <span className="option-description">
-                          只导出标记为重要的消息{exportOptions.includeCompleted && exportOptions.includeImportant ? '（需同时满足已完成）' : ''}
+                          {t('app.export.filters.includeImportantDesc')}{exportOptions.includeCompleted && exportOptions.includeImportant ? t('app.export.filters.importantAndCompleted') : ''}
                         </span>
                       </div>
                     </label>
@@ -971,46 +930,55 @@ function App() {
                 
                 <div className="export-info">
                   <div className="info-row">
-                    <span className="label">文件统计:</span>
-                    <span className="value">{files.length} 个文件，{getStats().conversationCount} 个对话，{getStats().totalMessages} 条消息</span>
+                    <span className="label">{t('app.export.stats.files')}</span>
+                    <span className="value">{t('app.export.stats.filesDesc', {
+                      fileCount: files.length,
+                      conversationCount: getStats().conversationCount,
+                      totalMessages: getStats().totalMessages
+                    })}</span>
                   </div>
                   <div className="info-row">
-                    <span className="label">标记统计:</span>
+                    <span className="label">{t('app.export.stats.marks')}</span>
                     <span className="value">
-                      完成 {getAllMarksStats(files, processedData, currentFileIndex, generateFileCardUuid, generateConversationCardUuid).completed} · 
-                      重要 {getAllMarksStats(files, processedData, currentFileIndex, generateFileCardUuid, generateConversationCardUuid).important} · 
-                      删除 {getAllMarksStats(files, processedData, currentFileIndex, generateFileCardUuid, generateConversationCardUuid).deleted}
+                      {t('app.export.stats.marksDesc', {
+                        completed: getAllMarksStats(files, processedData, currentFileIndex, generateFileCardUuid, generateConversationCardUuid).completed,
+                        important: getAllMarksStats(files, processedData, currentFileIndex, generateFileCardUuid, generateConversationCardUuid).important,
+                        deleted: getAllMarksStats(files, processedData, currentFileIndex, generateFileCardUuid, generateConversationCardUuid).deleted
+                      })}
                     </span>
                   </div>
                   {isFullExportConversationMode && shouldUseStarSystem && starManagerRef.current && (
                     <div className="info-row">
-                      <span className="label">星标统计:</span>
+                      <span className="label">{t('app.export.stats.stars')}</span>
                       <span className="value">
-                        {starManagerRef.current.getStarStats(allCards.filter(card => card.type === 'conversation')).totalStarred} 个星标对话
+                        {t('app.export.stats.starsDesc', {
+                          starred: starManagerRef.current.getStarStats(allCards.filter(card => card.type === 'conversation')).totalStarred
+                        })}
                       </span>
                     </div>
                   )}
                   <div className="info-row">
-                    <span className="label">当前内容设置:</span>
+                    <span className="label">{t('app.export.stats.content')}</span>
                     <span className="value">
-                      {[
-                        exportOptions.includeTimestamps && '时间戳',
-                        exportOptions.includeThinking && '思考过程', 
-                        exportOptions.includeArtifacts && 'Artifacts',
-                        exportOptions.includeAttachments && '附加文件',
-                        exportOptions.includeTools && '工具使用',
-                        exportOptions.includeCitations && '引用来源'
-                      ].filter(Boolean).join(' · ') || '仅基础内容'}
+                      {t('app.export.stats.contentDesc', {
+                        settings: [
+                          exportOptions.includeTimestamps && t('settings.exportContent.timestamps.label'),
+                          exportOptions.includeThinking && t('settings.exportContent.thinking.label'),
+                          exportOptions.includeArtifacts && t('settings.exportContent.artifacts.label'),
+                          exportOptions.includeTools && t('settings.exportContent.tools.label'),
+                          exportOptions.includeCitations && t('settings.exportContent.citations.label')
+                        ].filter(Boolean).join(' · ') || t('app.export.stats.basicOnly')
+                      })}
                     </span>
                   </div>
                 </div>
                 
                 <div className="modal-buttons">
                   <button className="btn-secondary" onClick={() => setShowExportPanel(false)}>
-                    取消
+                    {t('common.cancel')}
                   </button>
                   <button className="btn-primary" onClick={handleExportClick}>
-                    导出为 Markdown
+                    {t('app.export.exportToMarkdown')}
                   </button>
                 </div>
               </div>

@@ -114,6 +114,51 @@
   transform: scale(1.1);
 }
 
+/* 重命名按钮样式 */
+.rename-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  font-size: 16px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.rename-btn:hover {
+  opacity: 1;
+}
+
+/* 重命名对话框样式 */
+.rename-dialog {
+  max-width: 500px;
+}
+
+.rename-dialog .form-group {
+  margin-bottom: 0;
+}
+
+.rename-dialog .form-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 14px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.rename-dialog .form-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.rename-dialog .error-message {
+  color: var(--accent-danger);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
 /* 元数据 */
 .tile-meta {
   display: flex;

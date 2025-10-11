@@ -54,6 +54,11 @@
   margin-bottom: 16px;
 }
 
+/* 当有自定义日期范围时的特殊布局 */
+.filter-sections.has-custom-date {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
 .filter-section {
   display: flex;
   flex-direction: column;
@@ -90,24 +95,48 @@
   color: var(--text-tertiary);
 }
 
-.date-range-section {
-  grid-column: span 2;
+/* 时间范围选择区域 */
+.time-range-section {
+  grid-column: auto;
+}
+
+/* 自定义日期范围 - 独立一行显示 */
+.custom-date-section {
+  grid-column: 1 / -1;
+  margin-top: -8px;
 }
 
 .date-range-inputs {
   display: flex;
   align-items: center;
+  gap: 12px;
+}
+
+/* 桌面版本：保持"至"文本 */
+.custom-date-section.desktop .date-range-inputs {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 移动版本：去掉"至"文本，输入框平均分配空间 */
+.custom-date-section.mobile .date-range-inputs {
+  display: flex;
+  flex-direction: row;
   gap: 8px;
 }
 
 .date-input {
   flex: 1;
+  min-width: 140px;
 }
 
 .date-separator {
   color: var(--text-secondary);
   font-size: 14px;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .filter-footer {
@@ -129,6 +158,109 @@
 .active-filters-text {
   font-size: 12px;
   color: var(--text-secondary);
+}
+
+/* 移动端响应式 */
+@media (max-width: 768px) {
+  .conversation-filter {
+    margin-bottom: 12px;
+  }
+  
+  .filter-panel {
+    padding: 12px;
+  }
+  
+  .filter-header {
+    margin-bottom: 12px;
+  }
+  
+  .filter-sections {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  
+  /* 搜索框占据整行 */
+  .filter-section:first-child {
+    grid-column: 1 / -1;
+  }
+  
+  /* 时间范围占据整行 */
+  .time-range-section {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+  
+  /* 自定义日期范围占据整行 */
+  .custom-date-section {
+    grid-column: 1 / -1;
+  }
+  
+  /* 移动端：自定义日期范围水平布局 */
+  .custom-date-section.mobile .date-range-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  
+  .date-input {
+    width: 100%;
+  }
+  
+  /* 其他筛选项两列布局 */
+  .filter-section {
+    min-width: 0;
+  }
+  
+  .filter-label {
+    font-size: 11px;
+  }
+  
+  .filter-input,
+  .filter-select {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+  
+  .filter-actions {
+    gap: 6px;
+  }
+  
+  .filter-actions button {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+  
+  .filter-footer {
+    padding-top: 12px;
+  }
+  
+  .filter-stats {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .filter-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .filter-title {
+    justify-content: center;
+  }
+  
+  /* 超小屏幕：日期输入框垂直排列 */
+  .custom-date-section.mobile .date-range-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .date-input {
+    width: 100%;
+  }
 }
 
 /* ============ 设置面板 ============ */

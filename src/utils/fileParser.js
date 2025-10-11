@@ -98,7 +98,7 @@ const extractClaudeData = (jsonData) => {
 
   messages.forEach((msg, msgIdx) => {
     const sender = msg.sender || "unknown";
-    const senderLabel = sender === "human" ? "人类" : "Claude";
+    const senderLabel = sender === "human" ? "User" : "Claude";
     const timestamp = parseTimestamp(msg.created_at);
 
     const messageData = {

@@ -5,7 +5,7 @@
     "description": "欢迎使用这个对话记录管理工具，支持批量加载多对话，帮你保存灵感时刻，让每一次对话的价值得到延续。",
     "buttons": {
       "loadFiles": "加载对话文件",
-      "installScript": "前往安装脚本(需自行配备网络访问环境)"
+      "installScript": "前往安装脚本(需网络访问环境)"
     },
     "privacyAssurance": {
       "title": "隐私安全保障",
@@ -37,7 +37,7 @@
         "download": "下载部署包"
       },
       "note": "说明：",
-      "noteContent": "此工具完全在本地运行，不会收集或上传你的个人数据。你的任何对话记录只属于你自己，推荐使用 LocalSend 等安全的文件传输方式。将聊天记录转换为可以管理、搜索、导出的知识库，支持移动平台访问。"
+      "noteContent": "此应用工作于浏览器缓存，不会收集或上传你的个人数据。你的任何对话记录只属于你自己，推荐使用 LocalSend 等安全的文件传输方式。将聊天记录转换为可以管理、搜索、导出的知识库，支持移动平台访问。"
     },
     "scriptInstall": {
       "title": "开始安装脚本",
@@ -108,5 +108,486 @@
     "expand": "展开",
     "collapse": "收起",
     "retry": "重试"
+  },
+  "app": {
+    "title": "Lyra Exporter",
+    "navbar": {
+      "backToList": "返回对话列表",
+      "settings": "设置",
+      "restoreStars": "恢复原始"
+    },
+    "search": {
+      "placeholder": {
+        "conversations": "搜索对话标题、项目名称...",
+        "files": "搜索文件名称、格式...",
+        "messages": "搜索消息内容、思考过程、Artifacts..."
+      },
+      "results": "显示 {{displayed}} / {{total}} {{unit}}"
+    },
+    "stats": {
+      "totalMessages": "总消息数",
+      "conversationCount": "对话数",
+      "fileCount": "文件数",
+      "markedCount": "标记消息",
+      "starredCount": "星标对话"
+    },
+    "export": {
+      "title": "导出选项",
+      "button": "导出",
+      "exportToMarkdown": "导出为 Markdown",
+      "scope": {
+        "title": "导出范围",
+        "current": "当前时间线文件",
+        "currentDesc": "仅导出当前正在查看的单个文件",
+        "currentBranch": "当前时间线的当前分支",
+        "currentBranchDesc": "仅导出当前时间线中展示的分支",
+        "operated": "有过操作的文件",
+        "operatedDesc": "导出所有进行过标记或排序操作的文件",
+        "all": "所有加载的文件",
+        "allDesc": "导出当前已加载的全部文件，无论是否有过操作",
+        "hint": {
+          "enterTimeline": "请先进入时间线视图",
+          "markFirst": "请先对消息进行标记或排序",
+          "showAllBranches": "显示全部分支时不可选择"
+        }
+      },
+      "filters": {
+        "title": "标记筛选",
+        "excludeDeleted": "排除\"已删除\"标记",
+        "excludeDeletedDesc": "不导出标记为已删除的消息",
+        "includeCompleted": "仅导出\"已完成\"标记",
+        "includeCompletedDesc": "只导出标记为已完成的消息",
+        "includeImportant": "仅导出\"重要\"标记",
+        "includeImportantDesc": "只导出标记为重要的消息",
+        "importantAndCompleted": "（需同时满足已完成）"
+      },
+      "stats": {
+        "files": "文件统计:",
+        "filesDesc": "{{fileCount}} 个文件，{{conversationCount}} 个对话，{{totalMessages}} 条消息",
+        "marks": "标记统计:",
+        "marksDesc": "完成 {{completed}} · 重要 {{important}} · 删除 {{deleted}}",
+        "stars": "星标统计:",
+        "starsDesc": "{{starred}} 个星标对话",
+        "content": "当前内容设置:",
+        "contentDesc": "{{settings}}",
+        "basicOnly": "仅基础内容"
+      }
+    },
+    "messageDetail": {
+      "title": "消息详情",
+      "tabs": {
+        "content": "内容",
+        "thinking": "思考过程",
+        "artifacts": "Artifacts"
+      },
+      "actions": {
+        "markCompleted": "标记完成",
+        "unmarkCompleted": "取消完成",
+        "markImportant": "标记重要",
+        "unmarkImportant": "取消重要",
+        "markDeleted": "标记删除",
+        "unmarkDeleted": "取消删除"
+      }
+    },
+    "typeConflict": {
+      "title": "文件类型冲突",
+      "message": "你正在尝试加载不同类型的文件。为了保证正常显示，<strong>Claude 完整导出</strong>格式不能与其他格式同时加载。",
+      "currentFiles": "当前文件：{{count}} 个文件",
+      "newFiles": "新文件：{{count}} 个文件",
+      "hint": "选择\"替换\"将关闭当前所有文件并加载新文件。",
+      "cancel": "取消",
+      "replace": "替换所有文件"
+    },
+    "confirmations": {
+      "clearAllMarks": "确定要清除所有文件和对话的标记吗？这个操作不可恢复。"
+    }
+  },
+  "units": {
+    "conversation": "个对话",
+    "file": "个文件",
+    "message": "条消息"
+  },
+  "fileCard": {
+    "conversationSummary": "{{count}}个对话，{{messages}}条消息",
+    "messageSummary": "{{count}}条消息的对话",
+    "clickToLoad": "点击加载文件内容...",
+    "conversationFilter": "筛选对话",
+    "btnFilter": "清除所有筛选条件",
+    "btnFilter2": " ✕  清除所有筛选条件",
+    "btn-secondary": "清除所有文件的标记（{{operatedCount}}个有操作）"
+  },
+  "settings": {
+    "title": "设置",
+    "done": "完成",
+    "appearance": {
+      "title": "外观",
+      "theme": {
+        "label": "主题",
+        "description": "选择深色或浅色主题",
+        "dark": "深色主题",
+        "light": "浅色主题",
+        "toggleToDark": "切换到深色主题",
+        "toggleToLight": "切换到浅色主题"
+      },
+      "language": {
+        "label": "语言",
+        "description": "选择界面显示语言(设置完成后需刷新网页)"
+      }
+    },
+    "copyOptions": {
+      "title": "复制选项",
+      "includeMetadata": {
+        "label": "包含元数据",
+        "description": "复制时包含发送者和时间信息"
+      },
+      "includeThinking": {
+        "label": "包含思考过程",
+        "description": "复制消息时包含Claude的思考过程"
+      },
+      "includeArtifacts": {
+        "label": "包含Artifacts",
+        "description": "复制消息时包含生成的代码和文档"
+      }
+    },
+    "exportFormat": {
+      "title": "导出格式",
+      "preview": {
+        "label": "格式预览",
+        "description": "查看当前设置下的标题格式效果",
+        "userMessage": "（用户消息）",
+        "assistantMessage": "（助手消息）"
+      },
+      "numbering": {
+        "label": "序号设置",
+        "description": "选择是否在消息标题中包含序号",
+        "none": "不包含序号",
+        "numeric": "数字序号 (1, 2, 3...)",
+        "letter": "字母序号 (A, B, C...)",
+        "roman": "罗马数字 (I, II, III...)"
+      },
+      "senderLabel": {
+        "label": "发送者标签",
+        "description": "选择发送者的显示格式",
+        "default": "默认 (用户/AI)",
+        "humanAssistant": "英文 (Human/Assistant)",
+        "custom": "自定义"
+      },
+      "customLabels": {
+        "human": {
+          "label": "用户标签",
+          "description": "自定义用户发送者的标签",
+          "placeholder": "例如：用户、User"
+        },
+        "assistant": {
+          "label": "助手标签",
+          "description": "自定义AI助手的标签",
+          "placeholder": "例如：AI、Assistant"
+        }
+      },
+      "headerPrefix": {
+        "label": "标题前缀",
+        "description": "选择是否在标题前添加 Markdown 标题符号",
+        "none": "不包含标题前缀",
+        "h1": "一级标题 (#)",
+        "h2": "二级标题 (##)"
+      },
+      "thinkingFormat": {
+        "label": "思考过程格式",
+        "description": "选择思考过程在复制和导出时的显示格式",
+        "codeblock": "代码块格式（思考前置）",
+        "xml": "XML标签格式（思考前置）",
+        "emoji": "Emoji格式（内容后置）"
+      }
+    },
+    "exportContent": {
+      "title": "导出内容",
+      "description": "控制导出的Markdown文件中包含哪些内容",
+      "timestamps": {
+        "label": "时间戳",
+        "description": "包含消息的发送时间"
+      },
+      "thinking": {
+        "label": "思考过程",
+        "description": "Claude 的内部思考过程"
+      },
+      "artifacts": {
+        "label": "Artifacts",
+        "description": "代码、文档等生成内容"
+      },
+      "tools": {
+        "label": "工具使用",
+        "description": "搜索、计算等工具调用记录"
+      },
+      "citations": {
+        "label": "引用来源",
+        "description": "网页链接等引用信息"
+      }
+    },
+    "about": {
+      "title": "关于",
+      "appName": "Lyra Exporter",
+      "appDescription": "强大的对话导出和管理工具",
+      "version": "版本",
+      "github": "GitHub",
+      "githubDescription": "开源项目，欢迎贡献和反馈"
+    }
+  },
+  "timeline": {
+    "branch": {
+      "mainBranch": "主分支",
+      "branch": "分支",
+      "all": "全部",
+      "previousBranch": "上一个分支",
+      "nextBranch": "下一个分支",
+      "showAllBranches": "显示所有分支",
+      "allMessages": "所有消息",
+      "showMessagesFromAllBranches": "显示所有分支的消息",
+      "messages": "条消息",
+      "detected": "检测到",
+      "branchPoints": "个分支点",
+      "filterBranches": "分支",
+      "showAll": "显示全部",
+      "showSelectedOnly": "仅显示选中分支",
+      "noBranches": "当前对话没有分支"
+    },
+    "conversation": {
+      "unknownTime": "未知时间",
+      "unnamedConversation": "未命名对话",
+      "unknownConversation": "未知对话"
+    },
+    "file": {
+      "clickToPrevious": "点击切换到上一个文件",
+      "clickToNext": "点击切换到下一个文件"
+    },
+    "actions": {
+      "resetMarks": "重置标记",
+      "clearAllMarks": "清除所有标记",
+      "resetSort": "重置排序",
+      "confirmClearMarks": "确定要清除当前对话的所有标记吗？",
+      "confirmResetSort": "确定要恢复原始顺序吗？",
+      "restoreOriginalOrder": "恢复原始消息顺序",
+      "disableSort": "禁用排序",
+      "enableSort": "启用排序",
+      "cannotSortWhileSearching": "搜索时无法排序",
+      "enableMessageSorting": "启用消息排序",
+      "sortingDisabledDuringSearch": "搜索期间排序已禁用",
+      "moveUp": "上移",
+      "moveDown": "下移",
+      "copyMessage": "复制消息",
+      "copied": "已复制",
+      "markCompleted": "完成标记",
+      "unmarkCompleted": "取消完成",
+      "markImportant": "星标标记",
+      "unmarkImportant": "取消重要",
+      "markDeleted": "删除标记",
+      "unmarkDeleted": "取消删除"
+    },
+    "info": {
+      "modelPlatform": "模型/平台",
+      "created": "创建时间",
+      "displayedMessages": "显示消息数",
+      "lastUpdated": "最后更新"
+    },
+    "tags": {
+      "hasThinking": "思考过程",
+      "images": "张图片",
+      "attachments": "个附件",
+      "artifacts": "个Artifacts",
+      "usedTools": "使用的工具",
+      "citations": "个引用",
+      "completed": "已完成",
+      "important": "重要",
+      "deleted": "已删除"
+    }
+  },
+  "card": {
+    "unnamed": "未命名",
+    "unstar": "取消星标",
+    "star": "星标",
+    "close": "关闭",
+    "conversations": "个对话",
+    "contains": "包含",
+    "and": "和",
+    "messages": "条消息",
+    "clickToLoad": "点击加载文件内容...",
+    "clickToView": "点击查看对话详情...",
+    "hasThinking": "有思考过程",
+    "hasCode": "有代码",
+    "addFile": "添加文件",
+    "supportsJson": "支持JSON格式"
+  },
+  "messageDetail": {
+    "tabs": {
+      "content": "内容",
+      "thinking": "思考过程",
+      "attachments": "附件"
+    },
+    "placeholder": {
+      "selectMessage": "选择一条消息以查看详情",
+      "noArtifacts": "此消息未使用Artifacts",
+      "noAttachments": "此消息没有附件",
+      "noThinking": "此消息没有记录思考过程",
+      "formatNotSupported": {
+        "thinking": "此格式不支持思考过程",
+        "artifacts": "此格式不支持Artifacts"
+      },
+      "selectTab": "请选择一个标签页"
+    },
+    "images": {
+      "title": "图片附件",
+      "loadFailed": "图片加载失败"
+    },
+    "artifacts": {
+      "noTitle": "无标题",
+      "unknown": "未知",
+      "language": "语言",
+      "originalText": "原文本",
+      "newText": "新文本"
+    },
+    "attachments": {
+      "fullContent": "完整内容",
+      "contentPreview": "内容预览",
+      "characters": "个字符",
+      "showPreview": "显示预览",
+      "showAll": "显示全部",
+      "contentTruncated": "内容已截断",
+      "codeTruncated": "代码已截断",
+      "collapse": "收起内容",
+      "expand": "展开显示更多",
+      "unknownFile": "未知文件",
+      "type": "类型",
+      "created": "创建时间"
+    },
+    "tools": {
+      "tool": "工具",
+      "searchQuery": "搜索查询",
+      "inputParams": "输入参数",
+      "result": "结果",
+      "executionError": "工具执行错误",
+      "noTitle": "无标题",
+      "moreResults": "更多结果"
+    },
+    "citations": {
+      "title": "引用来源",
+      "unknownSource": "未知来源",
+      "unknownWebsite": "未知网站"
+    }
+  },
+  "filter": {
+    "title": "筛选对话",
+    "actions": {
+      "clearFilters": "清除筛选",
+      "clearAllFilters": "清除所有筛选条件",
+      "clearAllMarks": "清除所有标记",
+      "clearAllMarksTitle": "清除所有文件的标记（{{count}}个有操作）"
+    },
+    "search": {
+      "label": "搜索对话",
+      "placeholder": "对话或项目名称..."
+    },
+    "timeRange": {
+      "label": "时间范围",
+      "all": "所有时间",
+      "today": "今天",
+      "week": "最近一周",
+      "month": "最近一月",
+      "custom": "自定义范围"
+    },
+    "dateRange": {
+      "label": "日期范围",
+      "startDate": "开始日期",
+      "endDate": "结束日期",
+      "to": "至"
+    },
+    "project": {
+      "label": "项目",
+      "all": "所有项目",
+      "none": "无项目"
+    },
+    "starred": {
+      "label": "星标状态",
+      "all": "全部",
+      "starred": "已星标",
+      "unstarred": "未星标"
+    },
+    "operated": {
+      "label": "操作状态",
+      "all": "全部",
+      "hasOperations": "有操作",
+      "noOperations": "无操作"
+    },
+    "stats": {
+      "showing": "显示",
+      "conversations": "个对话",
+      "activeFilters": "{{count}}个活动筛选条件"
+    }
+  },
+  "rename": {
+    "title": "重命名",
+    "label": "新名称",
+    "placeholder": "输入新的名称...",
+    "action": "重命名",
+    "error": {
+      "empty": "名称不能为空"
+    }
+  },
+  "copy": {
+    "messages": {
+      "success": "已复制到剪贴板",
+      "error": "复制失败，请重试",
+      "generalError": "复制失败",
+      "multipleSuccess": "已复制{{count}}条消息"
+    },
+    "format": {
+      "timeLabel": "时间",
+      "thinkingLabel": "💭 思考过程：",
+      "artifactsLabel": "🔧 Artifacts：",
+      "noTitle": "无标题",
+      "unknownType": "未知类型"
+    }
+  },
+  "exportManager": {
+    "metadata": {
+      "defaultTitle": "对话记录",
+      "created": "创建时间",
+      "unknown": "未知",
+      "exportTime": "导出时间",
+      "filterCondition": "筛选条件"
+    },
+    "messages": {
+      "noMatchingMessages": "*没有符合条件的消息*",
+      "exportedCount": "*根据筛选条件，从 {{total}} 条消息中导出了 {{count}} 条消息*"
+    },
+    "format": {
+      "thinkingProcess": "思考过程",
+      "thinkingLabel": "💭 思考过程：",
+      "attachments": "📎 附加文件",
+      "type": "类型",
+      "contentPreview": "内容预览",
+      "artifact": "🔧 Artifact：",
+      "noTitle": "无标题",
+      "unknown": "未知",
+      "typeLabel": "**类型**：",
+      "language": "**语言**：",
+      "content": "**内容**：",
+      "tool": "🔍 工具：",
+      "searchQuery": "**搜索查询**：",
+      "searchResults": "**搜索结果**：",
+      "citations": "📎 引用来源",
+      "unknownSource": "未知来源",
+      "unknownWebsite": "未知网站"
+    },
+    "filters": {
+      "excludeDeleted": "排除已删除",
+      "onlyCompleted": "仅已完成的消息",
+      "onlyImportant": "仅重要的消息",
+      "completedAndImportant": "仅已完成且重要的消息"
+    },
+    "errors": {
+      "saveFileFailed": "保存文件失败，请重试",
+      "noDataToExport": "没有可导出的数据",
+      "exportFailed": "导出失败",
+      "unknownScope": "未知的导出范围："
+    }
   }
 }

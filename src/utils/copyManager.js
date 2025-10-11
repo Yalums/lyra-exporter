@@ -31,12 +31,12 @@ export class MessageFormatter {
   /**
    * 格式化思考过程
    */
-  static formatThinking(thinking, format = 'codeblock') {
+  static formatThinking(thinking, format = 'codeblock', thinkingLabel = '💭 Thinking Process:') {
     switch (format) {
       case 'codeblock':
         // 代码块格式（思考前置）
         return [
-          '```thinking',
+          '``` thinking',
           thinking,
           '```'
         ].join('\n');
@@ -53,7 +53,7 @@ export class MessageFormatter {
       default:
         // Emoji格式（内容后置）
         return [
-          '💭 思考过程:',
+          thinkingLabel,
           '```',
           thinking,
           '```'
@@ -67,13 +67,22 @@ export class MessageFormatter {
       ...options
     };
     
+    // 从 options 中获取翻译文本
+    const i18n = options.i18n || {
+      timeLabel: 'Time',
+      thinkingLabel: '💭 Thinking Process:',
+      artifactsLabel: '🔧 Artifacts:',
+      noTitle: 'No title',
+      unknownType: 'Unknown type'
+    };
+    
     const parts = [];
     
     // 添加元数据
     if (config.includeMetadata) {
       parts.push(
         `【${message.sender_label}】`,
-        message.timestamp ? `时间: ${message.timestamp}` : null,
+        message.timestamp ? `${i18n.timeLabel}: ${message.timestamp}` : null,
         '---'
       );
     }
@@ -93,18 +102,18 @@ export class MessageFormatter {
     
     // 思考过程（后置）- 格式为 emoji
     if (config.includeThinking && message.thinking && thinkingFormat === 'emoji') {
-      const thinkingText = this.formatThinking(message.thinking, thinkingFormat);
+      const thinkingText = this.formatThinking(message.thinking, thinkingFormat, i18n.thinkingLabel);
       parts.push('', thinkingText);
     }
     
     // 添加Artifacts
     if (config.includeArtifacts && message.artifacts?.length > 0) {
-      parts.push('', '🔧 Artifacts:');
+      parts.push('', i18n.artifactsLabel);
       
       message.artifacts.forEach(artifact => {
         parts.push(
           '',
-          `### ${artifact.title || '无标题'} (${artifact.type || '未知类型'})`
+          `### ${artifact.title || i18n.noTitle} (${artifact.type || i18n.unknownType})`
         );
         
         if (artifact.content) {
@@ -247,19 +256,27 @@ NotificationManager.initStyles();
  */
 export async function copyMessage(message, options = {}) {
   try {
+    // 从 options 中获取翻译消息
+    const messages = options.messages || {
+      success: 'Copied to clipboard',
+      error: 'Copy failed, please try again',
+      generalError: 'Copy failed'
+    };
+    
     const formattedText = MessageFormatter.format(message, options);
     const success = await ClipboardManager.copy(formattedText);
     
     if (success) {
-      NotificationManager.show('已复制到剪贴板');
+      NotificationManager.show(messages.success);
     } else {
-      NotificationManager.show('复制失败，请重试', 'error');
+      NotificationManager.show(messages.error, 'error');
     }
     
     return success;
   } catch (error) {
     console.error('Copy message error:', error);
-    NotificationManager.show('复制失败', 'error');
+    const messages = options.messages || { generalError: 'Copy failed' };
+    NotificationManager.show(messages.generalError, 'error');
     return false;
   }
 }
@@ -269,20 +286,31 @@ export async function copyMessage(message, options = {}) {
  */
 export async function copyMessages(messages, options = {}) {
   try {
+    // 从 options 中获取翻译消息和格式化函数
+    const i18nMessages = options.messages || {
+      success: (count) => `Copied ${count} messages`,
+      error: 'Copy failed, please try again',
+      generalError: 'Copy failed'
+    };
+    
     const texts = messages.map(msg => MessageFormatter.format(msg, options));
     const combinedText = texts.join('\n\n---\n\n');
     const success = await ClipboardManager.copy(combinedText);
     
     if (success) {
-      NotificationManager.show(`已复制 ${messages.length} 条消息`);
+      const successMessage = typeof i18nMessages.success === 'function' 
+        ? i18nMessages.success(messages.length)
+        : i18nMessages.success;
+      NotificationManager.show(successMessage);
     } else {
-      NotificationManager.show('复制失败，请重试', 'error');
+      NotificationManager.show(i18nMessages.error, 'error');
     }
     
     return success;
   } catch (error) {
     console.error('Copy messages error:', error);
-    NotificationManager.show('复制失败', 'error');
+    const i18nMessages = options.messages || { generalError: 'Copy failed' };
+    NotificationManager.show(i18nMessages.generalError, 'error');
     return false;
   }
 }
