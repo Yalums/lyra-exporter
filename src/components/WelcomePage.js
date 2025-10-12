@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, MessageCircle, Download, Database, Info, Star, Brain, Clock, FolderTree, Moon, Sun} from 'lucide-react';
+import { FileText, MessageCircle, Download, Database, Info, Star, Brain, Clock, FolderTree, Moon, Sun, CheckCircle, Wrench, Sparkles} from 'lucide-react';
 import { useI18n } from '../hooks/useI18n.js';
 import LanguageSwitcher from '../components/LanguageSwitcher.js';
 import { ThemeUtils } from '../utils/commonUtils.js';
@@ -117,7 +117,7 @@ const ScriptInstallGuide = () => {
       >
         <h3 className="text-xl font-bold text-gray-800 flex items-center">
           <Database className="mr-3 h-5 w-5 text-blue-600" />
-          {t('welcomePage.scriptInstall.title')}
+          {t('welcomePage.scriptInstall.whyNeeded')}
         </h3>
         <div className="text-blue-600">
           {expanded ? (
@@ -136,12 +136,8 @@ const ScriptInstallGuide = () => {
         <div className="mt-4 text-gray-700">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-4">
             <div>
-              <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
-                <Info className="mr-2 h-4 w-4 text-blue-600" /> 
-                {t('welcomePage.scriptInstall.whyNeeded')}
-              </h4>
               <p className="mb-4 text-sm leading-relaxed">
-                {t('welcomePage.scriptInstall.purpose')}<span className="text-blue-600 font-medium">{t('welcomePage.scriptInstall.valueProposition')}</span>。
+                {t('welcomePage.scriptInstall.purpose')}<span className="text-blue-600 font-medium"> {t('welcomePage.scriptInstall.valueProposition')}</span>
               </p>
               <div className="bg-gray-50 rounded-lg p-4 shadow-sm border border-gray-100">
                 <h5 className="font-medium text-gray-800 mb-2">{t('welcomePage.scriptInstall.featuresTitle')}</h5>
@@ -181,16 +177,6 @@ const ScriptInstallGuide = () => {
                   <span>{t('welcomePage.scriptInstall.steps.4')}</span>
                 </li>
               </ol>
-              
-              <div className="mt-4">
-                <button
-                  onClick={goToScriptInstall}
-                  className="w-full bg-[#D97706] hover:bg-[#bf6905] text-white py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-md hover:shadow-lg"
-                >
-                  <Download className="h-5 w-5 mr-2" />
-                  {t('welcomePage.buttons.installScript')}
-                </button>
-              </div>
             </div>
           </div>
         </div>
@@ -323,17 +309,50 @@ const WelcomePage = ({ handleLoadClick }) => {
         </p>
       </div>
       
-      {/* 添加合适的间距 */}
-      <div className="flex justify-center mb-14">
-        <button
-          className="px-8 py-4 bg-white text-gray-800 text-lg font-bold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center border border-gray-300 hover:bg-gray-200 hover:border-gray-400 transform hover:scale-105"
-          onClick={handleLoadClick}
-        >
-          <FileText className="mr-3 h-5 w-5" />
-          {t('welcomePage.buttons.loadFiles')}
-        </button>
+      {/* 主操作区 - 并列展示 */}
+      <div className="w-full max-w-4xl mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* 新用户入口 */}
+          <div className="action-card primary">
+            <div className="action-badge">{t('welcomePage.actionCards.install.badge')}</div>
+            <div className="action-icon">
+              <Download className="h-8 w-8" />
+            </div>
+            <h3 className="action-title">{t('welcomePage.actionCards.install.title')}</h3>
+            <p className="action-description">
+              {t('welcomePage.actionCards.install.description')}
+            </p>
+            <button
+              onClick={() => window.open('https://greasyfork.org/en/scripts/539579-lyra-s-exporter-fetch', '_blank')}
+              className="action-button primary"
+            >
+              <Download className="h-5 w-5 mr-2" />
+              {t('welcomePage.actionCards.install.button')}
+            </button>
+          </div>
+          
+          {/* 老用户入口 */}
+          <div className="action-card secondary">
+            <div className="action-badge">{t('welcomePage.actionCards.load.badge')}</div>
+            <div className="action-icon">
+              <FileText className="h-8 w-8" />
+            </div>
+            <h3 className="action-title">{t('welcomePage.actionCards.load.title')}</h3>
+            <p className="action-description">
+              {t('welcomePage.actionCards.load.description')}
+            </p>
+            <button
+              onClick={handleLoadClick}
+              className="action-button secondary"
+            >
+              <FileText className="h-5 w-5 mr-2" />
+              {t('welcomePage.actionCards.load.button')}
+            </button>
+          </div>
+        </div>
       </div>
       
+      {/* 脚本安装指引组件 - 直接内联 */}
       <div className="max-w-4xl w-full mb-6">
         <ScriptInstallGuide />
       </div>
@@ -522,6 +541,114 @@ const WelcomePage = ({ handleLoadClick }) => {
           .welcome-page .bg-green-50 {
             background-color: var(--bg-tertiary) !important;
             border-color: var(--border-primary) !important;
+          }
+          
+          /* 操作卡片样式 */
+          .action-card {
+            position: relative;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-primary);
+            border-radius: 16px;
+            padding: 32px 24px;
+            text-align: center;
+            transition: all 0.3s ease;
+          }
+          
+          .action-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+          }
+          
+          .action-card.primary {
+            border-color: #D97706;
+          }
+          
+          .action-card.secondary {
+            border-color: var(--border-primary);
+          }
+          
+          .action-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent-primary);
+            color: white;
+            padding: 4px 16px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+          }
+          
+          .action-card.primary .action-badge {
+            background: linear-gradient(135deg, #D97706 0%, #EA580C 100%);
+          }
+          
+          .action-icon {
+            margin: 16px auto 16px;
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-tertiary);
+            color: var(--accent-primary);
+          }
+          
+          .action-card.primary .action-icon {
+            background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+            color: #D97706;
+          }
+          
+          .action-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+          }
+          
+          .action-description {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            line-height: 1.6;
+          }
+          
+          .action-button {
+            width: 100%;
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+          }
+          
+          .action-button.primary {
+            background: linear-gradient(135deg, #D97706 0%, #EA580C 100%);
+            color: white;
+          }
+          
+          .action-button.primary:hover {
+            opacity: 0.9;
+            transform: scale(1.02);
+          }
+          
+          .action-button.secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 2px solid var(--border-primary);
+          }
+          
+          .action-button.secondary:hover {
+            background: var(--bg-primary);
+            border-color: var(--accent-primary);
           }
           
           /* 边框颜色 */

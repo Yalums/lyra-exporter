@@ -7,6 +7,20 @@
       "loadFiles": "載入對話檔案",
       "installScript": "前往安裝 UserScript"
     },
+    "actionCards": {
+      "install": {
+        "badge": "🌟 新用戶從這裡開始",
+        "title": "安裝匯出指令碼",
+        "description": "支援Claude、Gemini、AI Studio、NotebookLM平台",
+        "button": "前往安裝指令碼"
+      },
+      "load": {
+        "badge": "📂 已有資料檔案",
+        "title": "載入對話檔案",
+        "description": "直接載入已匯出的JSON檔案，開始管理你的對話",
+        "button": "選擇檔案載入"
+      }
+    },
     "privacyAssurance": {
       "title": "隱私安全保障",
       "intro": "擔心隱私安全？我們完全理解這種顧慮",
@@ -56,7 +70,7 @@
       "inspirationQuote": "「感覺思考過程比答案還讓人著迷」—— 幾個簡單步驟，開始保存這些珍貴時刻",
       "steps": {
         "1": "安裝Tampermonkey或指令碼貓等瀏覽器擴充功能",
-        "2": "點選下方按鈕前往油猴指令碼網站",
+        "2": "點選按鈕前往油猴指令碼網站",
         "3": "在指令碼頁面點選「安裝指令碼」按鈕",
         "4": "前往Claude、Gemini、Google AI Studio、NotebookLM後重新整理網站，右下角會出現匯出按鈕"
       }

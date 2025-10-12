@@ -3,9 +3,19 @@
     "title": "Lyra's Exporter",
     "subtitle": "Claude와 Gemini의 모든 영감과 따뜻함을 기록",
     "description": "여러 대화를 일괄 로드할 수 있는 대화 관리 도구에 오신 것을 환영합니다. 영감의 순간을 저장하고 모든 대화의 가치를 계속 이어가세요.",
-    "buttons": {
-      "loadFiles": "대화 파일 로드",
-      "installScript": "스크립트 설치"
+    "actionCards": {
+      "install": {
+        "badge": "🌟 신규 사용자는 여기서 시작",
+        "title": "내보내기 스크립트 설치",
+        "description": "Claude, Gemini, AI Studio, NotebookLM 플랫폼 지원",
+        "button": "스크립트 설치로 이동"
+      },
+      "load": {
+        "badge": "📂 데이터 파일 보유",
+        "title": "대화 파일 로드",
+        "description": "내보내기한 JSON 파일을 직접 로드하고 대화 관리를 시작하세요",
+        "button": "파일 선택하여 로드"
+      }
     },
     "privacyAssurance": {
       "title": "개인정보 및 보안 보장",
@@ -56,7 +66,7 @@
       "inspirationQuote": "\"사고 과정이 답보다 더 매력적\" - 몇 가지 간단한 단계로 이러한 소중한 순간을 저장하기 시작하세요",
       "steps": {
         "1": "Tampermonkey 또는 ScriptCat과 같은 브라우저 확장 프로그램 설치",
-        "2": "아래 버튼을 클릭하여 Greasyfork 스크립트 웹사이트로 이동",
+        "2": "설치 버튼을 클릭하면 Greasyfork 스크립트 웹사이트로 이동합니다",
         "3": "스크립트 페이지에서 '스크립트 설치' 버튼 클릭",
         "4": "Claude, Gemini, Google AI Studio 또는 NotebookLM으로 이동하여 웹사이트를 새로 고치면 오른쪽 하단에 내보내기 버튼이 나타납니다"
       }

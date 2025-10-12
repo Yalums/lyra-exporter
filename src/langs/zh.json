@@ -3,9 +3,19 @@
     "title": "Lyra's Exporter",
     "subtitle": "记录Claude、Gemini的每一刻灵感与温度",
     "description": "欢迎使用这个对话记录管理工具，支持批量加载多对话，帮你保存灵感时刻，让每一次对话的价值得到延续。",
-    "buttons": {
-      "loadFiles": "加载对话文件",
-      "installScript": "前往安装脚本(需网络访问环境)"
+    "actionCards": {
+      "install": {
+        "badge": "🌟 新用户从这里开始",
+        "title": "安装导出脚本",
+        "description": "目前支持 Claude、Gemini、AI Studio、NotebookLM，还计划适配更多平台",
+        "button": "前往安装脚本"
+      },
+      "load": {
+        "badge": "📂 已有数据文件",
+        "title": "加载对话文件",
+        "description": "直接加载已导出的JSON文件,开始管理你的对话",
+        "button": "选择文件加载"
+      }
     },
     "privacyAssurance": {
       "title": "隐私安全保障",
@@ -41,9 +51,9 @@
     },
     "scriptInstall": {
       "title": "开始安装脚本",
-      "whyNeeded": "为什么需要这个工具？",
+      "whyNeeded": "为什么需要脚本辅助？",
       "purpose": "Lyra's Exporter 依赖浏览器来安全地获取对话数据，借助这个开源脚本，流转需要珍藏的聊天记录，",
-      "valueProposition": "保存并整理这些有价值的对话",
+      "valueProposition": "保存并整理那些有价值的对话",
       "featuresTitle": "工具功能",
       "features": {
         "management": "管理无忧 - 以网格形式整齐排序各个平台的对话",
@@ -56,7 +66,7 @@
       "inspirationQuote": "\"感觉思考过程比答案还让人着迷\" —— 几个简单步骤，开始保存这些珍贵时刻",
       "steps": {
         "1": "安装Tampermonkey或脚本猫等浏览器扩展",
-        "2": "点击下方按钮前往油猴脚本网站",
+        "2": "点击安装按钮前往油猴脚本网站",
         "3": "在脚本页面点击\"安装脚本\"按钮",
         "4": "前往 Claude、Gemini、Google AI Studio、NotebookLM 后刷新网站，右下角会出现导出按钮"
       }

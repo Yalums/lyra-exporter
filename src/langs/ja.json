@@ -3,9 +3,19 @@
     "title": "Lyra's Exporter",
     "subtitle": "Claude & Gemini のインスピレーションと温かさを記録",
     "description": "複数の会話を一括読み込みできる会話管理ツールへようこそ。インスピレーションの瞬間を保存し、すべての対話の価値を継続させます。",
-    "buttons": {
-      "loadFiles": "会話ファイルを読み込む",
-      "installScript": "スクリプトをインストール"
+    "actionCards": {
+      "install": {
+        "badge": "🌟 新規ユーザーはこちらから",
+        "title": "エクスポートスクリプトをインストール",
+        "description": "Claude、Gemini、AI Studio、NotebookLMプラットフォームをサポート",
+        "button": "スクリプトインストールに移動"
+      },
+      "load": {
+        "badge": "📂 データファイルあり",
+        "title": "会話ファイルを読み込む",
+        "description": "エクスポートされたJSONファイルを直接読み込み、会話を管理し始めます",
+        "button": "ファイルを選択して読み込む"
+      }
     },
     "privacyAssurance": {
       "title": "プライバシーとセキュリティの保証",
@@ -56,7 +66,7 @@
       "inspirationQuote": "「思考プロセスは答えよりも魅力的」—— 簡単なステップで、これらの貴重な瞬間を保存し始めましょう",
       "steps": {
         "1": "TampermonkeyまたはScriptCatなどのブラウザ拡張機能をインストール",
-        "2": "下のボタンをクリックしてGreasyforkスクリプトサイトに移動",
+        "2": "インストールボタンをクリックしてGreasyforkスクリプトサイトへ移動",
         "3": "スクリプトページで「スクリプトをインストール」ボタンをクリック",
         "4": "Claude、Gemini、Google AI Studio、またはNotebookLMに移動し、ウェブサイトを更新すると、右下にエクスポートボタンが表示されます"
       }
