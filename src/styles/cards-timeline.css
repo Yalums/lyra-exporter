@@ -727,6 +727,11 @@
   border-color: var(--avatar-ai-bg);
 }
 
+.timeline-avatar.assistant.platform-jsonl_chat  {
+  background: #242425;
+  color: #ffffff;
+  border-color: #242425;
+}
 .sender-info {
   display: flex;
   flex-direction: column;
@@ -930,4 +935,25 @@
   font-size: 0.75rem;
   color: var(--text-tertiary);
   margin-top: 2px;
+}
+
+/* ============ 搜索高亮效果 ============ */
+.timeline-message.highlight-from-search .timeline-content {
+  animation: searchHighlightPulse 3s ease-out;
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.2) !important;
+}
+
+@keyframes searchHighlightPulse {
+  0% {
+    background-color: rgba(31, 111, 235, 0.15);
+    transform: scale(1.02);
+  }
+  50% {
+    background-color: rgba(31, 111, 235, 0.08);
+  }
+  100% {
+    background-color: var(--bg-secondary);
+    transform: scale(1);
+  }
 }

@@ -514,6 +514,21 @@
       "version": "バージョン",
       "github": "GitHub",
       "githubDescription": "オープンソースプロジェクト、貢献とフィードバックを歓迎"
+    },
+    "searchOptions": {
+      "title": "検索設定",
+      "removeDuplicates": {
+        "label": "重複結果を削除",
+        "description": "重複する検索結果を自動的にフィルタリングし、ユニークなメッセージのみを表示します"
+      },
+      "includeThinking": {
+        "label": "思考コンテンツを検索",
+        "description": "検索時にClaudeの思考プロセスの内容を含める"
+      },
+      "includeArtifacts": {
+        "label": "アーティファクトコンテンツを検索",
+        "description": "検索時にコード、ドキュメントなどのアーティファクトコンテンツを含める"
+      }
     }
   },
   "copy": {

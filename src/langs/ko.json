@@ -514,6 +514,21 @@
       "version": "버전",
       "github": "GitHub",
       "githubDescription": "오픈소스 프로젝트, 기여 및 피드백 환영"
+    },
+    "searchOptions": {
+      "title": "검색 설정",
+      "removeDuplicates": {
+        "label": "중복 결과 제거",
+        "description": "중복된 검색 결과를 자동으로 필터링하고 고유한 메시지만 표시합니다"
+      },
+      "includeThinking": {
+        "label": "생각 내용 검색",
+        "description": "검색 시 Claude의 사고 과정 내용을 포함합니다"
+      },
+      "includeArtifacts": {
+        "label": "아티팩트 내용 검색",
+        "description": "검색 시 코드, 문서 등 아티팩트 내용을 포함합니다"
+      }
     }
   },
   "copy": {

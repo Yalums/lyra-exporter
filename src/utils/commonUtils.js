@@ -139,7 +139,8 @@ export const PlatformUtils = {
       'gemini': 'Gemini',
       'notebooklm': 'NotebookLM',
       'aistudio': 'Google AI Studio',
-      'claude': 'Claude'
+      'claude': 'Claude',
+      'jsonl_chat': 'JSONL Chat'
     };
     
     return platformMap[platform?.toLowerCase()] || 'Claude';
@@ -151,7 +152,8 @@ export const PlatformUtils = {
       'gemini': 'platform-gemini',
       'google ai studio': 'platform-gemini',
       'aistudio': 'platform-gemini',
-      'notebooklm': 'platform-notebooklm'
+      'notebooklm': 'platform-notebooklm',
+      'jsonl_chat': 'platform-jsonl'
     };
     
     return classMap[platform?.toLowerCase()] || 'platform-claude';
@@ -198,6 +200,8 @@ export const FileUtils = {
         if (platform === 'notebooklm') return 'NotebookLM';
         if (platform === 'aistudio') return 'Google AI Studio';
         return 'Gemini';
+      case 'jsonl_chat':
+        return isChinese ? 'SillyTavern' : 'JSONL Chat';
       default:
         return isChinese ? '未知格式' : 'Unknown Format';
     }

@@ -1,6 +1,6 @@
-﻿// hooks/useFileManager.js
+﻿// hooks/useFileManager.js - 精简版
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { extractChatData, detectBranches } from '../utils/fileParser';
+import { extractChatData, detectBranches, parseJSONL } from '../utils/fileParser';
 
 export const useFileManager = () => {
   const [files, setFiles] = useState([]);
@@ -10,7 +10,14 @@ export const useFileManager = () => {
   const [error, setError] = useState(null);
   const [showTypeConflictModal, setShowTypeConflictModal] = useState(false);
   const [pendingFiles, setPendingFiles] = useState([]);
-  const [fileMetadata, setFileMetadata] = useState({}); // 存储每个文件的基本元数据
+  const [fileMetadata, setFileMetadata] = useState({});
+
+  // 智能解析文件（JSON或JSONL）
+  const parseFile = useCallback(async (file) => {
+    const text = await file.text();
+    const isJSONL = file.name.endsWith('.jsonl') || (text.includes('\n{') && !text.trim().startsWith('['));
+    return isJSONL ? parseJSONL(text) : JSON.parse(text);
+  }, []);
 
   // 处理当前文件
   const processCurrentFile = useCallback(async () => {
@@ -24,14 +31,9 @@ export const useFileManager = () => {
 
     try {
       const file = files[currentFileIndex];
-      const text = await file.text();
-      const jsonData = JSON.parse(text);
-      
-      // 解析AI对话数据（支持Claude、Gemini、NotebookLM格式）
+      const jsonData = await parseFile(file);
       let data = extractChatData(jsonData, file.name);
-      // 检测分支（主要用于Claude格式）
       data = detectBranches(data);
-      
       setProcessedData(data);
     } catch (err) {
       console.error('处理文件出错:', err);
@@ -40,113 +42,80 @@ export const useFileManager = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [files, currentFileIndex]);
+  }, [files, currentFileIndex, parseFile]);
 
-  // 当文件或索引改变时，处理文件
   useEffect(() => {
     processCurrentFile();
   }, [processCurrentFile]);
 
-  // 检查文件类型是否兼容
-  const checkFileTypeCompatibility = useCallback(async (newFiles) => {
-    if (files.length === 0) return true;
-
+  // 检查文件兼容性
+  const checkCompatibility = useCallback(async (newFiles) => {
+    if (!files.length) return true;
     try {
-      // 检查第一个新文件的类型
-      const firstNewFile = newFiles[0];
-      const text = await firstNewFile.text();
-      const jsonData = JSON.parse(text);
-      const newFileData = extractChatData(jsonData, firstNewFile.name);
-      
-      // 检查当前已加载文件的类型
-      const currentFile = files[currentFileIndex];
-      const currentText = await currentFile.text();
-      const currentJsonData = JSON.parse(currentText);
-      const currentFileData = extractChatData(currentJsonData, currentFile.name);
-      
-      // 如果有claude_full_export格式，不能与其他格式混合
-      const isNewFullExport = newFileData.format === 'claude_full_export';
-      const isCurrentFullExport = currentFileData.format === 'claude_full_export';
-      
-      return !(isNewFullExport !== isCurrentFullExport);
-    } catch (error) {
-      console.warn('文件类型检查失败:', error);
-      return true; // 如果检查失败，允许加载
+      const newData = extractChatData(await parseFile(newFiles[0]), newFiles[0].name);
+      const curData = extractChatData(await parseFile(files[currentFileIndex]), files[currentFileIndex].name);
+      const isNewFull = newData.format === 'claude_full_export';
+      const isCurFull = curData.format === 'claude_full_export';
+      return !(isNewFull !== isCurFull);
+    } catch {
+      return true;
     }
-  }, [files, currentFileIndex]);
+  }, [files, currentFileIndex, parseFile]);
 
   // 加载文件
   const loadFiles = useCallback(async (fileList) => {
-    const jsonFiles = fileList.filter(file => {
-      // 检查文件扩展名和类型
-      return file.name.endsWith('.json') || file.type === 'application/json';
-    });
+    const validFiles = fileList.filter(f => 
+      f.name.endsWith('.json') || f.name.endsWith('.jsonl') || f.type === 'application/json'
+    );
     
-    if (jsonFiles.length === 0) {
-      setError('未找到JSON文件');
+    if (!validFiles.length) {
+      setError('未找到有效的JSON/JSONL文件');
       return;
     }
 
-    // 检查重复文件
-    const newFiles = jsonFiles.filter(newFile => 
-      !files.some(existingFile => 
-        existingFile.name === newFile.name && 
-        existingFile.lastModified === newFile.lastModified
-      )
+    const newFiles = validFiles.filter(nf => 
+      !files.some(ef => ef.name === nf.name && ef.lastModified === nf.lastModified)
     );
 
-    if (newFiles.length === 0) {
-      setError('选择的文件已经加载');
+    if (!newFiles.length) {
+      setError('文件已加载');
       return;
     }
 
-    // 检查文件类型兼容性
-    const isCompatible = await checkFileTypeCompatibility(newFiles);
-    
+    const isCompatible = await checkCompatibility(newFiles);
     if (!isCompatible) {
       setPendingFiles(newFiles);
       setShowTypeConflictModal(true);
       return;
     }
 
-    // 提取新文件的元数据
-    const newMetadata = {};
+    // 提取元数据
+    const newMeta = {};
     for (const file of newFiles) {
       try {
-        const text = await file.text();
-        const jsonData = JSON.parse(text);
-        const data = extractChatData(jsonData, file.name);
-        
-        // 提取基本信息
-        newMetadata[file.name] = {
+        const data = extractChatData(await parseFile(file), file.name);
+        newMeta[file.name] = {
           format: data.format,
-          platform: data.platform || 'claude',
+          platform: data.platform || data.format,
           messageCount: data.chat_history?.length || 0,
           conversationCount: data.format === 'claude_full_export' ? 
             (data.views?.conversationList?.length || 0) : 1,
           title: data.meta_info?.title || file.name,
-          model: data.meta_info?.model || (data.format === 'claude' ? '' : 'Claude'), // 对 claude 格式使用空字符串
+          model: data.meta_info?.model || '',
           created_at: data.meta_info?.created_at,
           updated_at: data.meta_info?.updated_at
         };
       } catch (err) {
-        console.warn(`无法提取文件 ${file.name} 的元数据:`, err);
-        newMetadata[file.name] = {
-          format: 'unknown',
-          messageCount: 0,
-          conversationCount: 0,
-          title: file.name,
-          model: '' // 默认为空，让 getModelDisplay 处理
-        };
+        console.warn(`提取元数据失败 ${file.name}:`, err);
+        newMeta[file.name] = { format: 'unknown', messageCount: 0, title: file.name };
       }
     }
     
-    setFileMetadata(prev => ({ ...prev, ...newMetadata }));
-    setFiles(prevFiles => [...prevFiles, ...newFiles]);
+    setFileMetadata(prev => ({ ...prev, ...newMeta }));
+    setFiles(prev => [...prev, ...newFiles]);
     setError(null);
-  }, [files, checkFileTypeCompatibility]);
+  }, [files, checkCompatibility, parseFile]);
 
-  // 确认替换文件
   const confirmReplaceFiles = useCallback(() => {
     setFiles(pendingFiles);
     setCurrentFileIndex(0);
@@ -155,61 +124,48 @@ export const useFileManager = () => {
     setError(null);
   }, [pendingFiles]);
 
-  // 取消替换文件
   const cancelReplaceFiles = useCallback(() => {
     setPendingFiles([]);
     setShowTypeConflictModal(false);
   }, []);
 
-  // 移除文件
   const removeFile = useCallback((index) => {
-    const fileToRemove = files[index];
-    
-    if (fileToRemove) {
-      // 清理元数据
+    const toRemove = files[index];
+    if (toRemove) {
       setFileMetadata(prev => {
-        const newMetadata = { ...prev };
-        delete newMetadata[fileToRemove.name];
-        return newMetadata;
+        const { [toRemove.name]: _, ...rest } = prev;
+        return rest;
       });
     }
     
-    setFiles(prevFiles => {
-      const newFiles = prevFiles.filter((_, i) => i !== index);
-      
-      // 调整当前索引
-      if (newFiles.length === 0) {
-        setCurrentFileIndex(0);
-      } else if (index <= currentFileIndex && currentFileIndex > 0) {
+    setFiles(prev => {
+      const newFiles = prev.filter((_, i) => i !== index);
+      if (!newFiles.length) setCurrentFileIndex(0);
+      else if (index <= currentFileIndex && currentFileIndex > 0) {
         setCurrentFileIndex(currentFileIndex - 1);
       }
-      
       return newFiles;
     });
   }, [currentFileIndex, files]);
 
-  // 切换文件
   const switchFile = useCallback((index) => {
     if (index >= 0 && index < files.length) {
       setCurrentFileIndex(index);
     }
   }, [files.length]);
 
-  // 重排序文件
-  const reorderFiles = useCallback((fromIndex, toIndex) => {
-    if (fromIndex === toIndex) return;
+  const reorderFiles = useCallback((fromIdx, toIdx) => {
+    if (fromIdx === toIdx) return;
     
-    setFiles(prevFiles => {
-      const newFiles = [...prevFiles];
-      const [movedFile] = newFiles.splice(fromIndex, 1);
-      newFiles.splice(toIndex, 0, movedFile);
+    setFiles(prev => {
+      const newFiles = [...prev];
+      const [moved] = newFiles.splice(fromIdx, 1);
+      newFiles.splice(toIdx, 0, moved);
       
-      // 更新当前文件索引
-      if (fromIndex === currentFileIndex) {
-        setCurrentFileIndex(toIndex);
-      } else if (fromIndex < currentFileIndex && toIndex >= currentFileIndex) {
+      if (fromIdx === currentFileIndex) setCurrentFileIndex(toIdx);
+      else if (fromIdx < currentFileIndex && toIdx >= currentFileIndex) {
         setCurrentFileIndex(currentFileIndex - 1);
-      } else if (fromIndex > currentFileIndex && toIndex <= currentFileIndex) {
+      } else if (fromIdx > currentFileIndex && toIdx <= currentFileIndex) {
         setCurrentFileIndex(currentFileIndex + 1);
       }
       
@@ -217,10 +173,6 @@ export const useFileManager = () => {
     });
   }, [currentFileIndex]);
 
-  // 获取当前文件信息
-  const currentFile = files[currentFileIndex] || null;
-
-  // 使用 useMemo 稳定 actions 对象，避免不必要的重新渲染
   const actions = useMemo(() => ({
     loadFiles,
     removeFile,
@@ -231,18 +183,15 @@ export const useFileManager = () => {
   }), [loadFiles, removeFile, switchFile, reorderFiles, confirmReplaceFiles, cancelReplaceFiles]);
 
   return {
-    // 状态
     files,
-    currentFile,
+    currentFile: files[currentFileIndex] || null,
     currentFileIndex,
     processedData,
     isLoading,
     error,
     showTypeConflictModal,
     pendingFiles,
-    fileMetadata, // 新增文件元数据
-    
-    // 操作
+    fileMetadata,
     actions
   };
 };

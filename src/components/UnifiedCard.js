@@ -70,6 +70,7 @@ export const Card = ({
     ${isFile ? 'file-card' : 'conversation-card'} 
     ${isSelected ? 'selected' : ''} 
     ${item.isCurrentFile ? 'current-file' : ''}
+    ${item.format ? `format-${item.format}` : ''}
     ${className}
   `.trim();
 

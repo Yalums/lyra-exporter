@@ -32,6 +32,9 @@ import { useFileManager } from './hooks/useFileManager';
 import { useFullExportCardFilter } from './hooks/useFullExportCardFilter';
 import { useI18n } from './hooks/useI18n';
 
+import EnhancedSearchBox from './components/EnhancedSearchBox';
+import { getGlobalSearchManager } from './utils/globalSearchManager';
+
 function App() {
   // ==================== Hooks和状态管理 ====================
   // i18n
@@ -249,6 +252,68 @@ function App() {
     const fileList = Array.from(e.target.files);
     fileActions.loadFiles(fileList);
   };
+
+  const handleNavigateToMessage = useCallback((navigationData) => {
+    const { fileIndex, conversationUuid, messageIndex, messageId, messageUuid, highlight } = navigationData;
+    
+    // 记录当前文件索引，用于判断是否需要切换文件
+    const needFileSwitch = fileIndex !== selectedFileIndex || fileIndex !== currentFileIndex;
+    
+    // 切换到时间线视图
+    setViewMode('timeline');
+    
+    // 切换文件（如果需要）
+    if (needFileSwitch) {
+      // 先切换当前文件
+      if (fileIndex !== currentFileIndex) {
+        fileActions.switchFile(fileIndex);
+      }
+      setSelectedFileIndex(fileIndex);
+    } else if (selectedFileIndex !== fileIndex) {
+      setSelectedFileIndex(fileIndex);
+    }
+    
+    // 设置对话UUID
+    if (conversationUuid) {
+      // 如果是完整导出格式，需要提取真实的对话UUID
+      let realConversationUuid = conversationUuid;
+      if (conversationUuid.startsWith('file-')) {
+        // 从 file-xxx_uuid 格式中提取UUID
+        const parts = conversationUuid.split('_');
+        if (parts.length > 1) {
+          realConversationUuid = parts.slice(1).join('_');
+        }
+      }
+      setSelectedConversationUuid(realConversationUuid);
+    }
+    
+    // 通知ConversationTimeline滚动到消息，传递messageId和messageUuid
+    // 根据不同情况设置不同延迟
+    let delay;
+    if (needFileSwitch && fileIndex !== currentFileIndex) {
+      // 需要切换文件并加载数据，需要更长延迟
+      delay = 1000;
+    } else if (needFileSwitch || conversationUuid !== selectedConversationUuid) {
+      // 只是切换视图或对话
+      delay = 600;
+    } else {
+      // 同一对话内导航
+      delay = 300;
+    }
+    
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('scrollToMessage', {
+        detail: { 
+          messageIndex, 
+          messageId, 
+          messageUuid, 
+          highlight,
+          fileIndex,  // 添加文件索引
+          conversationUuid  // 添加对话UUID
+        }
+      }));
+    }, delay);
+  }, [selectedFileIndex, currentFileIndex, selectedConversationUuid, setViewMode, setSelectedFileIndex, setSelectedConversationUuid, fileActions]);
 
   const handleCardSelect = useCallback((card) => {
     if (contentAreaRef.current && viewMode === 'conversations') {
@@ -584,7 +649,7 @@ function App() {
         ref={fileInputRef}
         type="file"
         multiple
-        accept=".json"
+        accept=".json,.jsonl"
         onChange={handleFileLoad}
         style={{ display: 'none' }}
       />
@@ -610,24 +675,12 @@ function App() {
               )}
               
               {!isFullExportConversationMode && (
-                <div className="search-box">
-                  <input 
-                    type="text" 
-                    className="search-input"
-                    placeholder={getSearchPlaceholder()}
-                    value={searchQuery}
-                    onChange={(e) => handleSearch(e.target.value)}
-                  />
-                  {searchQuery && (
-                    <div className="search-stats">
-                      {t('app.search.results', {
-                        displayed: searchStats.displayed,
-                        total: searchStats.total,
-                        unit: searchStats.unit
-                      })}
-                    </div>
-                  )}
-                </div>
+                <EnhancedSearchBox
+                  files={files}
+                  processedData={processedData}
+                  currentFileIndex={currentFileIndex}
+                  onNavigateToMessage={handleNavigateToMessage}
+                />
               )}
             </div>
             <div className="navbar-right">

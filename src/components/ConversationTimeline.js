@@ -1,6 +1,6 @@
 // components/ConversationTimeline.js
 // 增强版时间线组件,整合了分支切换功能、排序控制、复制功能和重命名功能
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import MessageDetail from './MessageDetail';
@@ -366,25 +366,11 @@ const ConversationTimeline = ({
   const [isHeaderHidden, setIsHeaderHidden] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [scrollDirection, setScrollDirection] = useState('up');
+  const [forceUpdateCounter, setForceUpdateCounter] = useState(0); // 用于强制更新
   const leftPanelRef = React.useRef(null);
   
-  // 同步外部分支状态
-  useEffect(() => {
-    if (branchState) {
-      setShowAllBranches(branchState.showAllBranches);
-      if (branchState.currentBranchIndexes) {
-        setBranchFilters(branchState.currentBranchIndexes);
-      }
-    }
-  }, [branchState]);
-  
-  // 初始化自定义名称
-  useEffect(() => {
-    if (conversation?.uuid) {
-      const savedName = renameManager.getRename(conversation.uuid, conversation.name);
-      setCustomName(savedName);
-    }
-  }, [conversation, renameManager]);
+  // 消息定位相关
+  const messageRefs = useRef({});
   
   // ==================== 分支分析 ====================
   
@@ -476,7 +462,448 @@ const ConversationTimeline = ({
     return { branchPoints, msgDict, parentChildren };
   }, [messages, format, conversation]);
   
+  // ==================== 消息过滤和显示 ====================
+  
+  const displayMessages = useMemo(() => {
+    if (showAllBranches) return messages;
+    if (branchAnalysis.branchPoints.size === 0) return messages;
+    if (branchFilters.size === 0) return messages;
+
+    const visibleMessages = [];
+    
+    for (const msg of messages) {
+      let shouldShow = true;
+      
+      for (const [branchPointUuid, selectedBranchIndex] of branchFilters.entries()) {
+        const branchData = branchAnalysis.branchPoints.get(branchPointUuid);
+        if (!branchData) continue;
+        
+        const branchPoint = branchData.branchPoint;
+        const selectedBranch = branchData.branches[selectedBranchIndex];
+        
+        if (msg.index > branchPoint.index) {
+          const belongsToSelectedBranch = selectedBranch.messages.some(
+            branchMsg => branchMsg.uuid === msg.uuid
+          );
+          
+          if (!belongsToSelectedBranch) {
+            const belongsToAnyBranch = branchData.branches.some(
+              branch => branch.messages.some(branchMsg => branchMsg.uuid === msg.uuid)
+            );
+            
+            if (belongsToAnyBranch) {
+              shouldShow = false;
+              break;
+            }
+          }
+        }
+      }
+      
+      if (shouldShow) visibleMessages.push(msg);
+    }
+    
+    return visibleMessages;
+  }, [messages, branchFilters, branchAnalysis, showAllBranches, forceUpdateCounter]);
+  
+  // ==================== 事件处理函数 ====================
+  
+  const handleBranchSwitch = useCallback((branchPointUuid, newBranchIndex) => {
+    console.log(`[分支切换] 切换分支点 ${branchPointUuid} 到分支 ${newBranchIndex}`);
+    
+    // 总是设置为false,确保不是"显示所有分支"模式
+    setShowAllBranches(false);
+    
+    setBranchFilters(prev => {
+      const newFilters = new Map(prev);
+      
+      // 即使是相同的分支索引,也要重新设置以触发更新
+      newFilters.set(branchPointUuid, newBranchIndex);
+      
+      console.log(`[分支切换] 更新分支过滤器:`, Array.from(newFilters.entries()));
+      
+      // 通知父组件分支状态变化
+      if (onBranchStateChange) {
+        onBranchStateChange({
+          showAllBranches: false,
+          currentBranchIndexes: newFilters
+        });
+      }
+      
+      return newFilters;
+    });
+    
+    // 强制触发消息列表更新
+    setForceUpdateCounter(prev => prev + 1);
+  }, [onBranchStateChange]);
+
+  const handleShowAllBranches = useCallback(() => {
+    const newShowAllBranches = !showAllBranches;
+    setShowAllBranches(newShowAllBranches);
+    
+    console.log(`[分支切换] ${newShowAllBranches ? '显示所有分支' : '隐藏分支'}`);
+    
+    // 通知父组件分支状态变化
+    if (onBranchStateChange) {
+      onBranchStateChange({
+        showAllBranches: newShowAllBranches,
+        currentBranchIndexes: newShowAllBranches ? new Map() : branchFilters
+      });
+    }
+    
+    if (newShowAllBranches) {
+      setBranchFilters(new Map());
+      // 自动启用排序模式
+      if (sortActions && !sortingEnabled) {
+        sortActions.enableSort();
+        setSortingEnabled(true);
+      }
+    } else {
+      // 退出显示全部时,如果有自定义排序则重置
+      if (hasCustomSort && sortActions?.resetSort) {
+        sortActions.resetSort();
+      }
+      setSortingEnabled(false);
+    }
+    
+    // 强制触发消息列表更新
+    setForceUpdateCounter(prev => prev + 1);
+  }, [showAllBranches, branchFilters, onBranchStateChange, sortActions, sortingEnabled, hasCustomSort]);
+  
   // ==================== 状态和副作用 ====================
+  
+  // 重置分支状态 - 当对话切换时
+  useEffect(() => {
+    // 当对话改变时，重置分支过滤器和显示模式
+    console.log(`[ConversationTimeline] 对话切换，重置分支状态 - conversation.uuid: ${conversation?.uuid}`);
+    setBranchFilters(new Map());
+    setShowAllBranches(false);
+    setSortingEnabled(false);
+    setSelectedMessageIndex(null);
+    // 强制更新消息列表
+    setForceUpdateCounter(prev => prev + 1);
+  }, [conversation?.uuid]);
+  
+  // 消息定位 - 监听 scrollToMessage 事件
+  useEffect(() => {
+    const handleScrollToMessage = (event) => {
+      const { messageIndex, messageId, messageUuid, highlight, fileIndex, conversationUuid } = event.detail;
+      
+      console.log(`[消息定位] 开始定位 - fileIndex: ${fileIndex}, messageUuid: ${messageUuid}, messageIndex: ${messageIndex}`);
+      console.log(`[消息定位] 当前消息总数: ${messages.length}, 显示消息数: ${displayMessages.length}`);
+      
+      // 如果消息列表为空，等待并重试
+      if (messages.length === 0) {
+        console.log(`[消息定位] 消息列表为空，等待加载后重试...`);
+        let retryCount = 0;
+        const maxRetries = 10;
+        const retryInterval = setInterval(() => {
+          retryCount++;
+          if (messages.length > 0 || retryCount >= maxRetries) {
+            clearInterval(retryInterval);
+            if (messages.length > 0) {
+              console.log(`[消息定位] 消息已加载，重试定位 (第${retryCount}次)`);
+              window.dispatchEvent(new CustomEvent('scrollToMessage', { detail: event.detail }));
+            } else {
+              console.error(`[消息定位] 超过最大重试次数，消息列表仍为空`);
+            }
+          }
+        }, 200);
+        return;
+      }
+      
+      // 首先尝试通过messageUuid或messageId找到消息
+      let targetMessage = null;
+      let targetMessageIndex = messageIndex;
+      
+      // 优先使用messageUuid
+      if (messageUuid) {
+        targetMessage = messages.find(msg => msg.uuid === messageUuid);
+        if (!targetMessage) {
+          // 尝试在所有消息中查找(包括子消息)
+          targetMessage = messages.find(msg => {
+            // 检查消息的各种可能的UUID字段
+            return msg.uuid === messageUuid || 
+                   msg.message_uuid === messageUuid ||
+                   msg.id === messageUuid;
+          });
+        }
+      }
+      
+      // 如果没有找到,尝试使用messageId
+      if (!targetMessage && messageId) {
+        // messageId格式可能是: fileUuid_msgUuid或file-xxx_msgUuid
+        const parts = messageId.split('_');
+        if (parts.length >= 2) {
+          const msgUuid = parts.slice(1).join('_'); // 处理可能包含下划线的uuid
+          
+          // 通过uuid在原始messages中查找
+          targetMessage = messages.find(msg => 
+            msg.uuid === msgUuid || 
+            msg.uuid === messageId ||
+            msg.message_uuid === msgUuid
+          );
+        }
+        
+        if (!targetMessage) {
+          // 尝试直接用messageId查找
+          targetMessage = messages.find(msg => {
+            const fullId = `file-${fileIndex}_${msg.uuid}`;
+            const altId = `${conversationUuid}_${msg.uuid}`;
+            return fullId === messageId || altId === messageId || msg.uuid === messageId;
+          });
+        }
+      }
+      
+      // 如果还没找到,通过index查找
+      if (!targetMessage && messageIndex !== undefined && messageIndex !== null) {
+        targetMessage = messages.find(msg => msg.index === messageIndex);
+        
+        // 如果index也找不到,可能是相对索引
+        if (!targetMessage && messages[messageIndex]) {
+          targetMessage = messages[messageIndex];
+        }
+      }
+      
+      if (!targetMessage) {
+        console.warn(`[消息定位] 未找到目标消息`);
+        console.warn(`  - messageUuid: ${messageUuid}`);
+        console.warn(`  - messageId: ${messageId}`);
+        console.warn(`  - messageIndex: ${messageIndex}`);
+        console.warn(`  - 第一条消息UUID: ${messages[0]?.uuid}`);
+        console.warn(`  - 最后一条消息UUID: ${messages[messages.length - 1]?.uuid}`);
+        
+        // 尝试显示所有分支后再次定位
+        if (branchAnalysis.branchPoints.size > 0 && !showAllBranches) {
+          console.log(`[消息定位] 尝试显示所有分支后定位...`);
+          handleShowAllBranches();
+          
+          // 延迟后重试
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('scrollToMessage', { detail: event.detail }));
+          }, 800);
+        }
+        return;
+      }
+      
+      // 更新targetMessageIndex为实际的index
+      targetMessageIndex = targetMessage.index;
+      console.log(`[消息定位] 找到目标消息 - index: ${targetMessageIndex}, uuid: ${targetMessage.uuid}`);
+      
+      // 检查消息是否在当前显示的消息中
+      const isMessageVisible = displayMessages.some(msg => msg.uuid === targetMessage.uuid);
+      
+      if (!isMessageVisible && branchAnalysis.branchPoints.size > 0 && !showAllBranches) {
+        // 消息不在当前分支,需要切换分支
+        console.log(`[消息定位] 消息不在当前分支,尝试切换分支...`);
+        
+        // 查找包含该消息的分支
+        let foundBranch = false;
+        let targetBranchPoint = null;
+        let targetBranchIndex = null;
+        
+        for (const [branchPointUuid, branchData] of branchAnalysis.branchPoints) {
+          for (let branchIndex = 0; branchIndex < branchData.branches.length; branchIndex++) {
+            const branch = branchData.branches[branchIndex];
+            if (branch.messages.some(msg => msg.uuid === targetMessage.uuid)) {
+              // 找到包含目标消息的分支
+              console.log(`[消息定位] 找到消息所在分支: ${branchPointUuid}, 分支索引: ${branchIndex}`);
+              targetBranchPoint = branchPointUuid;
+              targetBranchIndex = branchIndex;
+              foundBranch = true;
+              break;
+            }
+          }
+          if (foundBranch) break;
+        }
+        
+        if (foundBranch && targetBranchPoint !== null) {
+          // 不要先调用handleBranchSwitch，直接构建完整的分支路径
+          // 从目标消息开始向上追溯，找到所有需要设置的分支点
+          const messagePath = [];
+          let currentMsg = targetMessage;
+          const visitedUuids = new Set();
+          
+          // 构建消息路径
+          while (currentMsg && !visitedUuids.has(currentMsg.uuid)) {
+            visitedUuids.add(currentMsg.uuid);
+            messagePath.unshift(currentMsg);
+            
+            // 找到父消息
+            if (currentMsg.parent_uuid) {
+              currentMsg = messages.find(m => m.uuid === currentMsg.parent_uuid);
+            } else {
+              break;
+            }
+          }
+          
+          console.log(`[消息定位] 构建消息路径，长度: ${messagePath.length}`);
+          
+          // 创建新的分支过滤器
+          const newBranchFilters = new Map();
+          
+          // 遍历所有分支点，确定正确的分支选择
+          for (const [branchPointUuid, branchData] of branchAnalysis.branchPoints) {
+            let selectedBranchIndex = 0;
+            
+            // 检查消息路径是否经过这个分支点的某个分支
+            for (let bIdx = 0; bIdx < branchData.branches.length; bIdx++) {
+              const branch = branchData.branches[bIdx];
+              // 检查路径中是否有消息在这个分支中
+              if (messagePath.some(pathMsg => 
+                branch.messages.some(branchMsg => branchMsg.uuid === pathMsg.uuid)
+              )) {
+                selectedBranchIndex = bIdx;
+                console.log(`[消息定位] 分支点 ${branchPointUuid} 需要设置为分支 ${bIdx}`);
+                break;
+              }
+            }
+            
+            newBranchFilters.set(branchPointUuid, selectedBranchIndex);
+          }
+          
+          console.log(`[消息定位] 批量更新分支过滤器:`, Array.from(newBranchFilters.entries()));
+          
+          // 批量更新所有分支过滤器
+          setBranchFilters(newBranchFilters);
+          setShowAllBranches(false);
+          setForceUpdateCounter(prev => prev + 1);
+          
+          // 通知父组件
+          if (onBranchStateChange) {
+            onBranchStateChange({
+              showAllBranches: false,
+              currentBranchIndexes: newBranchFilters
+            });
+          }
+          
+          // 延迟执行定位,等待DOM更新
+          setTimeout(() => {
+            const messageEl = messageRefs.current[targetMessageIndex];
+            if (messageEl) {
+              messageEl.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+              });
+              
+              setSelectedMessageIndex(targetMessageIndex);
+              
+              if (highlight) {
+                messageEl.classList.add('highlight-from-search');
+                setTimeout(() => {
+                  messageEl.classList.remove('highlight-from-search');
+                }, 3000);
+              }
+            } else {
+              console.warn(`[消息定位] 切换分支后仍未找到消息元素: ${targetMessageIndex}`);
+              // 可能需要更多时间等待渲染
+              setTimeout(() => {
+                const el = messageRefs.current[targetMessageIndex];
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  setSelectedMessageIndex(targetMessageIndex);
+                  if (highlight) {
+                    el.classList.add('highlight-from-search');
+                    setTimeout(() => el.classList.remove('highlight-from-search'), 3000);
+                  }
+                }
+              }, 300);
+            }
+          }, 600);
+        } else {
+          console.warn(`[消息定位] 未找到包含该消息的分支,显示所有分支`);
+          // 如果没找到分支,显示所有分支
+          handleShowAllBranches();
+          
+          // 延迟执行定位
+          setTimeout(() => {
+            const messageEl = messageRefs.current[targetMessageIndex];
+            if (messageEl) {
+              messageEl.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+              });
+              
+              setSelectedMessageIndex(targetMessageIndex);
+              
+              if (highlight) {
+                messageEl.classList.add('highlight-from-search');
+                setTimeout(() => {
+                  messageEl.classList.remove('highlight-from-search');
+                }, 3000);
+              }
+            }
+          }, 600);
+        }
+      } else {
+        // 消息在当前分支中可见,直接定位
+        console.log(`[消息定位] 消息在当前分支中,直接定位`);
+        const messageEl = messageRefs.current[targetMessageIndex];
+        if (!messageEl) {
+          console.warn(`[消息定位] 未找到消息元素: ${targetMessageIndex}`);
+          // 可能需要等待DOM渲染
+          setTimeout(() => {
+            const el = messageRefs.current[targetMessageIndex];
+            if (el) {
+              el.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+              });
+              
+              setSelectedMessageIndex(targetMessageIndex);
+              
+              if (highlight) {
+                el.classList.add('highlight-from-search');
+                setTimeout(() => {
+                  el.classList.remove('highlight-from-search');
+                }, 3000);
+              }
+            } else {
+              console.warn(`[消息定位] 延迟后仍未找到元素`);
+            }
+          }, 200);
+          return;
+        }
+        
+        // 滚动到视图中心
+        messageEl.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+        
+        // 设置选中状态
+        setSelectedMessageIndex(targetMessageIndex);
+        
+        // 添加高亮效果
+        if (highlight) {
+          messageEl.classList.add('highlight-from-search');
+          setTimeout(() => {
+            messageEl.classList.remove('highlight-from-search');
+          }, 3000);
+        }
+      }
+    };
+    
+    window.addEventListener('scrollToMessage', handleScrollToMessage);
+    return () => window.removeEventListener('scrollToMessage', handleScrollToMessage);
+  }, [messages, displayMessages, branchAnalysis, handleBranchSwitch, handleShowAllBranches, showAllBranches]);
+  
+  // 同步外部分支状态
+  useEffect(() => {
+    if (branchState) {
+      setShowAllBranches(branchState.showAllBranches);
+      if (branchState.currentBranchIndexes) {
+        setBranchFilters(branchState.currentBranchIndexes);
+      }
+    }
+  }, [branchState]);
+  
+  // 初始化自定义名称
+  useEffect(() => {
+    if (conversation?.uuid) {
+      const savedName = renameManager.getRename(conversation.uuid, conversation.name);
+      setCustomName(savedName);
+    }
+  }, [conversation, renameManager]);
   
   useEffect(() => {
     const handleResize = () => {
@@ -568,97 +995,6 @@ const ConversationTimeline = ({
       leftPanelRef.current.scrollTop = 0;
     }
   }, [conversation?.uuid, messages.length]);
-  
-  // ==================== 消息过滤和显示 ====================
-  
-  const displayMessages = useMemo(() => {
-    if (showAllBranches) return messages;
-    if (branchAnalysis.branchPoints.size === 0) return messages;
-    if (branchFilters.size === 0) return messages;
-
-    const visibleMessages = [];
-    
-    for (const msg of messages) {
-      let shouldShow = true;
-      
-      for (const [branchPointUuid, selectedBranchIndex] of branchFilters.entries()) {
-        const branchData = branchAnalysis.branchPoints.get(branchPointUuid);
-        if (!branchData) continue;
-        
-        const branchPoint = branchData.branchPoint;
-        const selectedBranch = branchData.branches[selectedBranchIndex];
-        
-        if (msg.index > branchPoint.index) {
-          const belongsToSelectedBranch = selectedBranch.messages.some(
-            branchMsg => branchMsg.uuid === msg.uuid
-          );
-          
-          if (!belongsToSelectedBranch) {
-            const belongsToAnyBranch = branchData.branches.some(
-              branch => branch.messages.some(branchMsg => branchMsg.uuid === msg.uuid)
-            );
-            
-            if (belongsToAnyBranch) {
-              shouldShow = false;
-              break;
-            }
-          }
-        }
-      }
-      
-      if (shouldShow) visibleMessages.push(msg);
-    }
-    
-    return visibleMessages;
-  }, [messages, branchFilters, branchAnalysis, showAllBranches]);
-  
-  // ==================== 事件处理函数 ====================
-  
-  const handleBranchSwitch = (branchPointUuid, newBranchIndex) => {
-    setShowAllBranches(false);
-    setBranchFilters(prev => {
-      const newFilters = new Map(prev);
-      newFilters.set(branchPointUuid, newBranchIndex);
-      
-      // 通知父组件分支状态变化
-      if (onBranchStateChange) {
-        onBranchStateChange({
-          showAllBranches: false,
-          currentBranchIndexes: newFilters
-        });
-      }
-      
-      return newFilters;
-    });
-  };
-
-  const handleShowAllBranches = () => {
-    const newShowAllBranches = !showAllBranches;
-    setShowAllBranches(newShowAllBranches);
-    
-    // 通知父组件分支状态变化
-    if (onBranchStateChange) {
-      onBranchStateChange({
-        showAllBranches: newShowAllBranches,
-        currentBranchIndexes: newShowAllBranches ? new Map() : branchFilters
-      });
-    }
-    
-    if (newShowAllBranches) {
-      setBranchFilters(new Map());
-      // 自动启用排序模式
-      if (sortActions && !sortingEnabled) {
-        sortActions.enableSort();
-        setSortingEnabled(true);
-      }
-    } else {
-      // 退出显示全部时,如果有自定义排序则重置
-      if (hasCustomSort && sortActions?.resetSort) {
-        sortActions.resetSort();
-      }
-      setSortingEnabled(false);
-    }
-  };
   
   const handleMessageSelect = (messageIndex) => {
     setSelectedMessageIndex(messageIndex);
@@ -804,17 +1140,24 @@ const ConversationTimeline = ({
   };
 
   const getPlatformAvatarClass = (sender, platform) => {
-    if (sender === 'human') return 'human';
-    
-    // AI头像根据平台切换颜色
-    const platformLower = platform?.toLowerCase() || 'claude';
-    
-    if (platformLower.includes('gemini')) return 'assistant platform-gemini';
-    if (platformLower.includes('ai studio') || platformLower.includes('aistudio')) return 'assistant platform-aistudio';
+  if (sender === 'human') return 'human';
+  
+  // 优先根据format判断，因为format更准确
+  if (format === 'jsonl_chat') return 'assistant platform-jsonl_chat';
+  if (format === 'gemini_notebooklm') {
+    const platformLower = platform?.toLowerCase() || '';
     if (platformLower.includes('notebooklm')) return 'assistant platform-notebooklm';
-    
-    return 'assistant platform-claude';
-  };
+    return 'assistant platform-gemini';
+  }
+  
+  // 兼容性：也检查platform字段
+  const platformLower = platform?.toLowerCase() || 'claude';
+  if (platformLower.includes('jsonl')) return 'assistant platform-jsonl_chat';
+  if (platformLower.includes('gemini')) return 'assistant platform-gemini';
+  if (platformLower.includes('ai studio') || platformLower.includes('aistudio')) return 'assistant platform-aistudio';
+  if (platformLower.includes('notebooklm')) return 'assistant platform-notebooklm';
+  return 'assistant platform-claude';
+};
   
   const getFilePreview = (direction) => {
     if (!files || files.length <= 1 || currentFileIndex === null || format === 'claude_full_export') {
@@ -1013,7 +1356,10 @@ const ConversationTimeline = ({
               return (
                 <React.Fragment key={msg.uuid || index}>
                   {/* 消息项 */}
-                  <div className="timeline-message">
+                  <div 
+                    className="timeline-message"
+                    ref={(el) => { if (el) messageRefs.current[msg.index] = el; }}
+                  >
                     <div className={`timeline-dot ${msg.sender === 'human' ? 'human' : 'assistant'}`}></div>
                     
                     <div 
@@ -1026,7 +1372,7 @@ const ConversationTimeline = ({
                             {msg.sender === 'human' ? '👤' : (
                               <PlatformIcon 
                                 platform={conversationInfo?.platform?.toLowerCase() || 'claude'} 
-                                format={PlatformUtils.getFormatFromPlatform(conversationInfo?.platform)} 
+                                format={format}
                                 size={20} 
                                 style={{ backgroundColor: 'transparent' }}
                               />
@@ -1244,11 +1590,15 @@ const ConversationTimeline = ({
               availableTabs.push({ id: 'attachments', label: t('messageDetail.tabs.attachments') });
             }
           } else {
-            // 助手消息的处理(仅Claude格式显示思考过程和Artifacts)
-            if (format === 'claude' || format === 'claude_full_export' || !format) {
+            // 助手消息的处理
+            // Claude格式和JSONL格式都支持思考过程
+            if (format === 'claude' || format === 'claude_full_export' || format === 'jsonl_chat' || !format) {
               if (currentMessage.thinking) {
                 availableTabs.push({ id: 'thinking', label: t('messageDetail.tabs.thinking') });
               }
+            }
+            // 只有Claude格式支持Artifacts
+            if (format === 'claude' || format === 'claude_full_export' || !format) {
               if (currentMessage.artifacts && currentMessage.artifacts.length > 0) {
                 availableTabs.push({ id: 'artifacts', label: 'Artifacts' });
               }

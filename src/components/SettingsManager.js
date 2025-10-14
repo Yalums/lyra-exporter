@@ -52,6 +52,11 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
       includeMetadata: true
     },
     language: 'zh-CN',
+    searchOptions: {
+      removeDuplicates: true,
+      includeThinking: true,
+      includeArtifacts: true
+    },
     exportOptions: {
       // 格式设置
       includeNumbering: true,
@@ -75,10 +80,16 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
   // 初始化设置
   useEffect(() => {
     if (isOpen) {
+      const storedSearchOptions = localStorage.getItem('search-options');
       setSettings({
         theme: ThemeUtils.getCurrentTheme(),
         copyOptions: CopyConfigManager.getConfig(),
         language: StorageUtils.getLocalStorage('app-language', 'en-US'),
+        searchOptions: storedSearchOptions ? JSON.parse(storedSearchOptions) : {
+          removeDuplicates: true,
+          includeThinking: true,
+          includeArtifacts: true
+        },
         exportOptions: ExportConfigManager.getConfig()
       });
     }
@@ -97,6 +108,16 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
     setSettings(prev => ({ 
       ...prev, 
       copyOptions: newOptions 
+    }));
+  };
+
+  // 处理搜索选项更改
+  const handleSearchOptionChange = (option, value) => {
+    const newOptions = { ...settings.searchOptions, [option]: value };
+    localStorage.setItem('search-options', JSON.stringify(newOptions));
+    setSettings(prev => ({ 
+      ...prev, 
+      searchOptions: newOptions 
     }));
   };
 
@@ -228,6 +249,30 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
             />
           </SettingsSection>
 
+          {/* 搜索设置 */}
+          <SettingsSection title={t('settings.searchOptions.title')}>
+            <CheckboxSetting
+              label={t('settings.searchOptions.removeDuplicates.label')}
+              description={t('settings.searchOptions.removeDuplicates.description')}
+              checked={settings.searchOptions.removeDuplicates}
+              onChange={(checked) => handleSearchOptionChange('removeDuplicates', checked)}
+            />
+            
+            <CheckboxSetting
+              label={t('settings.searchOptions.includeThinking.label')}
+              description={t('settings.searchOptions.includeThinking.description')}
+              checked={settings.searchOptions.includeThinking}
+              onChange={(checked) => handleSearchOptionChange('includeThinking', checked)}
+            />
+            
+            <CheckboxSetting
+              label={t('settings.searchOptions.includeArtifacts.label')}
+              description={t('settings.searchOptions.includeArtifacts.description')}
+              checked={settings.searchOptions.includeArtifacts}
+              onChange={(checked) => handleSearchOptionChange('includeArtifacts', checked)}
+            />
+          </SettingsSection>
+
           {/* 导出设置 - 格式部分 */}
           <SettingsSection title={t('settings.exportFormat.title')}>
             <SettingItem label={t('settings.exportFormat.preview.label')} description={t('settings.exportFormat.preview.description')} static={true}>
@@ -249,11 +294,28 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
                 value={settings.exportOptions.includeNumbering ? settings.exportOptions.numberingFormat : 'none'}
                 onChange={(e) => {
                   const value = e.target.value;
+                  // 一次性更新两个值，避免异步state更新问题
                   if (value === 'none') {
-                    handleExportOptionChange('includeNumbering', false);
+                    const newOptions = { 
+                      ...settings.exportOptions, 
+                      includeNumbering: false 
+                    };
+                    ExportConfigManager.saveConfig(newOptions);
+                    setSettings(prev => ({ 
+                      ...prev, 
+                      exportOptions: newOptions 
+                    }));
                   } else {
-                    handleExportOptionChange('includeNumbering', true);
-                    handleExportOptionChange('numberingFormat', value);
+                    const newOptions = { 
+                      ...settings.exportOptions, 
+                      includeNumbering: true,
+                      numberingFormat: value
+                    };
+                    ExportConfigManager.saveConfig(newOptions);
+                    setSettings(prev => ({ 
+                      ...prev, 
+                      exportOptions: newOptions 
+                    }));
                   }
                 }}
               >
@@ -308,11 +370,28 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
                 value={settings.exportOptions.includeHeaderPrefix ? settings.exportOptions.headerLevel.toString() : 'none'}
                 onChange={(e) => {
                   const value = e.target.value;
+                  // 一次性更新两个值，避免异步state更新问题
                   if (value === 'none') {
-                    handleExportOptionChange('includeHeaderPrefix', false);
+                    const newOptions = { 
+                      ...settings.exportOptions, 
+                      includeHeaderPrefix: false 
+                    };
+                    ExportConfigManager.saveConfig(newOptions);
+                    setSettings(prev => ({ 
+                      ...prev, 
+                      exportOptions: newOptions 
+                    }));
                   } else {
-                    handleExportOptionChange('includeHeaderPrefix', true);
-                    handleExportOptionChange('headerLevel', Number(value));
+                    const newOptions = { 
+                      ...settings.exportOptions, 
+                      includeHeaderPrefix: true,
+                      headerLevel: Number(value)
+                    };
+                    ExportConfigManager.saveConfig(newOptions);
+                    setSettings(prev => ({ 
+                      ...prev, 
+                      exportOptions: newOptions 
+                    }));
                   }
                 }}
               >
@@ -379,8 +458,50 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
           {/* 关于 */}
           <SettingsSection title={t('settings.about.title')}>
             <SettingItem label={t('settings.about.appName')} description={t('settings.about.appDescription')} static={true} />
-            <SettingItem label={t('settings.about.version')} description={'v1.5.3'} static={true} />
-            <SettingItem label={t('settings.about.github')} description={t('settings.about.githubDescription')} static={true} />
+            <SettingItem label={t('settings.about.version')} description={'v1.5.4'} static={true} />
+            <SettingItem label={t('settings.about.github')} description={t('settings.about.githubDescription')}>
+              <a 
+                href="https://github.com/Yalums/lyra-exporter" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 16px',
+                  backgroundColor: '#24292f',
+                  color: '#ffffff',
+                  border: '1px solid rgba(240,246,252,0.1)',
+                  borderRadius: '6px',
+                  textDecoration: 'none',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif',
+                  transition: 'all 0.2s ease',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#2c333a';
+                  e.currentTarget.style.borderColor = 'rgba(240,246,252,0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#24292f';
+                  e.currentTarget.style.borderColor = 'rgba(240,246,252,0.1)';
+                }}
+              >
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  width="20" 
+                  height="20" 
+                  fill="currentColor" 
+                  viewBox="0 0 16 16"
+                  style={{ flexShrink: 0 }}
+                >
+                  <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+                <span>GitHub</span>
+              </a>
+            </SettingItem>
           </SettingsSection>
         </div>
         

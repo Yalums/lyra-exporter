@@ -8,6 +8,9 @@
   --bg-tertiary: #3a3a3a;
   --bg-overlay: rgba(38, 38, 36, 0.95);
   
+  /* 卡片背景 */
+  --card-bg: #2a2a2a;
+  
   --border-primary: #404040;
   --border-secondary: #555555;
   --border-active: #4475A5;
@@ -58,6 +61,9 @@
   --bg-secondary: #faf8f7;
   --bg-tertiary: #f5f1ef;
   --bg-overlay: rgba(242, 240, 233, 0.95);
+  
+  /* 卡片背景 */
+  --card-bg: #faf8f7;
   
   --border-primary: #e7e2df;
   --border-secondary: #d6ccc6;

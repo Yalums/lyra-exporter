@@ -10,6 +10,7 @@
 /* 2. 全局重置和基础样式 */
 @import './reset.css';
 @import './mobile-modal.css';
+@import './nodeLocator.css';
 
 /* 3. 通用组件（按钮、模态框、输入框等） */
 @import './components.css';

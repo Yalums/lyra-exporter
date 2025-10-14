@@ -2,6 +2,21 @@
 // 文件解析相关功能 - 修复版，支持Claude、Gemini/NotebookLM格式
 
 // ==================== 通用工具函数 ====================
+// 解析JSONL文本（每行一个JSON对象）
+export const parseJSONL = (text) => {
+  if (!text) return [];
+  return text.split('\n')
+    .filter(line => line.trim())
+    .map(line => {
+      try { return JSON.parse(line); } 
+      catch (e) { 
+        console.warn('JSONL解析失败:', e.message); 
+        return null; 
+      }
+    })
+    .filter(Boolean);
+};
+
 // 解析时间戳
 export const parseTimestamp = (timestampStr) => {
   if (!timestampStr) return "未知时间";
@@ -37,22 +52,29 @@ const formatFileSize = (bytes) => {
 
 // ==================== 格式检测 ====================
 export const detectFileFormat = (jsonData) => {
+  // JSONL格式检测
+  if (Array.isArray(jsonData) && jsonData.length > 0) {
+    const first = jsonData[0];
+    if (first && typeof first === 'object' && 
+        (first.mes || first.swipes || first.chat_metadata)) {
+      return 'jsonl_chat';
+    }
+  }
+  
   // Gemini/NotebookLM格式
-  if (typeof jsonData === 'object' && jsonData !== null && 
-      jsonData.title && jsonData.platform && jsonData.exportedAt && 
-      jsonData.conversation && Array.isArray(jsonData.conversation)) {
+  if (jsonData?.title && jsonData?.platform && jsonData?.exportedAt && 
+      Array.isArray(jsonData.conversation)) {
     return 'gemini_notebooklm';
   }
   
   // Claude完整导出格式
-  if (typeof jsonData === 'object' && jsonData !== null) {
-    if (jsonData.exportedAt && jsonData.conversations && Array.isArray(jsonData.conversations)) {
-      return 'claude_full_export';
-    }
-    // Claude单个对话格式
-    if (jsonData.chat_messages && Array.isArray(jsonData.chat_messages)) {
-      return 'claude';
-    }
+  if (jsonData?.exportedAt && Array.isArray(jsonData.conversations)) {
+    return 'claude_full_export';
+  }
+  
+  // Claude单个对话格式
+  if (Array.isArray(jsonData.chat_messages)) {
+    return 'claude';
   }
   
   return 'unknown';
@@ -69,6 +91,8 @@ export const extractChatData = (jsonData, fileName = '') => {
       return extractGeminiNotebookLMData(jsonData, fileName);
     case 'claude_full_export':
       return extractClaudeFullExportData(jsonData, fileName);
+    case 'jsonl_chat':
+      return extractJSONLChatData(jsonData, fileName);
     default:
       throw new Error(`不支持的文件格式: ${format}`);
   }
@@ -688,6 +712,11 @@ export const detectBranches = (processedData) => {
     return processedData;
   }
   
+  // 如果是JSONL格式，使用专门的分支检测
+  if (processedData.format === 'jsonl_chat') {
+    return detectJSONLBranches(processedData);
+  }
+  
   try {
     const messages = processedData.chat_history;
     
@@ -808,4 +837,185 @@ export const getImageDisplayData = (imageInfo) => {
     title: imageInfo.file_name,
     isBase64: false
   };
+};
+
+// ==================== JSONL/SillyTavern解析器 ====================
+const extractJSONLChatData = (jsonData, fileName) => {
+  // 检查第一行是否为元数据
+  const firstLine = jsonData[0] || {};
+  const hasMetadata = firstLine.chat_metadata !== undefined;
+  
+  const title = hasMetadata && firstLine.character_name ? 
+    `与${firstLine.character_name}的对话` : 
+    fileName.replace(/\.(jsonl|json)$/i, '') || '聊天记录';
+  
+  const metaInfo = {
+    title,
+    created_at: firstLine.create_date || new Date().toLocaleString('zh-CN'),
+    updated_at: new Date().toLocaleString('zh-CN'),
+    project_uuid: "",
+    uuid: `jsonl_${Date.now()}`,
+    model: firstLine.character_name || "Chat Bot",
+    platform: 'jsonl_chat',
+    has_embedded_images: false,
+    images_processed: 0
+  };
+
+  const chatHistory = [];
+  let hasSwipes = false;
+  let msgIndex = 0;
+
+  jsonData.forEach((entry, entryIndex) => {
+    // 跳过第一行元数据
+    if (entryIndex === 0 && hasMetadata) return;
+    // 跳过系统消息
+    if (entry.is_system) return;
+    
+    const name = entry.name || "Unknown";
+    const isUser = entry.is_user || false;
+    const timestamp = entry.send_date || "";
+    const senderLabel = isUser ? "User" : name;
+    
+    // 检查swipes（只对AI消息生效）
+    const swipes = entry.swipes || [];
+    const hasMultipleSwipes = !isUser && swipes.length > 1;
+    if (hasMultipleSwipes) hasSwipes = true;
+    
+    if (hasMultipleSwipes) {
+      const selectedSwipeId = entry.swipe_id !== undefined ? entry.swipe_id : 0;
+      
+      swipes.forEach((swipeText, swipeIndex) => {
+        const messageData = createJSONLMessage(
+          msgIndex++,
+          swipeIndex,
+          name,
+          senderLabel,
+          timestamp,
+          isUser,
+          swipeText,
+          {
+            totalSwipes: swipes.length,
+            isSelected: swipeIndex === selectedSwipeId,
+            swipeIndex: swipeIndex
+          }
+        );
+        chatHistory.push(messageData);
+      });
+    } else {
+      const messageText = entry.mes || (swipes.length > 0 ? swipes[0] : "");
+      const messageData = createJSONLMessage(
+        msgIndex++,
+        0,
+        name,
+        senderLabel,
+        timestamp,
+        isUser,
+        messageText,
+        null
+      );
+      chatHistory.push(messageData);
+    }
+  });
+
+  return {
+    meta_info: metaInfo,
+    chat_history: chatHistory,
+    raw_data: jsonData,
+    format: 'jsonl_chat',
+    has_swipes: hasSwipes
+  };
+};
+
+// 创建JSONL格式的消息对象
+function createJSONLMessage(entryIndex, swipeIndex, name, senderLabel, timestamp, isUser, messageText, swipeInfo) {
+  const messageData = {
+    index: entryIndex * 1000 + swipeIndex, // 确保每个分支有唯一的index
+    uuid: `jsonl_${entryIndex}_${swipeIndex}`,
+    parent_uuid: entryIndex > 0 ? `jsonl_${entryIndex - 1}_0` : "",
+    sender: isUser ? "human" : "assistant",
+    sender_label: senderLabel,
+    timestamp,
+    content_items: [],
+    raw_text: messageText,
+    display_text: "",
+    thinking: "",
+    tools: [],
+    artifacts: [],
+    citations: [],
+    images: [],
+    attachments: [],
+    branch_id: null,
+    is_branch_point: false,
+    branch_level: 0,
+    swipe_info: swipeInfo // 添加swipe信息
+  };
+  
+  // 提取thinking和content
+  const { thinking, content } = extractThinkingAndContent(messageText);
+  
+  messageData.thinking = thinking;
+  messageData.display_text = content;
+  
+  // 如果有swipe信息，添加到display_text前面作为标记
+  if (swipeInfo) {
+    const branchLabel = swipeInfo.isSelected ? 
+      `**[分支 ${swipeInfo.swipeIndex + 1}/${swipeInfo.totalSwipes}] (已选择)**` :
+      `**[分支 ${swipeInfo.swipeIndex + 1}/${swipeInfo.totalSwipes}]**`;
+    messageData.display_text = `${branchLabel}\n\n${messageData.display_text}`;
+  }
+  
+  return messageData;
+}
+
+// 提取thinking标签和content标签的内容
+function extractThinkingAndContent(text) {
+  if (!text) {
+    return { thinking: "", content: "" };
+  }
+  
+  let thinking = "";
+  let content = text;
+  
+  // 提取<thinking>标签内容
+  const thinkingMatch = text.match(/<thinking>([\s\S]*?)<\/thinking>/);
+  if (thinkingMatch) {
+    thinking = thinkingMatch[1].trim();
+    // 从原文本中移除thinking标签
+    content = text.replace(/<thinking>[\s\S]*?<\/thinking>/, '').trim();
+  }
+  
+  // 提取<content>标签内容
+  const contentMatch = content.match(/<content>([\s\S]*?)<\/content>/);
+  if (contentMatch) {
+    content = contentMatch[1].trim();
+  } else {
+    // 如果没有content标签，清理其他可能的标签
+    content = content
+      .replace(/<\/?thinking>/g, '')
+      .replace(/<\/?content>/g, '')
+      .replace(/<\/?guifan>/g, '')
+      .trim();
+  }
+  
+  return { thinking, content };
+}
+
+// 简化的JSONL分支检测
+export const detectJSONLBranches = (processedData) => {
+  if (!processedData?.chat_history || processedData.format !== 'jsonl_chat') {
+    return processedData;
+  }
+  
+  const messages = processedData.chat_history;
+  messages.forEach(msg => {
+    if (msg.swipe_info) {
+      msg.branch_id = msg.swipe_info.isSelected ? 'main' : `branch_${msg.index}`;
+      msg.branch_level = msg.swipe_info.isSelected ? 0 : 1;
+    } else {
+      msg.branch_id = 'main';
+      msg.branch_level = 0;
+    }
+  });
+  
+  return processedData;
 };

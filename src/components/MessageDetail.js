@@ -22,7 +22,6 @@ const MessageDetail = ({
   const contentRef = useRef(null);
   const [imageLoadErrors, setImageLoadErrors] = useState({});
   const [internalActiveTab, setInternalActiveTab] = useState(activeTab);
-  const [expandedAttachments, setExpandedAttachments] = useState(new Set());
   const [attachmentViewMode, setAttachmentViewMode] = useState({}); // 'preview' or 'full' for each attachment
   
   // 使用内部状态管理activeTab，如果没有提供onTabChange
@@ -70,11 +69,15 @@ const MessageDetail = ({
         baseTabs.push({ id: 'attachments', label: t('messageDetail.tabs.attachments') });
       }
     } else {
-      // 助手消息的处理（仅Claude格式显示思考过程和Artifacts）
-      if (format === 'claude' || format === 'claude_full_export' || !format) {
+      // 助手消息的处理
+      // Claude格式和JSONL格式都支持思考过程
+      if (format === 'claude' || format === 'claude_full_export' || format === 'jsonl_chat' || !format) {
         if (currentMessage.thinking) {
           baseTabs.push({ id: 'thinking', label: t('messageDetail.tabs.thinking') });
         }
+      }
+      // 只有Claude格式支持Artifacts
+      if (format === 'claude' || format === 'claude_full_export' || !format) {
         if (currentMessage.artifacts && currentMessage.artifacts.length > 0) {
           baseTabs.push({ id: 'artifacts', label: 'Artifacts' });
         }
@@ -97,7 +100,6 @@ const MessageDetail = ({
   // 清除图片错误状态当消息改变时
   useEffect(() => {
     setImageLoadErrors({});
-    setExpandedAttachments(new Set());
     setAttachmentViewMode({});
   }, [selectedMessageIndex]);
 
@@ -358,16 +360,6 @@ const MessageDetail = ({
       return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     };
 
-    const toggleExpanded = (index) => {
-      const newExpanded = new Set(expandedAttachments);
-      if (newExpanded.has(index)) {
-        newExpanded.delete(index);
-      } else {
-        newExpanded.add(index);
-      }
-      setExpandedAttachments(newExpanded);
-    };
-
     const toggleViewMode = (index) => {
       setAttachmentViewMode(prev => ({
         ...prev,
@@ -384,7 +376,6 @@ const MessageDetail = ({
     const renderFileContent = (attachment, index) => {
       if (!attachment.extracted_content) return null;
 
-      const isExpanded = expandedAttachments.has(index);
       const isFullView = attachmentViewMode[index] === 'full';
       const fileExt = getFileExtension(attachment.file_name);
       const isMarkdown = fileExt === 'md' || fileExt === 'markdown';
@@ -415,13 +406,7 @@ const MessageDetail = ({
             )}
           </div>
           
-          <div 
-            className="content-body"
-            style={{
-              maxHeight: isExpanded ? 'none' : '300px',
-              overflow: isExpanded ? 'visible' : 'hidden'
-            }}
-          >
+          <div className="content-body">
             {isMarkdown ? (
               <div className="markdown-content">
                 <ReactMarkdown 
@@ -502,21 +487,7 @@ const MessageDetail = ({
                 {!isFullView && needsToggle && '...'}
               </pre>
             )}
-            
-            {/* 渐变遮罩效果 */}
-            {!isExpanded && attachment.extracted_content.length > 300 && (
-              <div className="gradient-overlay" />
-            )}
           </div>
-          
-          {attachment.extracted_content.length > 300 && (
-            <button 
-              className="expand-btn"
-              onClick={() => toggleExpanded(index)}
-            >
-              {isExpanded ? `⬆ ${t('messageDetail.attachments.collapse')}` : `⬇ ${t('messageDetail.attachments.expand')}`}
-            </button>
-          )}
         </div>
       );
     };
@@ -659,7 +630,7 @@ const MessageDetail = ({
         );
 
       case 'thinking':
-        if (format !== 'claude' && format !== 'claude_full_export' && format) {
+        if (format !== 'claude' && format !== 'claude_full_export' && format !== 'jsonl_chat' && format) {
           return <div className="placeholder">{t('messageDetail.placeholder.formatNotSupported.thinking')}</div>;
         }
         return (

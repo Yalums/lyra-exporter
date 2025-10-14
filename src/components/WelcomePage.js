@@ -312,26 +312,6 @@ const WelcomePage = ({ handleLoadClick }) => {
       {/* 主操作区 - 并列展示 */}
       <div className="w-full max-w-4xl mb-12">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* 新用户入口 */}
-          <div className="action-card primary">
-            <div className="action-badge">{t('welcomePage.actionCards.install.badge')}</div>
-            <div className="action-icon">
-              <Download className="h-8 w-8" />
-            </div>
-            <h3 className="action-title">{t('welcomePage.actionCards.install.title')}</h3>
-            <p className="action-description">
-              {t('welcomePage.actionCards.install.description')}
-            </p>
-            <button
-              onClick={() => window.open('https://greasyfork.org/en/scripts/539579-lyra-s-exporter-fetch', '_blank')}
-              className="action-button primary"
-            >
-              <Download className="h-5 w-5 mr-2" />
-              {t('welcomePage.actionCards.install.button')}
-            </button>
-          </div>
-          
-          {/* 老用户入口 */}
           <div className="action-card secondary">
             <div className="action-badge">{t('welcomePage.actionCards.load.badge')}</div>
             <div className="action-icon">
@@ -347,6 +327,23 @@ const WelcomePage = ({ handleLoadClick }) => {
             >
               <FileText className="h-5 w-5 mr-2" />
               {t('welcomePage.actionCards.load.button')}
+            </button>
+          </div>
+          <div className="action-card primary">
+            <div className="action-badge">{t('welcomePage.actionCards.install.badge')}</div>
+            <div className="action-icon">
+              <Download className="h-8 w-8" />
+            </div>
+            <h3 className="action-title">{t('welcomePage.actionCards.install.title')}</h3>
+            <p className="action-description">
+              {t('welcomePage.actionCards.install.description')}
+            </p>
+            <button
+              onClick={() => window.open('https://greasyfork.org/en/scripts/539579-lyra-s-exporter-fetch', '_blank')}
+              className="action-button primary"
+            >
+              <Download className="h-5 w-5 mr-2" />
+              {t('welcomePage.actionCards.install.button')}
             </button>
           </div>
         </div>
@@ -556,15 +553,11 @@ const WelcomePage = ({ handleLoadClick }) => {
           
           .action-card:hover {
             transform: translateY(-4px);
-            box-shadow: var(--shadow-lg);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
           }
           
-          .action-card.primary {
-            border-color: #D97706;
-          }
-          
-          .action-card.secondary {
-            border-color: var(--border-primary);
+          [data-theme="dark"] .action-card:hover {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
           }
           
           .action-badge {
@@ -572,17 +565,13 @@ const WelcomePage = ({ handleLoadClick }) => {
             top: -12px;
             left: 50%;
             transform: translateX(-50%);
-            background: var(--accent-primary);
+            background: #D97706;
             color: white;
             padding: 4px 16px;
             border-radius: 12px;
             font-size: 12px;
             font-weight: 600;
             white-space: nowrap;
-          }
-          
-          .action-card.primary .action-badge {
-            background: linear-gradient(135deg, #D97706 0%, #EA580C 100%);
           }
           
           .action-icon {
@@ -594,11 +583,6 @@ const WelcomePage = ({ handleLoadClick }) => {
             align-items: center;
             justify-content: center;
             background: var(--bg-tertiary);
-            color: var(--accent-primary);
-          }
-          
-          .action-card.primary .action-icon {
-            background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
             color: #D97706;
           }
           
@@ -619,36 +603,33 @@ const WelcomePage = ({ handleLoadClick }) => {
           .action-button {
             width: 100%;
             padding: 14px 24px;
-            border-radius: 12px;
+            border-radius: 9999px;
             font-weight: 600;
             font-size: 16px;
-            border: none;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: all 0.3s ease;
-          }
-          
-          .action-button.primary {
-            background: linear-gradient(135deg, #D97706 0%, #EA580C 100%);
-            color: white;
-          }
-          
-          .action-button.primary:hover {
-            opacity: 0.9;
-            transform: scale(1.02);
-          }
-          
-          .action-button.secondary {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-            border: 2px solid var(--border-primary);
-          }
-          
-          .action-button.secondary:hover {
             background: var(--bg-primary);
-            border-color: var(--accent-primary);
+            color: var(--text-primary);
+            border: none;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.15);
+          }
+          
+          .action-button:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+            transform: scale(1.05);
+            background: var(--bg-tertiary);
+          }
+          
+          /* 深色模式按钮优化 */
+          [data-theme="dark"] .action-button {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+          }
+          
+          [data-theme="dark"] .action-button:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
           }
           
           /* 边框颜色 */
@@ -701,7 +682,7 @@ const WelcomePage = ({ handleLoadClick }) => {
             flex-shrink: 0;
             font-weight: bold;
             font-size: 14px;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            background: #10b981;
             color: white;
           }
           

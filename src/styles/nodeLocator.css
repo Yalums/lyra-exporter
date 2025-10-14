@@ -1,0 +1,656 @@
+/* 节点定位面板和相关组件的样式 */
+
+/* ==================== 增强搜索框 ==================== */
+.enhanced-search-box {
+  position: relative;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.search-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: var(--card-bg);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  padding-left: 14px;
+}
+
+.search-input-group {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px 35px 8px 35px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.1);
+}
+
+.clear-btn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 20px;
+  padding: 0 5px;
+}
+
+.clear-btn:hover {
+  color: var(--text-primary);
+}
+
+/* ==================== 搜索模式选择器 ==================== */
+.search-mode-selector {
+  display: flex;
+  gap: 2px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  padding: 2px;
+}
+
+.mode-btn {
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+}
+
+.mode-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.mode-btn.active {
+  background: var(--primary-color);
+  color: white;
+}
+
+/* ==================== 搜索选项 ==================== */
+.search-options {
+  position: relative;
+}
+
+.options-toggle {
+  padding: 6px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.options-toggle:hover {
+  background: var(--bg-hover);
+}
+
+.options-dropdown {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  background: var(--card-bg, var(--bg-secondary, #2a2a2a));
+  border: 1px solid var(--border-color, var(--border-primary, #404040));
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 15px;
+  min-width: 250px;
+  z-index: 1000;
+}
+
+.options-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.options-header h4 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.index-stats {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.option-item {
+  margin: 8px 0;
+}
+
+.option-item label {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.option-item input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+.option-description {
+  margin-left: 24px;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.stats-info {
+  margin-top: 10px;
+  padding: 5px 10px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ==================== 节点定位面板 ==================== */
+.node-locator-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  right: 0;
+  max-height: 500px;
+  background: var(--card-bg, var(--bg-secondary, #2a2a2a));
+  border: 1px solid var(--border-color, var(--border-primary, #404040));
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+}
+
+.node-locator-panel.loading {
+  min-height: 200px;
+  justify-content: center;
+  align-items: center;
+}
+
+.loading-spinner {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* 面板头部 */
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.header-main h3 {
+  margin: 0 0 5px 0;
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.search-stats {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;  /* 缩小字体 */
+}
+
+/* 视图模式切换 */
+.view-mode-toggle {
+  display: flex;
+  gap: 2px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  padding: 2px;
+}
+
+.view-mode-toggle .mode-btn {
+  padding: 4px 8px;
+  font-size: 16px;
+}
+
+/* 面板内容 */
+.panel-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 15px;
+}
+
+/* ==================== 列表视图 ==================== */
+.list-view {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 文件段 */
+.file-section {
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.file-section.selected {
+  border: 1px solid var(--primary-color);
+}
+
+.file-header {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.file-header:hover {
+  background: var(--bg-hover);
+}
+
+.expand-icon {
+  margin-right: 10px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.file-name {
+  flex: 1;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* 对话标题组 */
+.conversation-title-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.conversation-name {
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.file-source {
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.result-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.file-content {
+  padding: 0 15px 15px 15px;
+}
+
+/* 对话结果 */
+.conversation-section {
+  margin-top: 10px;
+  background: var(--bg-primary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.conversation-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  cursor: pointer;
+  background: var(--bg-secondary);
+}
+
+.conversation-header:hover {
+  background: var(--bg-hover);
+}
+
+.conversation-name {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.message-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* 消息列表 */
+.message-list {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 消息预览 */
+.message-preview {
+  padding: 10px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+/* 对话搜索结果的特殊样式 */
+.message-preview.conversation-result {
+  background: var(--bg-hover);
+  border-color: var(--border-color);
+}
+
+.message-preview.conversation-result:hover {
+  border-color: var(--primary-color);
+}
+
+.conversation-icon {
+  font-size: 16px;
+  margin-right: 8px;
+}
+
+.conversation-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.conversation-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.message-count, .file-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.message-preview:hover {
+  background: var(--bg-hover);
+  border-color: var(--primary-color);
+}
+
+.message-preview.blank-message {
+  opacity: 0.6;
+}
+
+.message-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.message-sender {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.message-index {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.badge {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: white;
+}
+
+.badge.refusal {
+  background: #FF5252;
+}
+
+.badge.retry {
+  background: #FFC107;
+  color: #333;
+}
+
+.badge.duplicate {
+  background: #FF9800;
+}
+
+.message-content {
+  margin: 5px 0;
+}
+
+.blank-indicator {
+  font-style: italic;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.preview-text {
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.preview-text mark {
+  background: rgba(255, 193, 7, 0.3);
+  color: inherit;
+  padding: 1px 2px;
+  border-radius: 2px;
+}
+
+.message-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 5px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.timestamp {
+  flex-shrink: 0;
+}
+
+.has-thinking,
+.has-artifacts {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* ==================== 树形视图 ==================== */
+.tree-view {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.file-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.file-selector label {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.file-selector select {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+/* ==================== 迷你节点树 ==================== */
+.mini-node-tree {
+  position: relative;
+  width: 100%;
+  min-height: 400px;
+  background: var(--bg-primary);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.node-tree-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* 节点提示 */
+.node-tooltip {
+  position: absolute;
+  background: var(--card-bg, var(--bg-secondary, #2a2a2a));
+  border: 1px solid var(--border-color, var(--border-primary, #404040));
+  border-radius: 6px;
+  padding: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+  max-width: 300px;
+  z-index: 3000;
+}
+
+.tooltip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.tooltip-content {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.blank-text {
+  font-style: italic;
+}
+
+.tooltip-footer {
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px solid var(--border-color);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* 树形图图例 */
+.tree-legend {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+}
+
+.legend-toggle {
+  padding: 6px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.legend-toggle:hover {
+  background: var(--bg-hover);
+}
+
+.legend-content {
+  position: absolute;
+  bottom: calc(100% + 5px);
+  right: 0;
+  background: var(--card-bg, var(--bg-secondary, #2a2a2a));
+  border: 1px solid var(--border-color, var(--border-primary, #404040));
+  border-radius: 6px;
+  padding: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 200px;
+}
+
+.legend-content h4 {
+  margin: 0 0 10px 0;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 5px 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ==================== 消息高亮动画 ==================== */
+.message.highlight-from-search {
+  animation: highlightPulse 3s ease-out;
+  border-left: 4px solid var(--primary-color) !important;
+}
+
+@keyframes highlightPulse {
+  0% {
+    background-color: rgba(var(--primary-rgb), 0.2);
+    transform: scale(1.02);
+  }
+  50% {
+    background-color: rgba(var(--primary-rgb), 0.1);
+  }
+  100% {
+    background-color: transparent;
+    transform: scale(1);
+  }
+}

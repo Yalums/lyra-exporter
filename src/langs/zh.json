@@ -7,8 +7,8 @@
       "install": {
         "badge": "🌟 新用户从这里开始",
         "title": "安装导出脚本",
-        "description": "目前支持 Claude、Gemini、AI Studio、NotebookLM，还计划适配更多平台",
-        "button": "前往安装脚本"
+        "description": "Claude、Gemini、AI Studio、NotebookLM、SillyTavern",
+        "button": "GreasyFork"
       },
       "load": {
         "badge": "📂 已有数据文件",
@@ -340,7 +340,22 @@
       "version": "版本",
       "github": "GitHub",
       "githubDescription": "开源项目，欢迎贡献和反馈"
-    }
+    },
+    "searchOptions": {
+        "title": "搜索设置",
+        "removeDuplicates": {
+          "label": "移除重复结果",
+          "description": "自动过滤重复的搜索结果，只显示唯一的消息"
+        },
+        "includeThinking": {
+          "label": "搜索思考内容",
+          "description": "在搜索时包含 Claude 的思考过程内容"
+        },
+        "includeArtifacts": {
+          "label": "搜索工件内容",
+          "description": "在搜索时包含代码、文档等工件内容"
+        }
+      }
   },
   "timeline": {
     "branch": {
@@ -390,7 +405,9 @@
       "markImportant": "星标标记",
       "unmarkImportant": "取消重要",
       "markDeleted": "删除标记",
-      "unmarkDeleted": "取消删除"
+      "unmarkDeleted": "取消删除",
+      "previousMessage": "上一条消息",
+      "nextMessage": "下一条消息"
     },
     "info": {
       "modelPlatform": "模型/平台",
@@ -408,6 +425,9 @@
       "completed": "已完成",
       "important": "重要",
       "deleted": "已删除"
+    },
+    "detail": {
+      "selectMessage": "选择一条消息以查看详情"
     }
   },
   "card": {
@@ -599,5 +619,46 @@
       "exportFailed": "导出失败",
       "unknownScope": "未知的导出范围："
     }
+  },
+  "search": {
+    "all": "全部",
+    "titles": "标题",
+    "content": "内容",
+    "modeAll": "搜索全部内容",
+    "modeTitles": "仅搜索标题",
+    "modeContent": "仅搜索内容",
+    "placeholderAll": "搜索所有消息...",
+    "placeholderTitles": "搜索对话标题...",
+    "placeholderContent": "搜索消息内容...",
+    "options": "搜索选项",
+    "indexStats": "{{messages}} 条消息，{{files}} 个文件",
+    "removeDuplicates": "去除重复内容",
+    "removeDuplicatesDesc": "基于消息内容的前100个字符进行去重，不仅限于retry消息",
+    "includeThinking": "包含思考过程",
+    "includeArtifacts": "包含Artifacts",
+    "messagesWithThinking": "{{count}} 条有思考过程的消息",
+    "messagesWithArtifacts": "{{count}} 条有Artifacts的消息",
+    "blankMessages": "{{count}} 条空白消息"
+  },
+  "nodeLocator": {
+    "title": "搜索结果",
+    "searching": "搜索中",
+    "foundMessages": "找到 {{count}} 条消息，来自 {{fileCount}} 个文件，{{conversationCount}} 个对话",
+    "listView": "列表视图",
+    "treeView": "树形视图",
+    "selectFile": "选择文件",
+    "chooseFile": "请选择一个文件",
+    "results": "个结果",
+    "resultCount": "{{count}} 个结果",
+    "matches": "匹配",
+    "singleConversation": "单个对话",
+    "blocked": "被拒绝",
+    "retry": "重试",
+    "duplicate": "重复",
+    "blankMessage": "空白消息",
+    "hasThinking": "思考过程",
+    "hasArtifacts": "Artifacts",
+    "messages": "条消息",
+    "file": "文件"
   }
 }

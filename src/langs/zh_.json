@@ -518,6 +518,21 @@
       "version": "版本",
       "github": "GitHub",
       "githubDescription": "開源專案，歡迎貢獻和回饋"
+    },
+    "searchOptions": {
+      "title": "搜尋設定",
+      "removeDuplicates": {
+        "label": "移除重複結果",
+        "description": "自動過濾重複的搜尋結果，只顯示唯一的訊息"
+      },
+      "includeThinking": {
+        "label": "搜尋思考內容",
+        "description": "在搜尋時包含 Claude 的思考過程內容"
+      },
+      "includeArtifacts": {
+        "label": "搜尋產物內容",
+        "description": "在搜尋時包含程式碼、文件等產物內容"
+      }
     }
   },
   "copy": {
