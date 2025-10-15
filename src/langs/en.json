@@ -7,7 +7,7 @@
       "install": {
         "badge": "🌟 New Users Start Here",
         "title": "Install Export Script",
-        "description": "Supports Claude, Gemini, AI Studio, NotebookLM and other platforms",
+        "description": "Supports Claude, Gemini, AI Studio, NotebookLM, SillyTavern and other platforms",
         "button": "Go to Install Script"
       },
       "load": {
@@ -579,5 +579,46 @@
       "exportFailed": "Export failed",
       "unknownScope": "Unknown export scope:"
     }
-  }
+  },
+  "search": {
+      "all": "All",
+      "titles": "Titles",
+      "content": "Content",
+      "modeAll": "Search all content",
+      "modeTitles": "Search titles only",
+      "modeContent": "Search content only",
+      "placeholderAll": "Search all messages...",
+      "placeholderTitles": "Search conversation titles...",
+      "placeholderContent": "Search message content...",
+      "options": "Search Options",
+      "indexStats": "{{messages}} messages, {{files}} files",
+      "removeDuplicates": "Remove duplicates",
+      "removeDuplicatesDesc": "Deduplicate based on the first 100 characters of message content, not limited to retry messages",
+      "includeThinking": "Include thinking",
+      "includeArtifacts": "Include Artifacts",
+      "messagesWithThinking": "{{count}} messages with thinking",
+      "messagesWithArtifacts": "{{count}} messages with Artifacts",
+      "blankMessages": "{{count}} blank messages"
+    },
+    "nodeLocator": {
+      "title": "Search Results",
+      "searching": "Searching",
+      "foundMessages": "Found {{count}} messages from {{fileCount}} files, {{conversationCount}} conversations",
+      "listView": "List View",
+      "treeView": "Tree View",
+      "selectFile": "Select File",
+      "chooseFile": "Please select a file",
+      "results": "results",
+      "resultCount": "{{count}} results",
+      "matches": "matches",
+      "singleConversation": "Single conversation",
+      "blocked": "Blocked",
+      "retry": "Retry",
+      "duplicate": "Duplicate",
+      "blankMessage": "Blank message",
+      "hasThinking": "Thinking",
+      "hasArtifacts": "Artifacts",
+      "messages": "messages",
+      "file": "File"
+    }
 }

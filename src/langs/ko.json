@@ -7,7 +7,7 @@
       "install": {
         "badge": "🌟 신규 사용자는 여기서 시작",
         "title": "내보내기 스크립트 설치",
-        "description": "Claude, Gemini, AI Studio, NotebookLM 플랫폼 지원",
+        "description": "Claude, Gemini, AI Studio, NotebookLM, SillyTavern 플랫폼 지원",
         "button": "스크립트 설치로 이동"
       },
       "load": {
@@ -545,5 +545,46 @@
       "noTitle": "제목 없음",
       "unknownType": "알 수 없는 유형"
     }
-  }
+  },
+  "search": {
+      "all": "전체",
+      "titles": "제목",
+      "content": "내용",
+      "modeAll": "전체 내용 검색",
+      "modeTitles": "제목만 검색",
+      "modeContent": "내용만 검색",
+      "placeholderAll": "모든 메시지 검색...",
+      "placeholderTitles": "대화 제목 검색...",
+      "placeholderContent": "메시지 내용 검색...",
+      "options": "검색 옵션",
+      "indexStats": "메시지 {{messages}}개, 파일 {{files}}개",
+      "removeDuplicates": "중복 내용 제거",
+      "removeDuplicatesDesc": "메시지 내용의 처음 100자를 기준으로 중복 제거 (재시도 메시지에만 국한되지 않음)",
+      "includeThinking": "생각 과정 포함",
+      "includeArtifacts": "Artifacts 포함",
+      "messagesWithThinking": "생각 과정이 있는 메시지 {{count}}개",
+      "messagesWithArtifacts": "Artifacts가 있는 메시지 {{count}}개",
+      "blankMessages": "빈 메시지 {{count}}개"
+    },
+    "nodeLocator": {
+      "title": "검색 결과",
+      "searching": "검색 중",
+      "foundMessages": "{{count}}개의 메시지를 찾았습니다 (파일 {{fileCount}}개, 대화 {{conversationCount}}개)",
+      "listView": "목록 보기",
+      "treeView": "트리 보기",
+      "selectFile": "파일 선택",
+      "chooseFile": "파일을 선택해주세요",
+      "results": "개 결과",
+      "resultCount": "{{count}}개 결과",
+      "matches": "일치",
+      "singleConversation": "단일 대화",
+      "blocked": "거부됨",
+      "retry": "재시도",
+      "duplicate": "중복",
+      "blankMessage": "빈 메시지",
+      "hasThinking": "생각 과정",
+      "hasArtifacts": "Artifacts",
+      "messages": "개 메시지",
+      "file": "파일"
+    }
 }

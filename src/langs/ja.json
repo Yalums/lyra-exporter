@@ -7,7 +7,7 @@
       "install": {
         "badge": "🌟 新規ユーザーはこちらから",
         "title": "エクスポートスクリプトをインストール",
-        "description": "Claude、Gemini、AI Studio、NotebookLMプラットフォームをサポート",
+        "description": "Claude、Gemini、AI Studio、NotebookLM、SillyTavernプラットフォームをサポート",
         "button": "スクリプトインストールに移動"
       },
       "load": {

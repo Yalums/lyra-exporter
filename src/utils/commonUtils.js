@@ -140,7 +140,7 @@ export const PlatformUtils = {
       'notebooklm': 'NotebookLM',
       'aistudio': 'Google AI Studio',
       'claude': 'Claude',
-      'jsonl_chat': 'JSONL Chat'
+      'jsonl_chat': 'SillyTavern'
     };
     
     return platformMap[platform?.toLowerCase()] || 'Claude';

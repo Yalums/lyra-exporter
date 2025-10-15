@@ -11,7 +11,7 @@
       "install": {
         "badge": "🌟 新用戶從這裡開始",
         "title": "安裝匯出指令碼",
-        "description": "支援Claude、Gemini、AI Studio、NotebookLM平台",
+        "description": "支援Claude、Gemini、AI Studio、NotebookLM、SillyTavern平台",
         "button": "前往安裝指令碼"
       },
       "load": {
@@ -549,5 +549,46 @@
       "noTitle": "無標題",
       "unknownType": "未知類型"
     }
-  }
+  },
+  "search": {
+      "all": "全部",
+      "titles": "標題",
+      "content": "內容",
+      "modeAll": "搜尋全部內容",
+      "modeTitles": "僅搜尋標題",
+      "modeContent": "僅搜尋內容",
+      "placeholderAll": "搜尋所有訊息...",
+      "placeholderTitles": "搜尋對話標題...",
+      "placeholderContent": "搜尋訊息內容...",
+      "options": "搜尋選項",
+      "indexStats": "{{messages}} 條訊息，{{files}} 個檔案",
+      "removeDuplicates": "移除重複內容",
+      "removeDuplicatesDesc": "基於訊息內容的前100個字元進行去重，不僅限於retry訊息",
+      "includeThinking": "包含思考過程",
+      "includeArtifacts": "包含Artifacts",
+      "messagesWithThinking": "{{count}} 條有思考過程的訊息",
+      "messagesWithArtifacts": "{{count}} 條有Artifacts的訊息",
+      "blankMessages": "{{count}} 條空白訊息"
+    },
+    "nodeLocator": {
+      "title": "搜尋結果",
+      "searching": "搜尋中",
+      "foundMessages": "找到 {{count}} 條訊息，來自 {{fileCount}} 個檔案，{{conversationCount}} 個對話",
+      "listView": "列表檢視",
+      "treeView": "樹狀檢視",
+      "selectFile": "選擇檔案",
+      "chooseFile": "請選擇一個檔案",
+      "results": "個結果",
+      "resultCount": "{{count}} 個結果",
+      "matches": "匹配",
+      "singleConversation": "單一對話",
+      "blocked": "被拒絕",
+      "retry": "重試",
+      "duplicate": "重複",
+      "blankMessage": "空白訊息",
+      "hasThinking": "思考過程",
+      "hasArtifacts": "Artifacts",
+      "messages": "條訊息",
+      "file": "檔案"
+    }
 }
