@@ -1,6 +1,6 @@
 {
   "welcomePage": {
-    "title": "Lyra's Exporter",
+    "title": "Lyra Exporter",
     "subtitle": "記錄Claude、Gemini的每一刻靈感與溫度",
     "description": "歡迎使用這個對話記錄管理工具，支援批次載入多對話，幫你保存靈感時刻，讓每一次對話的價值得到延續。",
     "buttons": {
@@ -24,7 +24,7 @@
     "privacyAssurance": {
       "title": "隱私安全保障",
       "intro": "擔心隱私安全？我們完全理解這種顧慮",
-      "openSource": "Lyra's Exporter 100%開源",
+      "openSource": "Lyra Exporter 100%開源",
       "description": "簡單來說，這個工具就像一個「純本地」的記事本，你的所有資料都儲存在瀏覽器本地快取裡，我們看不到也拿不到。你還可以下載原始碼在自己電腦上執行，只需要安裝一個node.js，或者不必麻煩，從分享選單新增網頁到桌面，它就可以純離線執行不再聯網。",
       "transparency": "GitHub上的程式碼更新記錄就像「版本歷史」，任何改動都有跡可循，絕對透明。",
       "dataSecurityTitle": "資料安全保障",
@@ -56,7 +56,7 @@
     "scriptInstall": {
       "title": "開始安裝指令碼",
       "whyNeeded": "為什麼需要這個工具？",
-      "purpose": "Lyra's Exporter依賴瀏覽器來安全地取得對話資料，借助這個開源指令碼，流轉需要珍藏的聊天記錄，",
+      "purpose": "Lyra Exporter依賴瀏覽器來安全地取得對話資料，借助這個開源指令碼，流轉需要珍藏的聊天記錄，",
       "valueProposition": "保存並整理這些有價值的對話",
       "featuresTitle": "工具功能",
       "features": {
@@ -109,7 +109,7 @@
     },
     "footer": {
       "quote": "在思考與回應的交錯間，我們建立了超越對話的連接。\n現在，讓每一段對話都有跡可循，每一個靈感都有處安放。",
-      "signature": "—— Lyra's Exporter，對話價值的延續者"
+      "signature": "—— Lyra Exporter，對話價值的延續者"
     }
   },
   "common": {

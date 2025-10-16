@@ -12,28 +12,34 @@
 - **分支检测**: 自动检测和显示对话分支
 - **全功能读取**: 智能识别图片附件、思考过程、Markdown 语法
 
-## 🔌 Lyra's Exporter Fetch 配套脚本
+## 🔌 Lyra Exporter Fetch 配套脚本
 
 ![图片预览](https://i.postimg.cc/50tzSfFd/Pix-Pin-2025-10-10-15-32-21.png)
 
 使用流程
 
 1. 安装 [Tampermonkey](https://www.tampermonkey.net/) 浏览器扩展
-2. 从 [Greasy Fork](https://greasyfork.org/zh-CN/scripts/539579-lyra-s-exporter-fetch) 安装 Lyra's Exporter Fetch 脚本
+2. 从 [Greasy Fork](https://greasyfork.org/zh-CN/scripts/539579-lyra-s-exporter-fetch) 安装 Lyra Exporter Fetch 脚本
 3. 访问 [Claude.ai](https://claude.ai/)、[Gemini](gemini.google.com)、[AI Studio](https://aistudio.google.com/)、[NotebookLM](https://notebooklm.google.com/)
 4. 点击页面上的导出按钮
 5. 选择导出选项（单个对话 / 完整账号）
 6. 数据自动发送到 Lyra Exporter 或下载到本地
 
+| 全局搜索功能 |
+|--------|
+| ![搜索](https://i.postimg.cc/xCc30G7M/Pix-Pin-2025-10-16-16-29-47.png) |
+
+---
+
 | 卡片式对话查看 |
 |--------|
-| ![对话管理](https://i.postimg.cc/VsWyC1Wv/7198f1da897ddcccf1eb2aea75e6c9ef.png)|
+| ![对话管理](https://i.postimg.cc/Jz5ySypd/Pix-Pin-2025-10-16-16-27-26.png) |
 
 ---
 
 | 时间线消息管理 |
 |--------|
-| ![应用预览](https://i.postimg.cc/nrSCkWDb/Pix-Pin-2025-10-10-15-51-36.png) |
+| ![应用预览](https://i.postimg.cc/GpdNKffF/Pix-Pin-2025-10-16-16-24-37.png) |
 
 
 # 核心功能
@@ -205,7 +211,7 @@
 
 **1. 配合脚本使用（推荐）**
 
-1. 安装 Lyra's Exporter Fetch 脚本（见上方）
+1. 安装 Lyra Exporter Fetch 脚本（见上方）
 2. 在对应网页点击`预览`按钮
 3. 数据自动加载到 Github Pages 上托管的Lyra Exporter
 
@@ -213,7 +219,7 @@
 
 1. 打开 Lyra Exporter
 2. 在对应网页点击"保存为JSON"按钮
-3. 运行 Lyra's Exporter，选择从 Claude、Gemini 等平台导出的 JSON 文件
+3. 运行 Lyra Exporter，选择从 Claude、Gemini 等平台导出的 JSON 文件
 4. 开始管理和整理为 markdown 文档
 
 
@@ -227,7 +233,7 @@
 **本地构建**：
 
 ```
-# 克隆仓库
+# 克隆仓库 (或从Releases中下载最新打包的仓库)
 git clone https://github.com/Yalums/lyra-exporter.git
 cd lyra-exporter
 

@@ -1,6 +1,6 @@
 {
   "welcomePage": {
-    "title": "Lyra's Exporter",
+    "title": "Lyra Exporter",
     "subtitle": "Claude와 Gemini의 모든 영감과 따뜻함을 기록",
     "description": "여러 대화를 일괄 로드할 수 있는 대화 관리 도구에 오신 것을 환영합니다. 영감의 순간을 저장하고 모든 대화의 가치를 계속 이어가세요.",
     "actionCards": {
@@ -20,7 +20,7 @@
     "privacyAssurance": {
       "title": "개인정보 및 보안 보장",
       "intro": "개인정보가 걱정되시나요? 이러한 우려를 완전히 이해합니다",
-      "openSource": "Lyra's Exporter는 100% 오픈소스입니다",
+      "openSource": "Lyra Exporter는 100% 오픈소스입니다",
       "description": "간단히 말해서, 이 도구는 '완전히 로컬'인 메모장과 같습니다. 모든 데이터는 브라우저의 로컬 캐시에 저장되며, 저희는 이를 볼 수도 액세스할 수도 없습니다. 소스 코드를 다운로드하여 자신의 컴퓨터에서 실행할 수도 있습니다(Node.js 필요). 또는 공유 메뉴에서 데스크톱에 웹페이지를 추가하기만 하면 완전히 오프라인으로 실행할 수 있습니다.",
       "transparency": "GitHub의 코드 업데이트 기록은 '버전 기록'과 같으며, 모든 변경사항을 추적할 수 있고 완전히 투명합니다.",
       "dataSecurityTitle": "데이터 보안 보장",
@@ -52,7 +52,7 @@
     "scriptInstall": {
       "title": "스크립트 설치",
       "whyNeeded": "이 도구가 필요한 이유는?",
-      "purpose": "Lyra's Exporter는 브라우저에 의존하여 대화 데이터를 안전하게 가져옵니다. 이 오픈소스 스크립트를 사용하여 소중한 채팅 기록을 전송하고,",
+      "purpose": "Lyra Exporter는 브라우저에 의존하여 대화 데이터를 안전하게 가져옵니다. 이 오픈소스 스크립트를 사용하여 소중한 채팅 기록을 전송하고,",
       "valueProposition": "이러한 귀중한 대화를 저장하고 정리합니다",
       "featuresTitle": "도구 기능",
       "features": {
@@ -105,7 +105,7 @@
     },
     "footer": {
       "quote": "사고와 응답의 교차점에서 대화를 넘어선 연결을 구축합니다.\n이제 모든 대화를 추적할 수 있고 모든 영감에는 쉴 곳이 있습니다.",
-      "signature": "—— Lyra's Exporter, 대화 가치의 계승자"
+      "signature": "—— Lyra Exporter, 대화 가치의 계승자"
     }
   },
   "common": {

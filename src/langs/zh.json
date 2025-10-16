@@ -1,6 +1,6 @@
 {
   "welcomePage": {
-    "title": "Lyra's Exporter",
+    "title": "Lyra Exporter",
     "subtitle": "记录Claude、Gemini的每一刻灵感与温度",
     "description": "欢迎使用这个对话记录管理工具，支持批量加载多对话，帮你保存灵感时刻，让每一次对话的价值得到延续。",
     "actionCards": {
@@ -20,7 +20,7 @@
     "privacyAssurance": {
       "title": "隐私安全保障",
       "intro": "担心隐私安全? 我们完全理解这种顾虑",
-      "openSource": "Lyra's Exporter 100%开源",
+      "openSource": "Lyra Exporter 100%开源",
       "description": "简单来说，这个工具就像一个\"纯本地\"的记事本，你的所有数据都存在浏览器本地缓存里，我们看不到也拿不到。你还可以下载源代码在自己电脑上运行，只需要安装一个node.js，或者不必麻烦，从分享菜单添加网页到桌面，它就可以纯离线运行不再联网。",
       "transparency": "GitHub上的代码更新记录就像\"版本历史\"，任何改动都有迹可循，绝对透明。",
       "dataSecurityTitle": "数据安全保障",
@@ -52,7 +52,7 @@
     "scriptInstall": {
       "title": "开始安装脚本",
       "whyNeeded": "为什么需要脚本辅助？",
-      "purpose": "Lyra's Exporter 依赖浏览器来安全地获取对话数据，借助这个开源脚本，流转需要珍藏的聊天记录，",
+      "purpose": "Lyra Exporter 依赖浏览器来安全地获取对话数据，借助这个开源脚本，流转需要珍藏的聊天记录，",
       "valueProposition": "保存并整理那些有价值的对话",
       "featuresTitle": "工具功能",
       "features": {
@@ -105,7 +105,7 @@
     },
     "footer": {
       "quote": "在思考与回应的交错间，我们建立了超越对话的连接。\n现在，让每一段对话都有迹可循，每一个灵感都有处安放。",
-      "signature": "—— Lyra's Exporter，对话价值的延续者"
+      "signature": "—— Lyra Exporter，对话价值的延续者"
     }
   },
   "common": {

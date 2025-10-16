@@ -1,6 +1,6 @@
 {
   "welcomePage": {
-    "title": "Lyra's Exporter",
+    "title": "Lyra Exporter",
     "subtitle": "Capturing every moment of inspiration and warmth from Claude & Gemini",
     "description": "Welcome to this conversation management tool that supports batch loading of multiple conversations, helping you preserve moments of inspiration and extend the value of every dialogue.",
     "actionCards": {
@@ -20,7 +20,7 @@
     "privacyAssurance": {
       "title": "Privacy & Security Guarantee",
       "intro": "Concerned about privacy? We completely understand this worry",
-      "openSource": "Lyra's Exporter is 100% open source",
+      "openSource": "Lyra Exporter is 100% open source",
       "description": "Simply put, this tool is like a 'purely local' notepad. All your data is stored in your browser's local cache - we can't see it or access it. You can also download the source code and run it on your own computer with just Node.js, or simply add this webpage to your desktop from the share menu for completely offline usage.",
       "transparency": "Code update records on GitHub are like 'version history' - every change is traceable and completely transparent.",
       "dataSecurityTitle": "Data Security Guarantee",
@@ -52,7 +52,7 @@
     "scriptInstall": {
       "title": "Install Script",
       "whyNeeded": "Why you need that UserScript?",
-      "purpose": "Lyra's Exporter relies on browsers to safely obtain conversation data. With this open-source script, transfer chat records worth treasuring,",
+      "purpose": "Lyra Exporter relies on browsers to safely obtain conversation data. With this open-source script, transfer chat records worth treasuring,",
       "valueProposition": "save and organize these valuable conversations",
       "featuresTitle": "Tool Features",
       "features": {
@@ -105,7 +105,7 @@
     },
     "footer": {
       "quote": "In the interweaving of thoughts and responses, we establish connections beyond conversation.\nNow, let every dialogue be traceable and every inspiration have a place to rest.",
-      "signature": "—— Lyra's Exporter, Continuer of Conversation Value"
+      "signature": "—— Lyra Exporter, Continuer of Conversation Value"
     }
   },
   "common": {

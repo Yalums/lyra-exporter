@@ -15,20 +15,37 @@
 
 
 
-## 🔌 Lyra's Exporter Fetch Companion Script
+## 🔌 Lyra Exporter Fetch Companion Script
 
-Lyra's Exporter relies on browsers to safely obtain conversation data. With this open-source script, transfer chat records worth treasuring
+Lyra Exporter relies on browsers to safely obtain conversation data. With this open-source script, transfer chat records worth treasuring
 
 1. Install the [Tampermonkey](https://www.tampermonkey.net/) browser extension
-2. Install Lyra's Exporter Fetch script from [Greasy Fork](https://greasyfork.org/en/scripts/539579-lyra-s-exporter-fetch)
+2. Install Lyra Exporter Fetch script from [Greasy Fork](https://greasyfork.org/en/scripts/539579-lyra-s-exporter-fetch)
 3. Visit [Claude.ai](https://claude.ai/), [Gemini](https://gemini.google.com), [AI Studio](https://aistudio.google.com/), or [NotebookLM](https://notebooklm.google.com/)
 4. Click the export button on the page
 5. Choose export options (single conversation / full account)
 6. Data is automatically sent to Lyra Exporter or downloaded locally
 
-| Lyra's Exporter |
+## Recommended Workflow
+
+Rather than building a complex local search engine, here's my practical approach: (just for reference, be care for your personal data)
+
+1. Use Lyra Exporter to export conversations
+2. Identify 3-5 related conversations worth organizing
+3. Feed them to NotebookLM for analysis and synthesis
+4. Archive refined insights in Obsidian
+
+Fast, nearly free, and gets the job done.
+
+| Lyra Exporter |
 |--------|
 | ![Welcome Page](https://i.postimg.cc/T3cSmKBK/Pix-Pin-2025-10-15-08-32-35.png)|
+
+---
+
+| Global Search |
+|--------|
+| ![Search](https://i.postimg.cc/C1xSd5Hp/Pix-Pin-2025-10-16-16-33-44.png) |
 
 ---
 
@@ -219,7 +236,7 @@ Lyra's Exporter relies on browsers to safely obtain conversation data. With this
 **Build Locally**:
 
 ```bash
-# Clone the repository
+# Clone the repository (or Download from the releases)
 git clone https://github.com/Yalums/lyra-exporter.git
 cd lyra-exporter
 
@@ -234,7 +251,7 @@ npm start
 
 **Method 1: With Companion Script (Recommended)**
 
-1. Install Lyra's Exporter Fetch script (see above)
+1. Install Lyra Exporter Fetch script (see above)
 2. Click the "Preview" button on the respective platform's webpage
 3. Data automatically loads into Lyra Exporter hosted on GitHub Pages
 
@@ -242,5 +259,5 @@ npm start
 
 1. Open Lyra Exporter
 2. Click the "Save as JSON" button on the respective platform's webpage
-3. Run Lyra's Exporter and select JSON files exported from Claude, Gemini, or other platforms
+3. Run Lyra Exporter and select JSON files exported from Claude, Gemini, or other platforms
 4. Start managing and organizing into Markdown documents

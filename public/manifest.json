@@ -1,7 +1,7 @@
 {
   "short_name": "Lyra Exporter",
-  "name": "Claude聊天记录管理 | Lyra's Exporter",
-  "description": "Claude和Gemini聊天记录管理工具 - 整理、搜索和导出对话数据",
+  "name": "Lyra Exporter for Claude, Gemini etc.",
+  "description": "Open-source multi-platform AI conversation manager supporting Claude, Gemini, NotebookLM, Google AI Studio, SillyTavern and more. Actively improving mobile experience and expanding platform support",
   "icons": [
     {
       "src": "favicon.ico",
@@ -21,7 +21,7 @@
   "background_color": "#F2F0E9",
   "orientation": "any",
   "scope": "./",
-  "lang": "zh-CN",
+  "lang": "en-US",
   "categories": ["productivity", "utilities"],
   "screenshots": []
 }
