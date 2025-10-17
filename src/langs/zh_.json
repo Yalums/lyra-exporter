@@ -435,6 +435,10 @@
       "includeArtifacts": {
         "label": "包含Artifacts",
         "description": "複製訊息時包含生成的程式碼和文件"
+      },
+      "includeAttachments": {
+        "label": "包含附件",
+        "description": "複製訊息時包含使用者上傳的檔案附件資訊"
       }
     },
     "exportFormat": {
@@ -509,6 +513,10 @@
       "citations": {
         "label": "引用來源",
         "description": "網頁連結等引用資訊"
+      },
+      "attachments": {
+        "label": "附件資訊",
+        "description": "使用者上傳的檔案及其預覽資訊"
       }
     },
     "about": {

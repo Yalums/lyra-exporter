@@ -431,6 +431,10 @@
       "includeArtifacts": {
         "label": "Artifacts 포함",
         "description": "메시지 복사 시 생성된 코드 및 문서 포함"
+      },
+      "includeAttachments": {
+        "label": "첨부파일 포함",
+        "description": "메시지 복사 시 사용자가 업로드한 파일 첨부 정보 포함"
       }
     },
     "exportFormat": {
@@ -505,6 +509,10 @@
       "citations": {
         "label": "인용",
         "description": "웹 링크 등 인용 정보"
+      },
+      "attachments": {
+        "label": "첨부파일",
+        "description": "사용자가 업로드한 파일 및 미리보기 정보"
       }
     },
     "about": {

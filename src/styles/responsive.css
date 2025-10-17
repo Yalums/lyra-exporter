@@ -173,6 +173,21 @@
     height: 6px;
   }
   
+  /* 节点定位面板平板优化 */
+  .node-locator-panel {
+    max-height: 60vh;
+  }
+
+  .conversation-title-group {
+    min-width: 0;
+  }
+
+  .conversation-name,
+  .file-source {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   /* 消息详情响应式 */
   .message-images {
     padding: 12px;
@@ -314,6 +329,106 @@
     display: none;
   }
 
+  /* 节点定位面板移动端优化 */
+  .node-locator-panel {
+    max-height: 70vh;
+    font-size: 13px;
+  }
+
+  .panel-header {
+    padding: 12px;
+    padding-right: 48px; /* 留出关闭按钮空间 */
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    position: relative;
+  }
+
+  .panel-header .close-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+  }
+
+  .header-main h3 {
+    font-size: 14px;
+  }
+
+  .header-controls {
+    font-size: 11px;
+    width: 100%;
+  }
+
+  .panel-content {
+    padding: 12px;
+  }
+
+  .file-header {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .conversation-title-group {
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .conversation-name {
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .file-source {
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .result-count {
+    font-size: 11px;
+    padding: 2px 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .message-preview {
+    padding: 8px;
+  }
+
+  .message-header {
+    gap: 6px;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+  }
+
+  .message-sender {
+    font-size: 12px;
+  }
+
+  .message-index {
+    font-size: 11px;
+  }
+
+  .preview-text {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .message-meta {
+    gap: 8px;
+    font-size: 11px;
+    flex-wrap: wrap;
+  }
+
+  .badge {
+    font-size: 10px;
+    padding: 1px 4px;
+  }
+
   /* 标签页优化 */
   .modal-tabs,
   .detail-tabs {
@@ -416,6 +531,112 @@
 
   .file-preview-hint {
     font-size: 0.7rem;
+  }
+
+  /* 节点定位面板超小屏幕优化 */
+  .node-locator-panel {
+    max-height: 60vh;
+    font-size: 12px;
+  }
+
+  .panel-header {
+    padding: 10px;
+    padding-right: 44px; /* 留出关闭按钮空间 */
+    gap: 6px;
+  }
+
+  .panel-header .close-btn {
+    top: 10px;
+    right: 10px;
+    width: 28px;
+    height: 28px;
+    font-size: 20px;
+  }
+
+  .header-main h3 {
+    font-size: 13px;
+  }
+
+  .header-controls {
+    font-size: 10px;
+  }
+
+  .panel-content {
+    padding: 10px;
+  }
+
+  .list-view {
+    gap: 8px;
+  }
+
+  .file-header {
+    padding: 6px 10px;
+  }
+
+  .expand-icon {
+    margin-right: 6px;
+    font-size: 10px;
+  }
+
+  .conversation-name {
+    font-size: 12px;
+  }
+
+  .file-source {
+    font-size: 10px;
+  }
+
+  .result-count {
+    font-size: 10px;
+    padding: 2px 5px;
+  }
+
+  .file-content {
+    padding: 0 10px 10px 10px;
+  }
+
+  .message-list {
+    padding: 8px;
+    gap: 6px;
+  }
+
+  .message-preview {
+    padding: 6px;
+  }
+
+  .message-header {
+    gap: 4px;
+    margin-bottom: 3px;
+  }
+
+  .message-sender {
+    font-size: 11px;
+  }
+
+  .message-index {
+    font-size: 10px;
+  }
+
+  .preview-text {
+    font-size: 11px;
+    line-height: 1.3;
+  }
+
+  .message-meta {
+    gap: 6px;
+    font-size: 10px;
+    margin-top: 4px;
+  }
+
+  .badge {
+    font-size: 9px;
+    padding: 1px 3px;
+  }
+
+  /* 简化显示信息 */
+  .has-thinking,
+  .has-artifacts {
+    display: none;
   }
 }
 

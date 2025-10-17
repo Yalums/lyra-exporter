@@ -49,7 +49,8 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
     copyOptions: {
       includeThinking: false,
       includeArtifacts: false,
-      includeMetadata: true
+      includeMetadata: true,
+      includeAttachments: true
     },
     language: 'zh-CN',
     searchOptions: {
@@ -73,6 +74,7 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
       includeArtifacts: true,
       includeTools: false,
       includeCitations: false,
+      includeAttachments: true,
       thinkingFormat: 'codeblock'
     }
   });
@@ -143,7 +145,7 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
     }));
     
     // 如果是内容相关的选项，同步更新 App.js 中的 exportOptions
-    if (setExportOptions && ['includeTimestamps', 'includeThinking', 'includeArtifacts', 'includeTools', 'includeCitations'].includes(option)) {
+    if (setExportOptions && ['includeTimestamps', 'includeThinking', 'includeArtifacts', 'includeTools', 'includeCitations', 'includeAttachments'].includes(option)) {
       setExportOptions(prev => ({
         ...prev,
         [option]: value
@@ -246,6 +248,13 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
               description={t('settings.copyOptions.includeArtifacts.description')}
               checked={settings.copyOptions.includeArtifacts}
               onChange={(checked) => handleCopyOptionChange('includeArtifacts', checked)}
+            />
+            
+            <CheckboxSetting
+              label={t('settings.copyOptions.includeAttachments.label')}
+              description={t('settings.copyOptions.includeAttachments.description')}
+              checked={settings.copyOptions.includeAttachments}
+              onChange={(checked) => handleCopyOptionChange('includeAttachments', checked)}
             />
           </SettingsSection>
 
@@ -452,6 +461,13 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
               description={t('settings.exportContent.citations.description')}
               checked={settings.exportOptions.includeCitations}
               onChange={(checked) => handleExportOptionChange('includeCitations', checked)}
+            />
+            
+            <CheckboxSetting
+              label={t('settings.exportContent.attachments.label')}
+              description={t('settings.exportContent.attachments.description')}
+              checked={settings.exportOptions.includeAttachments}
+              onChange={(checked) => handleExportOptionChange('includeAttachments', checked)}
             />
           </SettingsSection>
 

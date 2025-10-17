@@ -959,8 +959,8 @@ function createJSONLMessage(entryIndex, swipeIndex, name, senderLabel, timestamp
   // 如果有swipe信息，添加到display_text前面作为标记
   if (swipeInfo) {
     const branchLabel = swipeInfo.isSelected ? 
-      `**[分支 ${swipeInfo.swipeIndex + 1}/${swipeInfo.totalSwipes}] (已选择)**` :
-      `**[分支 ${swipeInfo.swipeIndex + 1}/${swipeInfo.totalSwipes}]**`;
+      `**[${swipeInfo.swipeIndex + 1}/${swipeInfo.totalSwipes}] 🚩**` :
+      `**[${swipeInfo.swipeIndex + 1}/${swipeInfo.totalSwipes}]**`;
     messageData.display_text = `${branchLabel}\n\n${messageData.display_text}`;
   }
   

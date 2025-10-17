@@ -257,6 +257,10 @@
       "includeArtifacts": {
         "label": "包含Artifacts",
         "description": "复制消息时包含生成的代码和文档"
+      },
+      "includeAttachments": {
+        "label": "包含附件",
+        "description": "复制消息时包含用户上传的文件附件信息"
       }
     },
     "exportFormat": {
@@ -331,6 +335,10 @@
       "citations": {
         "label": "引用来源",
         "description": "网页链接等引用信息"
+      },
+      "attachments": {
+        "label": "附件信息",
+        "description": "用户上传的文件及其预览信息"
       }
     },
     "about": {
@@ -352,8 +360,8 @@
           "description": "在搜索时包含 Claude 的思考过程内容"
         },
         "includeArtifacts": {
-          "label": "搜索工件内容",
-          "description": "在搜索时包含代码、文档等工件内容"
+          "label": "搜索Artifacts内容",
+          "description": "在搜索时包含Claude创建的Artifacts"
         }
       }
   },

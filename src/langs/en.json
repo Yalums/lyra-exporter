@@ -427,6 +427,10 @@
       "includeArtifacts": {
         "label": "Include Artifacts",
         "description": "Include generated code and documents when copying messages"
+      },
+      "includeAttachments": {
+        "label": "Include Attachments",
+        "description": "Include uploaded file information when copying messages"
       }
     },
     "exportFormat": {
@@ -501,6 +505,10 @@
       "citations": {
         "label": "Citations",
         "description": "Citation information like web links"
+      },
+      "attachments": {
+        "label": "Attachments",
+        "description": "User-uploaded files and their preview information"
       }
     },
     "about": {

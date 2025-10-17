@@ -1,34 +1,82 @@
 // components/MessageDetail.js - 修复版
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Component } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { getImageDisplayData } from '../utils/fileParser';
 import { useI18n } from '../hooks/useI18n';
 
-import remarkMath from 'remark-math'; // 增加LaTex渲染
+import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
+
+// 错误边界组件
+class MarkdownErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Markdown 渲染错误:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          padding: '20px',
+          backgroundColor: 'var(--bg-tertiary)',
+          border: '1px solid var(--accent-danger)',
+          borderRadius: '4px',
+          color: 'var(--accent-danger)'
+        }}>
+          <h4>⚠️ 内容渲染出错</h4>
+          <p style={{ color: 'var(--text-primary)' }}>此消息包含无法正确渲染的内容（可能是格式错误的数学公式）</p>
+          <details style={{ marginTop: '10px' }}>
+            <summary style={{ cursor: 'pointer', color: 'var(--text-primary)' }}>查看原始文本</summary>
+            <pre style={{
+              marginTop: '10px',
+              padding: '10px',
+              backgroundColor: 'var(--bg-code)',
+              color: 'var(--text-code)',
+              borderRadius: '4px',
+              overflow: 'auto',
+              fontSize: '12px',
+              border: '1px solid var(--border-primary)'
+            }}>
+              {this.props.fallbackContent || '无内容'}
+            </pre>
+          </details>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 const MessageDetail = ({ 
   processedData, 
   selectedMessageIndex, 
-  activeTab = 'content', // 提供默认值
+  activeTab = 'content',
   searchQuery,
   format, 
-  onTabChange, // 可选的标签页切换回调
-  showTabs = true // 新增属性，控制是否显示标签页
+  onTabChange,
+  showTabs = true
 }) => {
   const { t } = useI18n();
   const contentRef = useRef(null);
   const [imageLoadErrors, setImageLoadErrors] = useState({});
   const [internalActiveTab, setInternalActiveTab] = useState(activeTab);
-  const [attachmentViewMode, setAttachmentViewMode] = useState({}); // 'preview' or 'full' for each attachment
+  const [attachmentViewMode, setAttachmentViewMode] = useState({});
   
-  // 使用内部状态管理activeTab，如果没有提供onTabChange
   const currentActiveTab = onTabChange ? activeTab : internalActiveTab;
   const handleTabChange = onTabChange || setInternalActiveTab;
   
-  // 获取当前选中的消息
   const getCurrentMessage = () => {
     if (!processedData?.chat_history || selectedMessageIndex === null) {
       return null;
@@ -38,7 +86,6 @@ const MessageDetail = ({
 
   const currentMessage = getCurrentMessage();
 
-  // 过滤图片引用的工具函数（增强版）
   const filterImageReferences = (text) => {
     if (!text) return '';
     return text
@@ -52,31 +99,31 @@ const MessageDetail = ({
       .trim();
   };
 
-  // 根据格式决定显示哪些标签页
+  const sanitizeMathContent = (text) => {
+    if (!text || typeof text !== 'string') return '';
+    
+    // 不做任何处理，直接返回原文
+    // 让 remark-math 和 rehype-katex 自己处理错误
+    return text;
+  };
+
   const getAvailableTabs = () => {
     const baseTabs = [{ id: 'content', label: t('messageDetail.tabs.content') }];
     
-    // 如果没有选中消息，返回基础标签
     if (!currentMessage) {
       return baseTabs;
     }
     
-    // 人类消息的处理
     if (currentMessage.sender === 'human') {
-      // 人类消息不显示思考过程和Artifacts
-      // 但如果有附件，显示附件选项卡
       if (currentMessage.attachments && currentMessage.attachments.length > 0) {
         baseTabs.push({ id: 'attachments', label: t('messageDetail.tabs.attachments') });
       }
     } else {
-      // 助手消息的处理
-      // Claude格式和JSONL格式都支持思考过程
       if (format === 'claude' || format === 'claude_full_export' || format === 'jsonl_chat' || !format) {
         if (currentMessage.thinking) {
           baseTabs.push({ id: 'thinking', label: t('messageDetail.tabs.thinking') });
         }
       }
-      // 只有Claude格式支持Artifacts
       if (format === 'claude' || format === 'claude_full_export' || !format) {
         if (currentMessage.artifacts && currentMessage.artifacts.length > 0) {
           baseTabs.push({ id: 'artifacts', label: 'Artifacts' });
@@ -89,23 +136,19 @@ const MessageDetail = ({
 
   const availableTabs = getAvailableTabs();
 
-  // 自动调整activeTab，确保它在可用标签中
   useEffect(() => {
     const availableTabIds = availableTabs.map(tab => tab.id);
     if (availableTabIds.length > 0 && !availableTabIds.includes(currentActiveTab)) {
-      handleTabChange('content'); // 默认切换到内容标签
+      handleTabChange('content');
     }
   }, [availableTabs, currentActiveTab, handleTabChange]);
 
-  // 清除图片错误状态当消息改变时
   useEffect(() => {
     setImageLoadErrors({});
     setAttachmentViewMode({});
   }, [selectedMessageIndex]);
 
-  // 自定义渲染组件，用于搜索高亮
   const MarkdownComponents = {
-    // ... 保持原有的MarkdownComponents不变
     p: ({ children, ...props }) => {
       if (typeof children === 'string' && searchQuery) {
         const highlightedText = highlightSearchText(children, searchQuery);
@@ -217,7 +260,6 @@ const MessageDetail = ({
     )
   };
 
-  // 搜索高亮功能
   const highlightSearchText = (text, query) => {
     if (!query || !text) return text;
     
@@ -225,7 +267,6 @@ const MessageDetail = ({
     return text.replace(regex, '<mark>$1</mark>');
   };
 
-  // 渲染图片
   const renderImages = (images) => {
     if (!images || images.length === 0) {
       return null;
@@ -304,7 +345,6 @@ const MessageDetail = ({
     );
   };
 
-  // 渲染Artifacts
   const renderArtifacts = (artifacts) => {
     if (!artifacts || artifacts.length === 0) {
       return <div className="placeholder">{t('messageDetail.placeholder.noArtifacts')}</div>;
@@ -346,7 +386,6 @@ const MessageDetail = ({
     ));
   };
 
-  // 渲染附件
   const renderAttachments = (attachments) => {
     if (!attachments || attachments.length === 0) {
       return <div className="placeholder">{t('messageDetail.placeholder.noAttachments')}</div>;
@@ -409,58 +448,66 @@ const MessageDetail = ({
           <div className="content-body">
             {isMarkdown ? (
               <div className="markdown-content">
-                <ReactMarkdown 
-                  remarkPlugins={[remarkGfm, remarkMath]}  // 添加 remarkMath
-                  rehypePlugins={[rehypeKatex]}  // 添加 rehypeKatex
-                  components={{
-                    // 自定义代码块样式
-                    code: ({node, inline, className, children, ...props}) => {
-                      const match = /language-(\w+)/.exec(className || '');
-                      return !inline && match ? (
-                        <pre style={{
-                          background: '#2d2d2d',
-                          color: '#f8f8f2',
-                          padding: '10px',
-                          borderRadius: '4px',
-                          overflow: 'auto'
-                        }}>
-                          <code className={className} {...props}>
+                <MarkdownErrorBoundary 
+                  key={`attachment-${selectedMessageIndex}-${index}`} 
+                  fallbackContent={content}
+                >
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkGfm, remarkMath]}
+                    rehypePlugins={[rehypeKatex]}
+                    skipHtml={false}
+                    components={{
+                      code: ({node, inline, className, children, ...props}) => {
+                        const match = /language-(\w+)/.exec(className || '');
+                        return !inline && match ? (
+                          <pre style={{
+                            background: 'var(--bg-code)',
+                            color: 'var(--text-code)',
+                            padding: '10px',
+                            borderRadius: '4px',
+                            overflow: 'auto',
+                            border: '1px solid var(--border-primary)'
+                          }}>
+                            <code className={className} {...props}>
+                              {children}
+                            </code>
+                          </pre>
+                        ) : (
+                          <code style={{
+                            background: 'var(--bg-tertiary)',
+                            color: 'var(--accent-danger)',
+                            padding: '2px 4px',
+                            borderRadius: '3px',
+                            fontSize: '85%',
+                            border: '1px solid var(--border-primary)'
+                          }} {...props}>
                             {children}
                           </code>
-                        </pre>
-                      ) : (
-                        <code style={{
-                          background: '#f6f8fa',
-                          padding: '2px 4px',
-                          borderRadius: '3px',
-                          fontSize: '85%'
-                        }} {...props}>
+                        );
+                      },
+                      h1: ({children}) => <h1 style={{fontSize: '1.8em', marginTop: '20px', marginBottom: '10px', color: 'var(--text-primary)'}}>{children}</h1>,
+                      h2: ({children}) => <h2 style={{fontSize: '1.5em', marginTop: '18px', marginBottom: '8px', color: 'var(--text-primary)'}}>{children}</h2>,
+                      h3: ({children}) => <h3 style={{fontSize: '1.3em', marginTop: '16px', marginBottom: '6px', color: 'var(--text-primary)'}}>{children}</h3>,
+                      ul: ({children}) => <ul style={{paddingLeft: '25px', marginBottom: '10px', color: 'var(--text-primary)'}}>{children}</ul>,
+                      ol: ({children}) => <ol style={{paddingLeft: '25px', marginBottom: '10px', color: 'var(--text-primary)'}}>{children}</ol>,
+                      blockquote: ({children}) => (
+                        <blockquote style={{
+                          borderLeft: '4px solid var(--accent-primary)',
+                          paddingLeft: '16px',
+                          margin: '10px 0',
+                          color: 'var(--text-secondary)',
+                          background: 'var(--bg-tertiary)',
+                          borderRadius: '0 var(--radius-sm) var(--radius-sm) 0',
+                          padding: '12px 16px'
+                        }}>
                           {children}
-                        </code>
-                      );
-                    },
-                    // 自定义标题样式
-                    h1: ({children}) => <h1 style={{fontSize: '1.8em', marginTop: '20px', marginBottom: '10px'}}>{children}</h1>,
-                    h2: ({children}) => <h2 style={{fontSize: '1.5em', marginTop: '18px', marginBottom: '8px'}}>{children}</h2>,
-                    h3: ({children}) => <h3 style={{fontSize: '1.3em', marginTop: '16px', marginBottom: '6px'}}>{children}</h3>,
-                    // 自定义列表样式
-                    ul: ({children}) => <ul style={{paddingLeft: '25px', marginBottom: '10px'}}>{children}</ul>,
-                    ol: ({children}) => <ol style={{paddingLeft: '25px', marginBottom: '10px'}}>{children}</ol>,
-                    // 自定义引用块
-                    blockquote: ({children}) => (
-                      <blockquote style={{
-                        borderLeft: '4px solid #dfe2e5',
-                        paddingLeft: '16px',
-                        margin: '10px 0',
-                        color: '#6a737d'
-                      }}>
-                        {children}
-                      </blockquote>
-                    )
-                  }}
-                >
-                  {content}
-                </ReactMarkdown>
+                        </blockquote>
+                      )
+                    }}
+                  >
+                    {sanitizeMathContent(content || '')}
+                  </ReactMarkdown>
+                </MarkdownErrorBoundary>
                 {!isFullView && needsToggle && (
                   <div style={{
                     textAlign: 'center',
@@ -525,7 +572,6 @@ const MessageDetail = ({
     );
   };
 
-  // 渲染工具使用记录
   const renderTools = (tools) => {
     if (!tools || tools.length === 0) {
       return null;
@@ -577,7 +623,6 @@ const MessageDetail = ({
     ));
   };
 
-  // 渲染引用
   const renderCitations = (citations) => {
     if (!citations || citations.length === 0) {
       return null;
@@ -602,7 +647,6 @@ const MessageDetail = ({
     );
   };
 
-  // 主要渲染逻辑
   const renderTabContent = () => {
     if (!currentMessage) {
       return <div className="placeholder">{t('messageDetail.placeholder.selectMessage')}</div>;
@@ -615,13 +659,18 @@ const MessageDetail = ({
             {renderImages(currentMessage.images || currentMessage.attachments)}
             
             <div className="message-text">
-              <ReactMarkdown 
-                remarkPlugins={[remarkGfm, remarkMath]}  // 添加 remarkMath
-                rehypePlugins={[rehypeKatex]}  // 添加 rehypeKatex
-                components={MarkdownComponents}
+              <MarkdownErrorBoundary 
+                key={`content-${selectedMessageIndex}`} 
+                fallbackContent={currentMessage.display_text}
               >
-                {filterImageReferences(currentMessage.display_text || '')}
-              </ReactMarkdown>
+                <ReactMarkdown 
+                  remarkPlugins={[remarkGfm, remarkMath]}
+                  rehypePlugins={[rehypeKatex]}
+                  components={MarkdownComponents}
+                >
+                  {sanitizeMathContent(filterImageReferences(currentMessage.display_text || ''))}
+                </ReactMarkdown>
+              </MarkdownErrorBoundary>
             </div>
             
             {renderTools(currentMessage.tools)}
@@ -637,13 +686,18 @@ const MessageDetail = ({
           <div className="thinking-content">
             {currentMessage.thinking ? (
               <div className="thinking-text">
-                <ReactMarkdown 
-                  remarkPlugins={[remarkGfm, remarkMath]}  // 添加 remarkMath
-                  rehypePlugins={[rehypeKatex]}  // 添加 rehypeKatex
-                  components={MarkdownComponents}
+                <MarkdownErrorBoundary 
+                  key={`thinking-${selectedMessageIndex}`} 
+                  fallbackContent={currentMessage.thinking}
                 >
-                  {filterImageReferences(currentMessage.thinking)}
-                </ReactMarkdown>
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkGfm, remarkMath]}
+                    rehypePlugins={[rehypeKatex]}
+                    components={MarkdownComponents}
+                  >
+                    {sanitizeMathContent(filterImageReferences(currentMessage.thinking))}
+                  </ReactMarkdown>
+                </MarkdownErrorBoundary>
               </div>
             ) : (
               <div className="placeholder">{t('messageDetail.placeholder.noThinking')}</div>
@@ -675,7 +729,6 @@ const MessageDetail = ({
 
   return (
     <div className="message-detail" ref={contentRef}>
-      {/* 标签页 - 只在showTabs为true且有多个可用标签时才显示 */}
       {showTabs && availableTabs.length > 1 && (
         <div className="detail-tabs">
           {availableTabs.map(tab => (
@@ -690,7 +743,6 @@ const MessageDetail = ({
         </div>
       )}
       
-      {/* 标签页内容 */}
       <div className="tab-content">
         {renderTabContent()}
       </div>
