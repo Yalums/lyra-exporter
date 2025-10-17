@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lyra-exporter-v5';
+const CACHE_NAME = 'lyra-exporter-v6';
 
 // 安装 Service Worker - 不预缓存任何文件
 self.addEventListener('install', event => {
@@ -30,13 +30,37 @@ self.addEventListener('activate', event => {
 
 // 获取请求 - 网络优先策略，适配 GitHub Pages
 self.addEventListener('fetch', event => {
+  const url = new URL(event.request.url);
+  
+  // 对于带有 transfer 参数的请求，始终从网络获取，不缓存
+  if (url.searchParams.has('transfer')) {
+    console.log('[SW] 检测到数据传输请求，跳过缓存');
+    event.respondWith(
+      fetch(event.request)
+        .catch(() => {
+          // 网络失败时返回基本的HTML
+          return caches.match('/');
+        })
+    );
+    return;
+  }
+  
   // 对于开发环境，总是从网络获取
-  if (event.request.url.includes('localhost') || event.request.url.includes('127.0.0.1')) {
+  if (event.request.url.includes('localhost') || 
+      event.request.url.includes('127.0.0.1') ||
+      event.request.url.includes('192.168.')) {
     event.respondWith(
       fetch(event.request).catch(() => {
         return caches.match(event.request);
       })
     );
+    return;
+  }
+  
+  // 对于 API 请求或动态内容，不缓存
+  if (event.request.url.includes('/api/') || 
+      event.request.method !== 'GET') {
+    event.respondWith(fetch(event.request));
     return;
   }
   
@@ -64,5 +88,20 @@ self.addEventListener('fetch', event => {
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
+  }
+  
+  // 支持清理缓存
+  if (event.data && event.data.type === 'CLEAR_CACHE') {
+    event.waitUntil(
+      caches.keys().then(cacheNames => {
+        return Promise.all(
+          cacheNames.map(cacheName => caches.delete(cacheName))
+        );
+      }).then(() => {
+        if (event.ports && event.ports[0]) {
+          event.ports[0].postMessage({ success: true });
+        }
+      })
+    );
   }
 });
