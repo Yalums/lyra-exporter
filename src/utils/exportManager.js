@@ -351,31 +351,72 @@ export class MarkdownGenerator {
   }
 
   /**
-   * 格式化附件
+   * 格式化附件 - XML 结构化格式
    */
   formatAttachments(attachments) {
-    const lines = [
-      '<details>',
-      `<summary>${this.i18n.format.attachments}</summary>`,
-      ''
-    ];
+    if (!attachments || attachments.length === 0) {
+      return '';
+    }
     
-    attachments.forEach(att => {
-      const sizeStr = this.formatFileSize(att.file_size);
-      lines.push(`- **${att.file_name}** (${sizeStr})`);
-      if (att.file_type) {
-        lines.push(`  - ${this.i18n.format.type}: ${att.file_type}`);
+    const lines = ['<attachments>'];
+    
+    attachments.forEach((att, index) => {
+      // 开始标签，包含索引和文件类型
+      lines.push(`<attachment index="${index + 1}">`);
+      
+      // 文件名
+      lines.push(`<file_name>${this.escapeXml(att.file_name || '未知文件')}</file_name>`);
+      
+      // 文件大小
+      lines.push(`<file_size>${att.file_size || 0}</file_size>`);
+      
+      // 创建时间（如果有）
+      if (att.created_at) {
+        lines.push(`<created_at>${this.escapeXml(att.created_at)}</created_at>`);
       }
+      
+      // 文件内容
       if (att.extracted_content) {
-        const preview = att.extracted_content.substring(0, 200);
-        const previewText = preview.length < att.extracted_content.length ? 
-          `${preview}...` : preview;
-        lines.push(`  - ${this.i18n.format.contentPreview}: ${previewText}`);
+        lines.push('<attachment_content>');
+        
+        if (this.config.includeAttachments) {
+          // 显示完整内容
+          lines.push(att.extracted_content);
+        } else {
+          // 只显示预览
+          const preview = att.extracted_content.substring(0, 200);
+          const previewText = preview.length < att.extracted_content.length ? 
+            `${preview}...` : preview;
+          lines.push(previewText);
+        }
+        
+        lines.push('</attachment_content>');
+      }
+      
+      // 结束标签
+      lines.push('</attachment>');
+      
+      // 附件之间添加空行（除了最后一个）
+      if (index < attachments.length - 1) {
+        lines.push('');
       }
     });
     
-    lines.push('', '</details>', '');
+    lines.push('</attachments>', '');
     return lines.join('\n');
+  }
+
+  /**
+   * XML 转义函数
+   */
+  escapeXml(text) {
+    if (!text) return '';
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
   }
 
   /**

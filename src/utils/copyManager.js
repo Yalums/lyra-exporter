@@ -72,8 +72,10 @@ export class MessageFormatter {
       timeLabel: 'Time',
       thinkingLabel: '💭 Thinking Process:',
       artifactsLabel: '🔧 Artifacts:',
+      attachmentsLabel: '📎 Attachments:',
       noTitle: 'No title',
-      unknownType: 'Unknown type'
+      unknownType: 'Unknown type',
+      content: 'Content'
     };
     
     const parts = [];
@@ -98,6 +100,14 @@ export class MessageFormatter {
     // 添加主要内容
     if (message.display_text) {
       parts.push(message.display_text);
+    }
+    
+    // 添加附件（在主内容之后）
+    if (config.includeAttachments && message.attachments?.length > 0) {
+      const attachmentsText = this.formatAttachments(message.attachments);
+      if (attachmentsText) {
+        parts.push('', attachmentsText);
+      }
     }
     
     // 思考过程（后置）- 格式为 emoji
@@ -128,6 +138,75 @@ export class MessageFormatter {
     }
     
     return parts.filter(Boolean).join('\n');
+  }
+
+  /**
+   * 格式化文件大小
+   */
+  static formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  /**
+   * 格式化附件 - XML 结构化格式
+   */
+  static formatAttachments(attachments) {
+    if (!attachments || attachments.length === 0) {
+      return '';
+    }
+    
+    const lines = ['<attachments>'];
+    
+    attachments.forEach((att, index) => {
+      // 开始标签，包含索引和文件类型
+      lines.push(`<attachment index="${index + 1}">`);
+      
+      // 文件名
+      lines.push(`<file_name>${this.escapeXml(att.file_name || '未知文件')}</file_name>`);
+      
+      // 文件大小
+      lines.push(`<file_size>${att.file_size || 0}</file_size>`);
+      
+      // 创建时间（如果有）
+      if (att.created_at) {
+        lines.push(`<created_at>${this.escapeXml(att.created_at)}</created_at>`);
+      }
+      
+      // 文件内容
+      if (att.extracted_content) {
+        lines.push('<attachment_content>');
+        lines.push(att.extracted_content);
+        lines.push('</attachment_content>');
+      }
+      
+      // 结束标签
+      lines.push('</attachment>');
+      
+      // 附件之间添加空行（除了最后一个）
+      if (index < attachments.length - 1) {
+        lines.push('');
+      }
+    });
+    
+    lines.push('</attachments>');
+    return lines.join('\n');
+  }
+
+  /**
+   * XML 转义函数
+   */
+  static escapeXml(text) {
+    if (!text) return '';
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
   }
 }
 
