@@ -474,7 +474,7 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
           {/* 关于 */}
           <SettingsSection title={t('settings.about.title')}>
             <SettingItem label={t('settings.about.appName')} description={t('settings.about.appDescription')} static={true} />
-            <SettingItem label={t('settings.about.version')} description={'v1.5.4'} static={true} />
+            <SettingItem label={t('settings.about.version')} description={'v1.5.5'} static={true} />
             <SettingItem label={t('settings.about.github')} description={t('settings.about.githubDescription')}>
               <a 
                 href="https://github.com/Yalums/lyra-exporter" 
