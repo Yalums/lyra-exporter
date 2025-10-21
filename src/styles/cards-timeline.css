@@ -974,6 +974,29 @@
   margin-bottom: 0;
 }
 
+/* 根分支容器和标签 */
+.root-branch-container {
+  margin: 16px 0;
+  position: relative;
+  z-index: 9999;
+  overflow: visible !important;
+}
+
+.root-branch-label {
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--border-secondary);
+  text-align: center;
+}
+
+.root-branch-label .label-text {
+  font-weight: 500;
+}
+
 /* 文件预览 */
 .file-preview {
   position: sticky;

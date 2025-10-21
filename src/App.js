@@ -72,6 +72,7 @@ function App() {
     showAllBranches: false,
     currentBranchIndexes: new Map()
   });
+  const [timelineDisplayMessages, setTimelineDisplayMessages] = useState([]); // 新增：存储时间线中实际显示的消息（经过分支过滤）
   const [exportOptions, setExportOptions] = useState(() => {
     const savedExportConfig = StorageUtils.getLocalStorage('export-config', {});
     return {
@@ -413,6 +414,7 @@ function App() {
     setSelectedConversationUuid(null);
     setSearchQuery('');
     setSortVersion(v => v + 1);
+    setTimelineDisplayMessages([]); // 清空时间线显示消息
     
     setTimeout(() => {
       if (contentAreaRef.current) {
@@ -471,7 +473,8 @@ function App() {
       currentBranchState,
       operatedFiles,
       files,
-      currentFileIndex
+      currentFileIndex,
+      displayMessages: viewMode === 'timeline' ? timelineDisplayMessages : null // 使用从 ConversationTimeline 传回的实际显示消息
     });
     
     if (success) {
@@ -793,6 +796,7 @@ function App() {
                     searchQuery={searchQuery}
                     branchState={currentBranchState}
                     onBranchStateChange={setCurrentBranchState}
+                    onDisplayMessagesChange={setTimelineDisplayMessages}
                     onShowSettings={() => setShowSettingsPanel(true)}
                     onHideNavbar={setHideNavbar}
                     onRename={handleItemRename}

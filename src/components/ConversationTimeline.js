@@ -390,6 +390,7 @@ const ConversationTimeline = ({
   searchQuery = '',
   branchState = null,
   onBranchStateChange = null,
+  onDisplayMessagesChange = null, // 新增：当显示消息更改时通知父组件
   onShowSettings = null, // 新增:打开设置面板
   onHideNavbar = null, // 新增:控制导航栏显示
   onRename = null // 新增:重命名回调
@@ -472,37 +473,55 @@ const ConversationTimeline = ({
     });
     
     // 识别分支点
+    const ROOT_UUID = '00000000-0000-4000-8000-000000000000';
+    
     Object.entries(parentChildren).forEach(([parentUuid, children]) => {
-      if (children.length > 1 && msgDict[parentUuid]) {
-        const branchPoint = msgDict[parentUuid];
+      if (children.length > 1) {
+        let branchPoint = null;
         
-        const sortedChildren = children
-          .map(uuid => msgDict[uuid])
-          .filter(msg => msg)
-          .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-        
-        const branches = sortedChildren.map((childMsg, branchIndex) => {
-          const branchMessages = findBranchMessages(childMsg.uuid, msgDict, parentChildren);
-          
-          return {
-            branchIndex,
-            startMessage: childMsg,
-            messages: branchMessages,
-            messageCount: branchMessages.length,
-            path: `branch_${branchPoint.uuid}_${branchIndex}`,
-            preview: childMsg.display_text ? 
-              (childMsg.display_text.length > 50 ? 
-                childMsg.display_text.substring(0, 50) + '...' : 
-                childMsg.display_text) :
-              '...'
+        if (parentUuid === ROOT_UUID) {
+          // 根节点有多个子节点，创建虚拟分支点
+          branchPoint = {
+            uuid: ROOT_UUID,
+            index: -1, // 使用-1表示这是根分支点
+            display_text: '对话起始点',
+            sender: 'system',
+            sender_label: '系统',
+            timestamp: '对话开始'
           };
-        });
+        } else if (msgDict[parentUuid]) {
+          branchPoint = msgDict[parentUuid];
+        }
         
-        branchPoints.set(parentUuid, {
-          branchPoint,
-          branches,
-          currentBranchIndex: 0
-        });
+        if (branchPoint) {
+          const sortedChildren = children
+            .map(uuid => msgDict[uuid])
+            .filter(msg => msg)
+            .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+          
+          const branches = sortedChildren.map((childMsg, branchIndex) => {
+            const branchMessages = findBranchMessages(childMsg.uuid, msgDict, parentChildren);
+            
+            return {
+              branchIndex,
+              startMessage: childMsg,
+              messages: branchMessages,
+              messageCount: branchMessages.length,
+              path: `branch_${branchPoint.uuid}_${branchIndex}`,
+              preview: childMsg.display_text ? 
+                (childMsg.display_text.length > 50 ? 
+                  childMsg.display_text.substring(0, 50) + '...' : 
+                  childMsg.display_text) :
+                '...'
+            };
+          });
+          
+          branchPoints.set(parentUuid, {
+            branchPoint,
+            branches,
+            currentBranchIndex: 0
+          });
+        }
       }
     });
     
@@ -528,7 +547,10 @@ const ConversationTimeline = ({
         const branchPoint = branchData.branchPoint;
         const selectedBranch = branchData.branches[selectedBranchIndex];
         
-        if (msg.index > branchPoint.index) {
+        // 对于根分支点，所有消息都受影响；对于普通分支点，只影响其后的消息
+        const isRootBranch = branchPoint.index === -1;
+        
+        if (isRootBranch || msg.index > branchPoint.index) {
           const belongsToSelectedBranch = selectedBranch.messages.some(
             branchMsg => branchMsg.uuid === msg.uuid
           );
@@ -944,6 +966,13 @@ const ConversationTimeline = ({
     }
   }, [branchState]);
   
+  // 新增：当 displayMessages 更改时通知父组件
+  useEffect(() => {
+    if (onDisplayMessagesChange) {
+      onDisplayMessagesChange(displayMessages);
+    }
+  }, [displayMessages, onDisplayMessagesChange]);
+  
   // 初始化自定义名称
   useEffect(() => {
     if (conversation?.uuid) {
@@ -1331,7 +1360,6 @@ const ConversationTimeline = ({
                 {branchAnalysis.branchPoints.size > 0 && (
                   <div className="branch-control" style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span>🔀 {t('timeline.branch.detected')} {branchAnalysis.branchPoints.size} {t('timeline.branch.branchPoints')}</span>
                       <button 
                         className="btn-secondary small"
                         onClick={handleShowAllBranches}
@@ -1393,6 +1421,33 @@ const ConversationTimeline = ({
           {/* 时间线 */}
           <div className="timeline">
             <div className="timeline-line"></div>
+            
+            {/* 根分支切换器（第一条消息就有分支的情况） */}
+            {(() => {
+              const ROOT_UUID = '00000000-0000-4000-8000-000000000000';
+              const rootBranchData = branchAnalysis.branchPoints.get(ROOT_UUID);
+              if (rootBranchData && rootBranchData.branches.length > 1 && !showAllBranches) {
+                return (
+                  <div className="root-branch-container">
+                    <div className="root-branch-label">
+                      <span className="label-text">{t('timeline.branch.detected')} {branchAnalysis.branchPoints.size} {t('timeline.branch.branchPoints')}</span>
+                      {/*对话起始点 · 有多个开始分支*/}
+                    </div>
+                    <BranchSwitcher
+                      key={`branch-${ROOT_UUID}`}
+                      branchPoint={rootBranchData.branchPoint}
+                      availableBranches={rootBranchData.branches}
+                      currentBranchIndex={branchFilters.get(ROOT_UUID) ?? rootBranchData.currentBranchIndex}
+                      onBranchChange={(newIndex) => handleBranchSwitch(ROOT_UUID, newIndex)}
+                      onShowAllBranches={handleShowAllBranches}
+                      showAllMode={false}
+                      className="timeline-branch-switcher"
+                    />
+                  </div>
+                );
+              }
+              return null;
+            })()}
             
             {displayMessages.map((msg, index) => {
               const branchData = branchAnalysis.branchPoints.get(msg.uuid);

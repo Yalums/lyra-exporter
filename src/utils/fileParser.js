@@ -719,6 +719,7 @@ export const detectBranches = (processedData) => {
   
   try {
     const messages = processedData.chat_history;
+    const ROOT_UUID = '00000000-0000-4000-8000-000000000000';
     
     // 构建父子关系映射
     const parentChildMap = new Map();
@@ -738,21 +739,41 @@ export const detectBranches = (processedData) => {
     
     // 标记分支点
     const branchPoints = [];
+    
     parentChildMap.forEach((children, parentUuid) => {
-      if (children.length > 1 && messageMap.has(parentUuid)) {
-        const parentMsg = messageMap.get(parentUuid);
-        parentMsg.is_branch_point = true;
-        branchPoints.push(parentUuid);
+      if (children.length > 1) {
+        if (parentUuid === ROOT_UUID) {
+          // 根节点有多个子节点，创建虚拟分支点
+          branchPoints.push(ROOT_UUID);
+        } else if (messageMap.has(parentUuid)) {
+          const parentMsg = messageMap.get(parentUuid);
+          parentMsg.is_branch_point = true;
+          branchPoints.push(parentUuid);
+        }
       }
     });
     
     // 标记分支路径
     const visited = new Set();
-    messages.forEach(msg => {
-      if (!msg.parent_uuid || !messageMap.has(msg.parent_uuid)) {
-        markBranchPath(msg.uuid, 'main', 0, messageMap, parentChildMap, visited);
-      }
-    });
+    
+    // 找出所有根节点（没有parent或parent为特定根节点UUID）
+    const rootMessages = messages.filter(msg => 
+      !msg.parent_uuid || 
+      msg.parent_uuid === ROOT_UUID ||
+      !messageMap.has(msg.parent_uuid)
+    );
+    
+    if (rootMessages.length === 1) {
+      // 只有一个根节点，正常处理
+      markBranchPath(rootMessages[0].uuid, 'main', 0, messageMap, parentChildMap, visited);
+    } else if (rootMessages.length > 1) {
+      // 多个根节点，说明第一条消息就有分支
+      rootMessages.forEach((msg, index) => {
+        const branchPath = index === 0 ? 'main' : `branch_root_${index}`;
+        const branchLevel = index === 0 ? 0 : 1;
+        markBranchPath(msg.uuid, branchPath, branchLevel, messageMap, parentChildMap, visited);
+      });
+    }
     
     return {
       ...processedData,

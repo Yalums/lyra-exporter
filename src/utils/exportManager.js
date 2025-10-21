@@ -731,6 +731,7 @@ export async function handleExport({
   operatedFiles,
   files,
   currentFileIndex,
+  displayMessages,
   i18n
 }) {
   try {
@@ -782,20 +783,12 @@ export async function handleExport({
         break;
       
       case 'currentBranch':
-        if (processedData && currentBranchState && !currentBranchState.showAllBranches) {
-          let branchMessages = processedData.chat_history || [];
+        if (processedData && processedData.chat_history) {
+          // 使用 displayMessages（时间线组件中已经过滤好的当前分支消息）
+          // 如果没有提供 displayMessages，则使用所有消息作为 fallback
+          let branchMessages = displayMessages || processedData.chat_history || [];
           
-          if (currentBranchState.currentBranchIndexes && currentBranchState.currentBranchIndexes.size > 0) {
-            branchMessages = branchMessages.filter(msg => {
-              if (!msg.is_branch_point) return true;
-              const branchIndex = currentBranchState.currentBranchIndexes.get(msg.uuid);
-              if (branchIndex !== undefined) {
-                return msg.branch_id === branchIndex || msg.branch_id === null;
-              }
-              return true;
-            });
-          }
-          
+          // 如果启用了自定义排序，应用排序
           const messagesToExport = sortManagerRef?.current?.hasCustomSort() ? 
             sortManagerRef.current.getSortedMessages().filter(msg => 
               branchMessages.some(bm => bm.uuid === msg.uuid)
@@ -809,6 +802,8 @@ export async function handleExport({
               processedData.meta_info.uuid,
               files[currentFileIndex]
             );
+          } else if (files[currentFileIndex]) {
+            conversationUuid = generateFileCardUuid(currentFileIndex, files[currentFileIndex]);
           }
           
           dataToExport = [{
