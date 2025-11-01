@@ -1,13 +1,13 @@
 {
   "welcomePage": {
     "title": "Lyra Exporter",
-    "subtitle": "Claude & Gemini のインスピレーションと温かさを記録",
+    "subtitle": "LLMs のインスピレーションと温かさを記録",
     "description": "複数の会話を一括読み込みできる会話管理ツールへようこそ。インスピレーションの瞬間を保存し、すべての対話の価値を継続させます。",
     "actionCards": {
       "install": {
         "badge": "🌟 新規ユーザーはこちらから",
         "title": "エクスポートスクリプトをインストール",
-        "description": "Claude、Gemini、AI Studio、NotebookLM、SillyTavernプラットフォームをサポート",
+        "description": "Claude、ChatGPT、Gemini、SillyTavernプラットフォームをサポート",
         "button": "スクリプトインストールに移動"
       },
       "load": {
@@ -435,6 +435,10 @@
       "includeAttachments": {
         "label": "添付ファイルを含む",
         "description": "メッセージのコピー時にユーザーがアップロードしたファイル情報を含める"
+      },
+      "includeCanvas": {
+        "label": "Canvas を含める",
+        "description": "メッセージをコピーする際に Canvas コンテンツを含める"
       }
     },
     "exportFormat": {
@@ -513,6 +517,10 @@
       "attachments": {
         "label": "添付ファイル",
         "description": "ユーザーがアップロードしたファイルとそのプレビュー情報"
+      },
+      "canvas": {
+        "label": "Canvas 포함",
+        "description": "내보내기 시 Canvas 콘텐츠 포함"
       }
     },
     "about": {

@@ -14,6 +14,7 @@ export class CopyConfigManager {
     return StorageUtils.getLocalStorage('copy_options', {
       includeThinking: false,
       includeArtifacts: false,
+      includeCanvas: false,
       includeMetadata: true,
       thinkingFormat: exportConfig.thinkingFormat || 'codeblock'
     });
@@ -72,6 +73,7 @@ export class MessageFormatter {
       timeLabel: 'Time',
       thinkingLabel: '💭 Thinking Process:',
       artifactsLabel: '🔧 Artifacts:',
+      canvasLabel: '🎨 Canvas:',
       attachmentsLabel: '📎 Attachments:',
       noTitle: 'No title',
       unknownType: 'Unknown type',
@@ -131,6 +133,27 @@ export class MessageFormatter {
           parts.push(
             `\`\`\`${language}`,
             artifact.content,
+            '```'
+          );
+        }
+      });
+    }
+    
+    // 添加Canvas（Gemini格式）
+    if (config.includeCanvas && message.canvas?.length > 0) {
+      parts.push('', i18n.canvasLabel);
+      
+      message.canvas.forEach(canvas => {
+        parts.push(
+          '',
+          `### ${canvas.title || i18n.noTitle} (${canvas.type || i18n.unknownType})`
+        );
+        
+        if (canvas.content) {
+          const language = canvas.language || '';
+          parts.push(
+            `\`\`\`${language}`,
+            canvas.content,
             '```'
           );
         }

@@ -871,6 +871,12 @@
   color: #ffffff;
   border-color: #242425;
 }
+
+.timeline-avatar.assistant.platform-chatgpt  {
+  background: #ffffff;
+  color: #ffffff;
+  border-color: #ffffff;
+}
 .sender-info {
   display: flex;
   flex-direction: column;

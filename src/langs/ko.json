@@ -1,13 +1,13 @@
 {
   "welcomePage": {
     "title": "Lyra Exporter",
-    "subtitle": "Claude와 Gemini의 모든 영감과 따뜻함을 기록",
+    "subtitle": "LLMs 의 모든 영감과 따뜻함을 기록",
     "description": "여러 대화를 일괄 로드할 수 있는 대화 관리 도구에 오신 것을 환영합니다. 영감의 순간을 저장하고 모든 대화의 가치를 계속 이어가세요.",
     "actionCards": {
       "install": {
         "badge": "🌟 신규 사용자는 여기서 시작",
         "title": "내보내기 스크립트 설치",
-        "description": "Claude, Gemini, AI Studio, NotebookLM, SillyTavern 플랫폼 지원",
+        "description": "Claude, ChatGPT, Gemini, SillyTavern 플랫폼 지원",
         "button": "스크립트 설치로 이동"
       },
       "load": {
@@ -68,7 +68,7 @@
         "1": "Tampermonkey 또는 ScriptCat과 같은 브라우저 확장 프로그램 설치",
         "2": "설치 버튼을 클릭하면 Greasyfork 스크립트 웹사이트로 이동합니다",
         "3": "스크립트 페이지에서 '스크립트 설치' 버튼 클릭",
-        "4": "Claude, Gemini, Google AI Studio 또는 NotebookLM으로 이동하여 웹사이트를 새로 고치면 오른쪽 하단에 내보내기 버튼이 나타납니다"
+        "4": "Claude, ChatGPT, Gemini 으로 이동하여 웹사이트를 새로 고치면 오른쪽 하단에 내보내기 버튼이 나타납니다"
       }
     },
     "features": {
@@ -435,6 +435,10 @@
       "includeAttachments": {
         "label": "첨부파일 포함",
         "description": "메시지 복사 시 사용자가 업로드한 파일 첨부 정보 포함"
+      },
+      "includeCanvas": {
+        "label": "Canvas 포함",
+        "description": "메시지 복사 시 Canvas 콘텐츠 포함"
       }
     },
     "exportFormat": {
@@ -513,6 +517,10 @@
       "attachments": {
         "label": "첨부파일",
         "description": "사용자가 업로드한 파일 및 미리보기 정보"
+      },
+      "canvas": {
+        "label": "Canvas 포함",
+        "description": "내보내기 시 Canvas 콘텐츠 포함"
       }
     },
     "about": {

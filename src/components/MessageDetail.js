@@ -115,19 +115,30 @@ const MessageDetail = ({
     }
     
     if (currentMessage.sender === 'human') {
+      // 用户消息：附件
       if (currentMessage.attachments && currentMessage.attachments.length > 0) {
         baseTabs.push({ id: 'attachments', label: t('messageDetail.tabs.attachments') });
       }
+      // Gemini NotebookLM: 当存在 Canvas 字段时，显示 Canvas Tab
+      if (format === 'gemini_notebooklm' && currentMessage.canvas) {
+        baseTabs.push({ id: 'canvas', label: 'Canvas' });
+      }
     } else {
-      if (format === 'claude' || format === 'claude_full_export' || format === 'jsonl_chat' || !format) {
+      // 助手消息：思考过程
+      if (format === 'claude' || format === 'claude_full_export' || format === 'jsonl_chat' || format === 'chatgpt' || !format) {
         if (currentMessage.thinking) {
           baseTabs.push({ id: 'thinking', label: t('messageDetail.tabs.thinking') });
         }
       }
+      // 助手消息：制品
       if (format === 'claude' || format === 'claude_full_export' || !format) {
         if (currentMessage.artifacts && currentMessage.artifacts.length > 0) {
           baseTabs.push({ id: 'artifacts', label: 'Artifacts' });
         }
+      }
+      // Gemini NotebookLM: 当存在 Canvas 字段时，显示 Canvas Tab
+      if (format === 'gemini_notebooklm' && currentMessage.canvas) {
+        baseTabs.push({ id: 'canvas', label: 'Canvas' });
       }
     }
     
@@ -679,7 +690,7 @@ const MessageDetail = ({
         );
 
       case 'thinking':
-        if (format !== 'claude' && format !== 'claude_full_export' && format !== 'jsonl_chat' && format) {
+        if (format !== 'claude' && format !== 'claude_full_export' && format !== 'chatgpt' && format !== 'jsonl_chat' && format) {
           return <div className="placeholder">{t('messageDetail.placeholder.formatNotSupported.thinking')}</div>;
         }
         return (
@@ -719,6 +730,29 @@ const MessageDetail = ({
         return (
           <div className="attachments-content">
             {renderAttachments(currentMessage.attachments)}
+          </div>
+        );
+
+      case 'canvas':
+        // Canvas Tab 仅在 Gemini NotebookLM 使用
+        return (
+          <div className="canvas-content">
+            {currentMessage.canvas ? (
+              <MarkdownErrorBoundary
+                key={`canvas-${selectedMessageIndex}`}
+                fallbackContent={currentMessage.canvas}
+              >
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm, remarkMath]}
+                  rehypePlugins={[rehypeKatex]}
+                  components={MarkdownComponents}
+                >
+                  {sanitizeMathContent(currentMessage.canvas)}
+                </ReactMarkdown>
+              </MarkdownErrorBoundary>
+            ) : (
+              <div className="placeholder">{t('messageDetail.placeholder.noCanvas') || '暂无 Canvas 内容'}</div>
+            )}
           </div>
         );
 

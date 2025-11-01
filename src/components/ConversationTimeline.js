@@ -1220,6 +1220,7 @@ const ConversationTimeline = ({
   
   // 优先根据format判断，因为format更准确
   if (format === 'jsonl_chat') return 'assistant platform-jsonl_chat';
+  if (format === 'chatgpt') return 'assistant platform-chatgpt';
   if (format === 'gemini_notebooklm') {
     const platformLower = platform?.toLowerCase() || '';
     if (platformLower.includes('notebooklm')) return 'assistant platform-notebooklm';
@@ -1229,6 +1230,7 @@ const ConversationTimeline = ({
   // 兼容性：也检查platform字段
   const platformLower = platform?.toLowerCase() || 'claude';
   if (platformLower.includes('jsonl')) return 'assistant platform-jsonl_chat';
+  if (platformLower.includes('chatgpt')) return 'assistant platform-chatgpt';
   if (platformLower.includes('gemini')) return 'assistant platform-gemini';
   if (platformLower.includes('ai studio') || platformLower.includes('aistudio')) return 'assistant platform-aistudio';
   if (platformLower.includes('notebooklm')) return 'assistant platform-notebooklm';
@@ -1580,6 +1582,13 @@ const ConversationTimeline = ({
                           <div className="timeline-tag">
                             <span>🔧</span>
                             <span>{msg.artifacts.length}{t('timeline.tags.artifacts')}</span>
+                          </div>
+                        )}
+                        {/* Canvas - 仅助手消息显示（Gemini格式） */}
+                        {msg.sender !== 'human' && msg.canvas && msg.canvas.length > 0 && (
+                          <div className="timeline-tag">
+                            <span>🔧</span>
+                            <span>Canvas</span>
                           </div>
                         )}
                         {/* 工具使用 - 通常只有助手消息有 */}

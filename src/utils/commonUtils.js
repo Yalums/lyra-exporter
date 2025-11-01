@@ -140,7 +140,8 @@ export const PlatformUtils = {
       'notebooklm': 'NotebookLM',
       'aistudio': 'Google AI Studio',
       'claude': 'Claude',
-      'jsonl_chat': 'SillyTavern'
+      'jsonl_chat': 'SillyTavern',
+      'chatgpt': 'ChatGPT'
     };
     
     return platformMap[platform?.toLowerCase()] || 'Claude';
@@ -153,7 +154,8 @@ export const PlatformUtils = {
       'google ai studio': 'platform-gemini',
       'aistudio': 'platform-gemini',
       'notebooklm': 'platform-notebooklm',
-      'jsonl_chat': 'platform-jsonl'
+      'jsonl_chat': 'platform-jsonl',
+      'chatgpt': 'platform-chatgpt'
     };
     
     return classMap[platform?.toLowerCase()] || 'platform-claude';
@@ -165,7 +167,8 @@ export const PlatformUtils = {
       'gemini': 'gemini_notebooklm',
       'google ai studio': 'gemini_notebooklm',
       'aistudio': 'gemini_notebooklm',
-      'notebooklm': 'gemini_notebooklm'
+      'notebooklm': 'gemini_notebooklm',
+      'chatgpt': 'chatgpt'
     };
     
     return formatMap[platform?.toLowerCase()] || 'claude';
@@ -202,6 +205,8 @@ export const FileUtils = {
         return 'Gemini';
       case 'jsonl_chat':
         return isChinese ? 'SillyTavern' : 'JSONL Chat';
+      case 'chatgpt':
+        return 'ChatGPT';
       default:
         return isChinese ? '未知格式' : 'Unknown Format';
     }
@@ -332,9 +337,10 @@ export const ValidationUtils = {
   isAllowedOrigin(origin) {
     const allowedOrigins = [
       'https://claude.ai',
+      'https://claude.easychat.top',
       'https://pro.easychat.top',
+      'https://chatgpt.com',
       'https://gemini.google.com',
-      'https://notebooklm.google.com',
       'https://aistudio.google.com',
       'http://localhost:3789',
       'https://yalums.github.io'

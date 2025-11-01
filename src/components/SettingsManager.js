@@ -29,6 +29,7 @@ const ExportConfigManager = {
       includeTimestamps: false,
       includeThinking: false,
       includeArtifacts: true,
+      includeCanvas: true,
       includeTools: false,
       includeCitations: false
     });
@@ -49,6 +50,7 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
     copyOptions: {
       includeThinking: false,
       includeArtifacts: false,
+      includeCanvas: false,
       includeMetadata: true,
       includeAttachments: true
     },
@@ -72,6 +74,7 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
       includeTimestamps: false,
       includeThinking: false,
       includeArtifacts: true,
+      includeCanvas: true,
       includeTools: false,
       includeCitations: false,
       includeAttachments: true,
@@ -145,7 +148,7 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
     }));
     
     // 如果是内容相关的选项，同步更新 App.js 中的 exportOptions
-    if (setExportOptions && ['includeTimestamps', 'includeThinking', 'includeArtifacts', 'includeTools', 'includeCitations', 'includeAttachments'].includes(option)) {
+    if (setExportOptions && ['includeTimestamps', 'includeThinking', 'includeArtifacts', 'includeCanvas', 'includeTools', 'includeCitations', 'includeAttachments'].includes(option)) {
       setExportOptions(prev => ({
         ...prev,
         [option]: value
@@ -248,6 +251,13 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
               description={t('settings.copyOptions.includeArtifacts.description')}
               checked={settings.copyOptions.includeArtifacts}
               onChange={(checked) => handleCopyOptionChange('includeArtifacts', checked)}
+            />
+            
+            <CheckboxSetting
+              label={t('settings.copyOptions.includeCanvas.label')}
+              description={t('settings.copyOptions.includeCanvas.description')}
+              checked={settings.copyOptions.includeCanvas}
+              onChange={(checked) => handleCopyOptionChange('includeCanvas', checked)}
             />
             
             <CheckboxSetting
@@ -450,6 +460,13 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
             />
             
             <CheckboxSetting
+              label={t('settings.exportContent.canvas.label')}
+              description={t('settings.exportContent.canvas.description')}
+              checked={settings.exportOptions.includeCanvas}
+              onChange={(checked) => handleExportOptionChange('includeCanvas', checked)}
+            />
+            
+            <CheckboxSetting
               label={t('settings.exportContent.tools.label')}
               description={t('settings.exportContent.tools.description')}
               checked={settings.exportOptions.includeTools}
@@ -474,7 +491,7 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
           {/* 关于 */}
           <SettingsSection title={t('settings.about.title')}>
             <SettingItem label={t('settings.about.appName')} description={t('settings.about.appDescription')} static={true} />
-            <SettingItem label={t('settings.about.version')} description={'v1.5.5'} static={true} />
+            <SettingItem label={t('settings.about.version')} description={'v1.6.0'} static={true} />
             <SettingItem label={t('settings.about.github')} description={t('settings.about.githubDescription')}>
               <a 
                 href="https://github.com/Yalums/lyra-exporter" 

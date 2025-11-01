@@ -1,6 +1,6 @@
 {
   "name": "lyra-exporter",
-  "version": "1.5.5",
+  "version": "1.6.0",
   "private": true,
   "homepage": "https://yalums.github.io/lyra-exporter",
   "description": "A handy tool for exporting chat conversations.",

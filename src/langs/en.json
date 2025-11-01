@@ -1,13 +1,13 @@
 {
   "welcomePage": {
     "title": "Lyra Exporter",
-    "subtitle": "Capturing every moment of inspiration and warmth from Claude & Gemini",
+    "subtitle": "Capturing every moment of inspiration and warmth from LLMs",
     "description": "Welcome to this conversation management tool that supports batch loading of multiple conversations, helping you preserve moments of inspiration and extend the value of every dialogue.",
     "actionCards": {
       "install": {
         "badge": "🌟 New Users Start Here",
         "title": "Install Export Script",
-        "description": "Supports Claude, Gemini, AI Studio, NotebookLM, SillyTavern and other platforms",
+        "description": "Supports Claude, ChatGPT, Gemini, SillyTavern and other platforms",
         "button": "Go to Install Script"
       },
       "load": {
@@ -68,7 +68,7 @@
         "1": "Install browser extensions like Tampermonkey or ScriptCat",
         "2": "Click the install button to go to the Greasyfork script website",
         "3": "Click the 'Install Script' button on the script page",
-        "4": "Go to Claude, Gemini, Google AI Studio, or NotebookLM, refresh the website, and an export button will appear in the bottom right corner"
+        "4": "Go to Claude, ChatGPT, Gemini, Google AI Studio, or NotebookLM, refresh the website, and an export button will appear in the bottom right corner"
       }
     },
     "features": {
@@ -431,6 +431,10 @@
       "includeAttachments": {
         "label": "Include Attachments",
         "description": "Include uploaded file information when copying messages"
+      },
+      "includeCanvas": {
+        "label": "Include Canvas",
+        "description": "Include Canvas content when copying messages"
       }
     },
     "exportFormat": {
@@ -509,6 +513,10 @@
       "attachments": {
         "label": "Attachments",
         "description": "User-uploaded files and their preview information"
+      },
+      "canvas": {
+        "label": "Include Canvas",
+        "description": "Include Canvas content when exporting"
       }
     },
     "about": {
