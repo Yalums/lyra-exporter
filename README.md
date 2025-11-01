@@ -6,7 +6,7 @@
 
 ## Features
 
-- **Conversation Management**: Load multiple conversation JSON files from Claude, Gemini, NotebookLM, and Google AI Studio. **Supports exporting entire Claude account data for comprehensive management**
+- **Conversation Management**: Load multiple conversation JSON files from Claude, ChatGPT, Gemini, NotebookLM, and Google AI Studio. **Supports exporting entire Claude, ChatGPT account data for comprehensive management**
 - **Smart Search**: Search message content, find conversations with image attachments, thinking processes, and Artifacts
 - **Tagging System**: Mark messages as completed, important, or deleted, with format preservation during export
 - **Flexible Export**: Export to Markdown format with batch export support
@@ -21,7 +21,7 @@ Lyra Exporter relies on browsers to safely obtain conversation data. With this o
 
 1. Install the [Tampermonkey](https://www.tampermonkey.net/) browser extension
 2. Install Lyra Exporter Fetch script from [Greasy Fork](https://greasyfork.org/en/scripts/539579-lyra-s-exporter-fetch)
-3. Visit [Claude.ai](https://claude.ai/), [Gemini](https://gemini.google.com), [AI Studio](https://aistudio.google.com/), or [NotebookLM](https://notebooklm.google.com/)
+3. Visit [Claude.ai](https://claude.ai/), [ChatGPT](https://chatgpt.com), [Gemini](https://gemini.google.com), [AI Studio](https://aistudio.google.com/), or [NotebookLM](https://notebooklm.google.com/)
 4. Click the export button on the page
 5. Choose export options (single conversation / full account)
 6. Data is automatically sent to Lyra Exporter or downloaded locally
@@ -67,10 +67,11 @@ Fast, nearly free, and gets the job done.
 
 **Broad Platform Compatibility**:
 
-* **Claude**: From single conversations to complete account exports (including all conversations, projects, attachments, Artifacts, etc.)
-* **Gemini**: Full support for Gemini conversation format (including images)
+* **Claude, ChatGPT**: From single conversations to complete account exports (including all conversations, projects, attachments, Artifacts, etc.)
+* **Gemini**: Full support for Gemini conversation format (including images and canvas)
 * **NotebookLM**: Intelligent recognition of NotebookLM export data
 * **Google AI Studio**: Support for AI Studio conversation format
+* **SillyTavern**: Support for jsonl with branches splits.
 
 **Smart Format Recognition**:
 

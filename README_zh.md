@@ -1,11 +1,11 @@
 [**Read this document in English**](https://github.com/Yalums/lyra-exporter/blob/main/README.md)
 
-> 个人项目，便于使用、功能完备的AI平台对话筛选、导出应用，在数百个对话窗口中找出需要的部分。从图片、思考过程，到附件、Artifacts、工具调用细节。
+> 个人项目，便于使用、功能完备的AI平台对话筛选、导出应用，在数百个对话窗口中找出需要的部分。从图片、思考过程，到附件、Artifacts、Canvas、工具调用细节。
 
 
 ## 功能特性
 
-- **对话管理**: 加载多个Claude、Gemini、NotebookLM、Google AI Studio平台的对话JSON文件，**支持导出整个Claude账号对话数据并进行管理**
+- **对话管理**: 加载多个Claude、ChatGPT、Gemini、NotebookLM、Google AI Studio平台的对话JSON文件，**支持导出整个Claude、ChatGPT账号对话数据并进行管理**
 - **智能查找**: 搜索消息内容，查找有图片附件、思考过程和创建了 Artifacts 的对话
 - **标记系统**: 标记消息为完成、重要或删除，并在导出时保留特定格式
 - **灵活导出**: 导出为Markdown格式，支持批量导出
@@ -20,7 +20,7 @@
 
 1. 安装 [Tampermonkey](https://www.tampermonkey.net/) 浏览器扩展
 2. 从 [Greasy Fork](https://greasyfork.org/zh-CN/scripts/539579-lyra-s-exporter-fetch) 安装 Lyra Exporter Fetch 脚本
-3. 访问 [Claude.ai](https://claude.ai/)、[Gemini](gemini.google.com)、[AI Studio](https://aistudio.google.com/)、[NotebookLM](https://notebooklm.google.com/)
+3. 访问 [Claude.ai](https://claude.ai/)、[ChatGPT](https://chatgpt.com/)、[Gemini](gemini.google.com)、[AI Studio](https://aistudio.google.com/)、[NotebookLM](https://notebooklm.google.com/)
 4. 点击页面上的导出按钮
 5. 选择导出选项（单个对话 / 完整账号）
 6. 数据自动发送到 Lyra Exporter 或下载到本地
@@ -48,8 +48,8 @@
 
 **广泛的平台兼容性**：
 
-* **Claude**: 支持从单个对话到完整账号的对话导出（包含所有对话和项目、附件、Artifacts等）
-* **Gemini**: 完整支持 Gemini 对话格式（含图片）
+* **Claude/ChatGPT**: 支持从单个对话到完整账号的对话导出（包含所有对话和项目、附件、Artifacts等）
+* **Gemini**: 完整支持 Gemini 对话格式（含图片和Canvas）
 * **NotebookLM**: 智能识别 NotebookLM 导出数据
 * **Google AI Studio**: 支持 AI Studio 对话格式
 * **JSONL**: 部分支持 SillyTavern 对话格式
