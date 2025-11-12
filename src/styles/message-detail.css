@@ -691,21 +691,6 @@
   font-style: italic;
 }
 
-/* JSON视图 */
-.json-content {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-md);
-  padding: 1rem;
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', monospace;
-  font-size: 0.85rem;
-  line-height: 1.5;
-  overflow-x: auto;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-
 /* LaTeX 数学公式样式优化 */
 
 /* 行内公式 */

@@ -137,40 +137,6 @@
   font-weight: 500;
 }
 
-/* 导出范围标签 */
-.export-range-tabs {
-  display: flex;
-  gap: 2px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-primary);
-  padding: 4px;
-  border-radius: var(--radius-md);
-  margin-bottom: 20px;
-}
-
-.export-range-tab {
-  flex: 1;
-  padding: 8px 16px;
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  border-radius: 6px;
-  transition: all var(--transition-fast);
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.export-range-tab:hover {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-}
-
-.export-range-tab.active {
-  background: var(--accent-primary);
-  color: white;
-}
-
 /* 导出进度 */
 .export-progress {
   padding: 20px;
@@ -195,47 +161,4 @@
 .export-progress-text {
   color: var(--text-secondary);
   font-size: 14px;
-}
-
-/* Obsidian选项 */
-.obsidian-options {
-  background: var(--bg-primary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-md);
-  padding: 16px;
-  margin-top: 16px;
-}
-
-.obsidian-input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.obsidian-input-group label {
-  font-size: 14px;
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
-.obsidian-input-group input,
-.obsidian-input-group textarea {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-sm);
-  padding: 8px 12px;
-  color: var(--text-primary);
-  font-size: 14px;
-}
-
-.obsidian-input-group textarea {
-  min-height: 80px;
-  resize: vertical;
-}
-
-.obsidian-hint {
-  font-size: 12px;
-  color: var(--text-tertiary);
-  margin-top: 4px;
 }

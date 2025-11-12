@@ -262,41 +262,6 @@
   justify-content: center;
 }
 
-/* 打字动画效果 */
-@keyframes typing {
-  from { width: 0; }
-  to { width: 100%; }
-}
-
-@keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
-}
-
-.typing-text {
-  display: inline-block;
-  overflow: hidden;
-  white-space: nowrap;
-  animation: typing 2s steps(40, end);
-  border-right: 2px solid var(--accent-primary);
-  animation: blink 1s infinite;
-}
-
-/* 欢迎页特效动画 */
-@keyframes fadeIn {
-  from { 
-    opacity: 0; 
-    transform: translateY(10px); 
-  }
-  to { 
-    opacity: 1; 
-    transform: translateY(0); 
-  }
-}
-
-.animate-fadeIn {
-  animation: fadeIn 0.5s ease-out forwards;
-}
 
 /* 功能特色卡片 */
 .welcome-features {
@@ -398,4 +363,50 @@
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
+}
+
+/* 全屏模式样式 */
+.app-redesigned:-webkit-full-screen {
+  width: 100%;
+  height: 100%;
+}
+
+.app-redesigned:-moz-full-screen {
+  width: 100%;
+  height: 100%;
+}
+
+.app-redesigned:-ms-fullscreen {
+  width: 100%;
+  height: 100%;
+}
+
+.app-redesigned:fullscreen {
+  width: 100%;
+  height: 100%;
+}
+
+/* 全屏按钮 */
+.fullscreen-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  font-size: 18px;
+}
+
+.fullscreen-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.fullscreen-btn:active {
+  transform: scale(0.95);
 }

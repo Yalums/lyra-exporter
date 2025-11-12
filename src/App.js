@@ -61,6 +61,7 @@ function App() {
   const [selectedConversationUuid, setSelectedConversationUuid] = useState(null);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [hideNavbar, setHideNavbar] = useState(false); // 新增：控制导航栏显示
+  const [isFullscreen, setIsFullscreen] = useState(false); // 新增：全屏状态
   const [operatedFiles, setOperatedFiles] = useState(new Set());
   const [scrollPositions, setScrollPositions] = useState({});
   const [error, setError] = useState(null);
@@ -244,7 +245,59 @@ function App() {
   const isFullExportConversationMode = viewMode === 'conversations' && processedData?.format === 'claude_full_export';
 
   // ==================== 事件处理函数 ====================
-  
+
+  // 全屏功能处理
+  const toggleFullscreen = useCallback(() => {
+    const elem = document.documentElement;
+
+    if (!document.fullscreenElement && !document.webkitFullscreenElement &&
+        !document.mozFullScreenElement && !document.msFullscreenElement) {
+      // 进入全屏
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen();
+      } else if (elem.webkitRequestFullscreen) {
+        elem.webkitRequestFullscreen();
+      } else if (elem.mozRequestFullScreen) {
+        elem.mozRequestFullScreen();
+      } else if (elem.msRequestFullscreen) {
+        elem.msRequestFullscreen();
+      }
+    } else {
+      // 退出全屏
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      } else if (document.mozCancelFullScreen) {
+        document.mozCancelFullScreen();
+      } else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
+      }
+    }
+  }, []);
+
+  // 监听全屏状态变化
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(
+        !!(document.fullscreenElement || document.webkitFullscreenElement ||
+           document.mozFullScreenElement || document.msFullscreenElement)
+      );
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+    };
+  }, []);
+
   const postMessageHandler = useMemo(() => {
     return new PostMessageHandler(fileActions, setError);
   }, [fileActions]);
@@ -687,16 +740,25 @@ function App() {
               )}
             </div>
             <div className="navbar-right">
-              <button 
+              <button
+                className="fullscreen-btn"
+                onClick={toggleFullscreen}
+                title={isFullscreen ? '退出全屏 (Esc)' : '进入全屏 (F11)'}
+                aria-label={isFullscreen ? '退出全屏' : '进入全屏'}
+              >
+                {isFullscreen ? '⛶' : '⛶'}
+              </button>
+
+              <button
                 className="btn-secondary small"
                 onClick={() => setShowSettingsPanel(true)}
                 title={t('app.navbar.settings')}
               >
                 ⚙️ {t('app.navbar.settings')}
               </button>
-              
+
               {isFullExportConversationMode && shouldUseStarSystem && starManagerRef.current && (
-                <button 
+                <button
                   className="btn-secondary small"
                   onClick={() => {
                     const newStars = starManagerRef.current.clearAllStars();
