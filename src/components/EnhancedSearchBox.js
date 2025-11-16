@@ -5,7 +5,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import NodeLocatorPanel from './NodeLocatorPanel';
 import { getGlobalSearchManager } from '../utils/globalSearchManager';
 import { getRenameManager } from '../utils/renameManager';
-import { useI18n } from '../hooks/useI18n';
+import { useI18n } from '../index.js';
 
 /**
  * 增强搜索框组件

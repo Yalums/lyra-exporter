@@ -19,6 +19,16 @@
         "title": "載入對話檔案",
         "description": "直接載入已匯出的JSON檔案，開始管理你的對話",
         "button": "選擇檔案載入"
+      },
+      "batchExport": {
+        "badge": "⚡ 批次處理",
+        "title": "批次匯出最新分支",
+        "description": "選擇多個JSON檔案，自動將每個檔案的最新對話分支匯出為Markdown，並打包成ZIP檔案",
+        "button": "開始批次匯出",
+        "processing": "處理中...",
+        "progress": "正在處理 {{current}}/{{total}} 個檔案",
+        "complete": "匯出完成！",
+        "result": "成功匯出 {{successful}} 個檔案，失敗 {{failed}} 個，共 {{total}} 個"
       }
     },
     "privacyAssurance": {
@@ -262,7 +272,10 @@
       "markImportant": "星標標記",
       "unmarkImportant": "取消重要",
       "markDeleted": "刪除標記",
-      "unmarkDeleted": "取消刪除"
+      "unmarkDeleted": "取消刪除",
+      "jumpToLatest": "跳轉到最新",
+      "previousMessage": "上一則訊息",
+      "nextMessage": "下一則訊息"
     },
     "info": {
       "modelPlatform": "模型/平台",

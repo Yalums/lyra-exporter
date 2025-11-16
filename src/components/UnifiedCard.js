@@ -3,8 +3,8 @@
 
 import React, { useState, useEffect } from 'react';
 import PlatformIcon from './PlatformIcon';
-import { DateTimeUtils, FileUtils, PlatformUtils } from '../utils/commonUtils';
-import { useI18n } from '../hooks/useI18n';
+import { DateTimeUtils, FileUtils, PlatformUtils } from '../utils/fileParser';
+import { useI18n } from '../index.js';
 import { getRenameManager } from '../utils/renameManager';
 
 /**

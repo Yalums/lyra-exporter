@@ -2,10 +2,11 @@
 // 统一的设置管理组件 - 整合主题、语言、复制选项和导出设置
 
 import React, { useState, useEffect } from 'react';
-import { ThemeUtils, StorageUtils } from '../utils/commonUtils';
+import { ThemeUtils } from '../utils/themeManager';
+import { StorageUtils } from '../App';
 import { CopyConfigManager } from '../utils/copyManager';
 import LanguageSwitcher from './LanguageSwitcher';
-import { useI18n } from '../hooks/useI18n';
+import { useI18n } from '../index.js';
 
 /**
  * 导出配置管理器 - 直接使用 localStorage
@@ -491,7 +492,7 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
           {/* 关于 */}
           <SettingsSection title={t('settings.about.title')}>
             <SettingItem label={t('settings.about.appName')} description={t('settings.about.appDescription')} static={true} />
-            <SettingItem label={t('settings.about.version')} description={'v1.6.0'} static={true} />
+            <SettingItem label={t('settings.about.version')} description={'v1.6.1'} static={true} />
             <SettingItem label={t('settings.about.github')} description={t('settings.about.githubDescription')}>
               <a 
                 href="https://github.com/Yalums/lyra-exporter" 

@@ -15,6 +15,16 @@
         "title": "대화 파일 로드",
         "description": "내보내기한 JSON 파일을 직접 로드하고 대화 관리를 시작하세요",
         "button": "파일 선택하여 로드"
+      },
+      "batchExport": {
+        "badge": "⚡ 일괄 처리",
+        "title": "최신 브랜치 일괄 내보내기",
+        "description": "여러 JSON 파일을 선택하여 각 파일의 최신 대화 브랜치를 자동으로 Markdown으로 내보내고 ZIP 파일로 패키징",
+        "button": "일괄 내보내기 시작",
+        "processing": "처리 중...",
+        "progress": "{{current}}/{{total}}개 파일 처리 중",
+        "complete": "내보내기 완료!",
+        "result": "총 {{total}}개 중 {{successful}}개 파일 성공적으로 내보내기, {{failed}}개 실패"
       }
     },
     "privacyAssurance": {
@@ -258,7 +268,10 @@
       "markImportant": "별표 표시",
       "unmarkImportant": "중요 취소",
       "markDeleted": "삭제 표시",
-      "unmarkDeleted": "삭제 취소"
+      "unmarkDeleted": "삭제 취소",
+      "jumpToLatest": "최신으로 이동",
+      "previousMessage": "이전 메시지",
+      "nextMessage": "다음 메시지"
     },
     "info": {
       "modelPlatform": "모델/플랫폼",

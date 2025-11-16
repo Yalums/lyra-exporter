@@ -15,7 +15,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Globe } from 'lucide-react';
-import { useI18n } from '../hooks/useI18n.js';
+import { useI18n } from '../index.js';
 
 const LanguageSwitcher = ({
   className = '',

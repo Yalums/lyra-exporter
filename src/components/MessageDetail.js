@@ -2,8 +2,8 @@
 import React, { useState, useRef, useEffect, Component } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { getImageDisplayData } from '../utils/fileParser';
-import { useI18n } from '../hooks/useI18n';
+import { getImageDisplayData, formatFileSize } from '../utils/fileParser';
+import { useI18n } from '../index.js';
 
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -401,14 +401,6 @@ const MessageDetail = ({
     if (!attachments || attachments.length === 0) {
       return <div className="placeholder">{t('messageDetail.placeholder.noAttachments')}</div>;
     }
-
-    const formatFileSize = (bytes) => {
-      if (bytes === 0) return '0 Bytes';
-      const k = 1024;
-      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-      const i = Math.floor(Math.log(bytes) / Math.log(k));
-      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    };
 
     const toggleViewMode = (index) => {
       setAttachmentViewMode(prev => ({

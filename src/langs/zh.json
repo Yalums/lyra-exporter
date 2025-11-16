@@ -15,6 +15,16 @@
         "title": "加载对话文件",
         "description": "直接加载已导出的JSON文件,开始管理你的对话",
         "button": "选择文件加载"
+      },
+      "batchExport": {
+        "badge": "⚡ 批量处理",
+        "title": "批量导出最新分支",
+        "description": "选择多个JSON文件，自动将每个文件的最新对话分支导出为Markdown，并打包成ZIP文件",
+        "button": "开始批量导出",
+        "processing": "处理中...",
+        "progress": "正在处理 {{current}}/{{total}} 个文件",
+        "complete": "导出完成！",
+        "result": "成功导出 {{successful}} 个文件，失败 {{failed}} 个，共 {{total}} 个"
       }
     },
     "privacyAssurance": {
@@ -422,6 +432,7 @@
       "unmarkImportant": "取消重要",
       "markDeleted": "删除标记",
       "unmarkDeleted": "取消删除",
+      "jumpToLatest": "跳转到最新",
       "previousMessage": "上一条消息",
       "nextMessage": "下一条消息"
     },

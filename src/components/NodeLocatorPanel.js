@@ -2,8 +2,8 @@
 // 节点定位面板 - 显示搜索结果和节点可视化
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useI18n } from '../hooks/useI18n';
-import { DateTimeUtils } from '../utils/commonUtils';
+import { useI18n } from '../index.js';
+import { DateTimeUtils } from '../utils/fileParser';
 
 /**
  * 节点定位面板主组件

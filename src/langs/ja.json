@@ -15,6 +15,16 @@
         "title": "会話ファイルを読み込む",
         "description": "エクスポートされたJSONファイルを直接読み込み、会話を管理し始めます",
         "button": "ファイルを選択して読み込む"
+      },
+      "batchExport": {
+        "badge": "⚡ バッチ処理",
+        "title": "最新ブランチを一括エクスポート",
+        "description": "複数のJSONファイルを選択し、各ファイルの最新の会話ブランチを自動的にMarkdownとしてエクスポートし、ZIPファイルにパッケージ化",
+        "button": "一括エクスポート開始",
+        "processing": "処理中...",
+        "progress": "{{current}}/{{total}}ファイルを処理中",
+        "complete": "エクスポート完了！",
+        "result": "{{total}}ファイル中、{{successful}}ファイルを正常にエクスポート、{{failed}}ファイルが失敗"
       }
     },
     "privacyAssurance": {
@@ -258,7 +268,10 @@
       "markImportant": "スターマーク",
       "unmarkImportant": "重要を解除",
       "markDeleted": "削除マーク",
-      "unmarkDeleted": "削除を解除"
+      "unmarkDeleted": "削除を解除",
+      "jumpToLatest": "最新に移動",
+      "previousMessage": "前のメッセージ",
+      "nextMessage": "次のメッセージ"
     },
     "info": {
       "modelPlatform": "モデル/プラットフォーム",

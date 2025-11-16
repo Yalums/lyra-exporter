@@ -1,13 +1,25 @@
 // utils/exportManager.js
-// 重构后的导出管理模块 - 支持重命名和i18n
-
-import { DateTimeUtils, StorageUtils } from './commonUtils';
-import { generateFileCardUuid, generateConversationCardUuid, parseUuid, generateFileHash } from './uuidManager';
+import { StorageUtils } from '../App';
+import { DateTimeUtils, FileUtils } from './fileParser';
+import { generateFileCardUuid, generateConversationCardUuid, parseUuid, generateFileHash } from './data/uuidManager';
 import { extractChatData, detectBranches } from './fileParser';
-import { MarkManager } from './markManager';
-import { SortManager } from './sortManager';
+import { MarkManager } from './data/markManager';
+import { SortManager } from './data/sortManager';
 import { getRenameManager } from './renameManager';
-import { t } from './i18n';
+import {
+  escapeXml,
+  formatAttachments as formatAttachmentsHelper,
+  wrapWithDetails,
+  formatThinking as formatThinkingHelper,
+  formatArtifact as formatArtifactHelper,
+  formatTool as formatToolHelper,
+  formatCitations as formatCitationsHelper,
+  getBranchMarker as getBranchMarkerHelper,
+  getSenderLabel as getSenderLabelHelper,
+  toExcelColumn,
+  toRoman
+} from './formatHelpers';
+import { t } from '../index.js';
 
 /**
  * 导出配置
@@ -30,55 +42,8 @@ export const ExportConfig = {
   }
 };
 
-/**
- * 获取 i18n 配置的辅助函数
- */
-function getDefaultI18nConfig() {
-  return {
-    metadata: {
-      defaultTitle: t('exportManager.metadata.defaultTitle'),
-      created: t('exportManager.metadata.created'),
-      unknown: t('exportManager.metadata.unknown'),
-      exportTime: t('exportManager.metadata.exportTime'),
-      filterCondition: t('exportManager.metadata.filterCondition')
-    },
-    messages: {
-      noMatchingMessages: t('exportManager.messages.noMatchingMessages'),
-      exportedCount: t('exportManager.messages.exportedCount')
-    },
-    format: {
-      thinkingProcess: t('exportManager.format.thinkingProcess'),
-      thinkingLabel: t('exportManager.format.thinkingLabel'),
-      attachments: t('exportManager.format.attachments'),
-      type: t('exportManager.format.type'),
-      contentPreview: t('exportManager.format.contentPreview'),
-      artifact: t('exportManager.format.artifact'),
-      noTitle: t('exportManager.format.noTitle'),
-      unknown: t('exportManager.format.unknown'),
-      typeLabel: t('exportManager.format.typeLabel'),
-      language: t('exportManager.format.language'),
-      content: t('exportManager.format.content'),
-      tool: t('exportManager.format.tool'),
-      searchQuery: t('exportManager.format.searchQuery'),
-      searchResults: t('exportManager.format.searchResults'),
-      citations: t('exportManager.format.citations'),
-      unknownSource: t('exportManager.format.unknownSource'),
-      unknownWebsite: t('exportManager.format.unknownWebsite')
-    },
-    filters: {
-      excludeDeleted: t('exportManager.filters.excludeDeleted'),
-      onlyCompleted: t('exportManager.filters.onlyCompleted'),
-      onlyImportant: t('exportManager.filters.onlyImportant'),
-      completedAndImportant: t('exportManager.filters.completedAndImportant')
-    },
-    errors: {
-      saveFileFailed: t('exportManager.errors.saveFileFailed'),
-      noDataToExport: t('exportManager.errors.noDataToExport'),
-      exportFailed: t('exportManager.errors.exportFailed'),
-      unknownScope: t('exportManager.errors.unknownScope')
-    }
-  };
-}
+// 辅助函数：获取翻译文本
+const gt = (key) => t(`exportManager.${key}`);
 
 /**
  * Markdown生成器类
@@ -86,11 +51,7 @@ function getDefaultI18nConfig() {
 export class MarkdownGenerator {
   constructor(config = {}) {
     this.config = { ...ExportConfig.DEFAULT, ...config };
-    // 初始化重命名管理器
     this.renameManager = getRenameManager();
-    
-    // 初始化 i18n 配置 - 使用传入的配置或默认配置
-    this.i18n = config.i18n || getDefaultI18nConfig();
   }
 
   /**
@@ -113,9 +74,8 @@ export class MarkdownGenerator {
   generateMetadata(processedData) {
     if (!this.config.exportObsidianMetadata) return '';
 
-    // 使用重命名后的标题(如果有的话)
     const uuid = this.config.conversationUuid || processedData.meta_info?.uuid;
-    const originalTitle = processedData.meta_info?.title || this.i18n.metadata.defaultTitle;
+    const originalTitle = processedData.meta_info?.title || gt('metadata.defaultTitle');
     const title = uuid ? this.renameManager.getRename(uuid, originalTitle) : originalTitle;
 
     const lines = [
@@ -153,24 +113,21 @@ export class MarkdownGenerator {
    */
   generateHeader(processedData) {
     const { meta_info = {} } = processedData;
-    
-    // 使用重命名后的标题
     const uuid = this.config.conversationUuid || meta_info.uuid;
-    const originalTitle = meta_info.title || this.i18n.metadata.defaultTitle;
+    const originalTitle = meta_info.title || gt('metadata.defaultTitle');
     const title = uuid ? this.renameManager.getRename(uuid, originalTitle) : originalTitle;
-    
+
     const lines = [
       `# ${title}`,
-      `*${this.i18n.metadata.created}: ${meta_info.created_at || this.i18n.metadata.unknown}*`,
-      `*${this.i18n.metadata.exportTime}: ${DateTimeUtils.formatDateTime(new Date())}*`
+      `*${gt('metadata.created')}: ${meta_info.created_at || gt('metadata.unknown')}*`,
+      `*${gt('metadata.exportTime')}: ${DateTimeUtils.formatDateTime(new Date())}*`
     ];
 
-    // 如果有筛选条件,添加说明
     const hasFiltering = this.config.excludeDeleted || this.config.includeCompleted || this.config.includeImportant;
     if (hasFiltering) {
       const filterDesc = this.getFilterDescription();
       if (filterDesc) {
-        lines.push(`*${this.i18n.metadata.filterCondition}: ${filterDesc}*`);
+        lines.push(`*${gt('metadata.filterCondition')}: ${filterDesc}*`);
       }
     }
 
@@ -186,7 +143,7 @@ export class MarkdownGenerator {
     const filteredMessages = this.filterMessages(chat_history);
 
     if (filteredMessages.length === 0) {
-      return this.i18n.messages.noMatchingMessages + '\n';
+      return gt('messages.noMatchingMessages') + '\n';
     }
 
     return filteredMessages
@@ -201,15 +158,14 @@ export class MarkdownGenerator {
     const { chat_history = [] } = processedData;
     const filteredMessages = this.filterMessages(chat_history);
     const originalCount = chat_history.length;
-    
+
     if (filteredMessages.length < originalCount) {
-      // 使用模板字符串替换参数
-      const message = this.i18n.messages.exportedCount
+      const message = gt('messages.exportedCount')
         .replace('{{count}}', filteredMessages.length)
         .replace('{{total}}', originalCount);
       return '\n' + message;
     }
-    
+
     return '';
   }
 
@@ -317,200 +273,43 @@ export class MarkdownGenerator {
    */
   formatThinking(thinking) {
     const format = this.config.thinkingFormat || 'codeblock';
-    
-    switch (format) {
-      case 'codeblock':
-        // 代码块格式(思考前置)
-        return [
-          '``` thinking',
-          thinking,
-          '```',
-          ''
-        ].join('\n');
-      
-      case 'xml':
-        // XML标签格式(思考前置)
-        return [
-          '<anthropic_thinking>',
-          thinking,
-          '</anthropic_thinking>',
-          ''
-        ].join('\n');
-      
-      case 'emoji':
-      default:
-        // Emoji格式(内容后置)
-        return [
-          this.i18n.format.thinkingLabel,
-          '```',
-          thinking,
-          '```',
-          ''
-        ].join('\n');
-    }
+    return formatThinkingHelper(thinking, format, gt('format.thinkingLabel'));
   }
 
   /**
-   * 格式化附件 - XML 结构化格式
+   * 格式化附件 - 使用共享辅助函数
    */
   formatAttachments(attachments) {
-    if (!attachments || attachments.length === 0) {
-      return '';
-    }
-    
-    const lines = ['<attachments>'];
-    
-    attachments.forEach((att, index) => {
-      // 开始标签，包含索引和文件类型
-      lines.push(`<attachment index="${index + 1}">`);
-      
-      // 文件名
-      lines.push(`<file_name>${this.escapeXml(att.file_name || '未知文件')}</file_name>`);
-      
-      // 文件大小
-      lines.push(`<file_size>${att.file_size || 0}</file_size>`);
-      
-      // 创建时间（如果有）
-      if (att.created_at) {
-        lines.push(`<created_at>${this.escapeXml(att.created_at)}</created_at>`);
-      }
-      
-      // 文件内容
-      if (att.extracted_content) {
-        lines.push('<attachment_content>');
-        
-        if (this.config.includeAttachments) {
-          // 显示完整内容
-          lines.push(att.extracted_content);
-        } else {
-          // 只显示预览
-          const preview = att.extracted_content.substring(0, 200);
-          const previewText = preview.length < att.extracted_content.length ? 
-            `${preview}...` : preview;
-          lines.push(previewText);
-        }
-        
-        lines.push('</attachment_content>');
-      }
-      
-      // 结束标签
-      lines.push('</attachment>');
-      
-      // 附件之间添加空行（除了最后一个）
-      if (index < attachments.length - 1) {
-        lines.push('');
-      }
-    });
-    
-    lines.push('</attachments>', '');
-    return lines.join('\n');
+    return formatAttachmentsHelper(attachments, this.config);
   }
 
-  /**
-   * XML 转义函数
-   */
-  escapeXml(text) {
-    if (!text) return '';
-    return String(text)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&apos;');
-  }
-
-  /**
-   * 格式化文件大小
-   */
-  formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  }
 
   /**
    * 格式化Artifact
    */
   formatArtifact(artifact) {
-    const lines = [
-      '<details>',
-      `<summary>${this.i18n.format.artifact} ${artifact.title || this.i18n.format.noTitle}</summary>`,
-      '',
-      `${this.i18n.format.typeLabel} \`${artifact.type || this.i18n.format.unknown}\``,
-      ''
-    ];
-
-    if (artifact.command === 'create' && artifact.content) {
-      if (artifact.language) {
-        lines.push(`${this.i18n.format.language} \`${artifact.language}\``);
-      }
-      lines.push('', `${this.i18n.format.content}`);
-      lines.push(`\`\`\`${artifact.language || ''}`);
-      lines.push(artifact.content);
-      lines.push('```');
-    }
-
-    lines.push('</details>', '');
-    return lines.join('\n');
+    return formatArtifactHelper(artifact, gt);
   }
 
   /**
    * 格式化工具使用
    */
   formatTool(tool) {
-    const lines = [
-      '<details>',
-      `<summary>${this.i18n.format.tool} ${tool.name}</summary>`,
-      ''
-    ];
-
-    if (tool.query) {
-      lines.push(`${this.i18n.format.searchQuery} \`${tool.query}\``, '');
-    }
-
-    if (tool.result?.content && tool.name === 'web_search') {
-      lines.push(`${this.i18n.format.searchResults}`, '');
-      tool.result.content.slice(0, 5).forEach((item, i) => {
-        lines.push(`${i + 1}. [${item.title || this.i18n.format.noTitle}](${item.url || '#'})`);
-      });
-    }
-
-    lines.push('</details>', '');
-    return lines.join('\n');
+    return formatToolHelper(tool, gt);
   }
 
   /**
    * 格式化引用
    */
   formatCitations(citations) {
-    const lines = [
-      '<details>',
-      `<summary>${this.i18n.format.citations}</summary>`,
-      '',
-      '| 标题 | 来源 |',
-      '| --- | --- |'
-    ];
-
-    citations.forEach(citation => {
-      const title = citation.title || this.i18n.format.unknownSource;
-      const url = citation.url || '#';
-      const source = url.includes('/') ? url.split('/')[2] : this.i18n.format.unknownWebsite;
-      lines.push(`| [${title}](${url}) | ${source} |`);
-    });
-
-    lines.push('</details>', '');
-    return lines.join('\n');
+    return formatCitationsHelper(citations, gt);
   }
 
   /**
    * 获取分支标记
    */
   getBranchMarker(msg) {
-    if (msg.is_branch_point) return ' 🔀';
-    if (msg.branch_level > 0) return ` ↳${msg.branch_level}`;
-    return '';
+    return getBranchMarkerHelper(msg);
   }
 
   /**
@@ -530,9 +329,9 @@ export class MarkdownGenerator {
       if (numberFormat === 'numeric') {
         title += `${index}. `;
       } else if (numberFormat === 'letter') {
-        title += `${this.toExcelColumn(index)}. `;
+        title += `${toExcelColumn(index)}. `;
       } else if (numberFormat === 'roman') {
-        title += `${this.toRoman(index)}. `;
+        title += `${toRoman(index)}. `;
       }
     }
     
@@ -547,81 +346,28 @@ export class MarkdownGenerator {
    * 获取发送者标签
    */
   getSenderLabel(msg) {
-    const isHuman = msg.sender === 'human' || msg.sender_label === '人类' || msg.sender_label === 'Human';
-    
-    // 检查 senderFormat 配置
-    const senderFormat = this.config.senderFormat || 'default';
-    
-    // 如果是 default 模式,强制使用 User/AI
-    if (senderFormat === 'default') {
-      return isHuman ? 'User' : 'AI';
-    }
-    
-    // 如果是 human-assistant 模式,使用 Human/Assistant
-    if (senderFormat === 'human-assistant') {
-      return isHuman ? 'Human' : 'Assistant';
-    }
-    
-    // 如果是 custom 模式,使用配置的标签
-    if (senderFormat === 'custom' && this.config.humanLabel && this.config.assistantLabel) {
-      return isHuman ? this.config.humanLabel : this.config.assistantLabel;
-    }
-    
-    // 默认返回原始标签或 Human/Assistant
-    return msg.sender_label || (isHuman ? 'Human' : 'Assistant');
+    return getSenderLabelHelper(msg, this.config);
   }
   
-  /**
-   * 转换为Excel风格的字母序号
-   */
-  toExcelColumn(num) {
-    let result = '';
-    while (num > 0) {
-      num--; // 调整为0基础
-      result = String.fromCharCode(65 + (num % 26)) + result;
-      num = Math.floor(num / 26);
-    }
-    return result;
-  }
-  
-  /**
-   * 转换为罗马数字
-   */
-  toRoman(num) {
-    if (num <= 0 || num >= 4000) return num.toString(); // 罗马数字限制
-    
-    const values = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
-    const symbols = ['M', 'CM', 'D', 'CD', 'C', 'XC', 'L', 'XL', 'X', 'IX', 'V', 'IV', 'I'];
-    let result = '';
-    
-    for (let i = 0; i < values.length; i++) {
-      while (num >= values[i]) {
-        result += symbols[i];
-        num -= values[i];
-      }
-    }
-    
-    return result;
-  }
 
   /**
    * 获取筛选描述
    */
   getFilterDescription() {
     const filters = [];
-    
+
     if (this.config.excludeDeleted) {
-      filters.push(this.i18n.filters.excludeDeleted);
+      filters.push(gt('filters.excludeDeleted'));
     }
-    
+
     if (this.config.includeCompleted && this.config.includeImportant) {
-      filters.push(this.i18n.filters.completedAndImportant);
+      filters.push(gt('filters.completedAndImportant'));
     } else if (this.config.includeCompleted) {
-      filters.push(this.i18n.filters.onlyCompleted);
+      filters.push(gt('filters.onlyCompleted'));
     } else if (this.config.includeImportant) {
-      filters.push(this.i18n.filters.onlyImportant);
+      filters.push(gt('filters.onlyImportant'));
     }
-    
+
     return filters.join(',');
   }
 }
@@ -633,24 +379,23 @@ export class FileExporter {
   /**
    * 保存文本到文件
    */
-  static saveTextFile(text, fileName, i18n = null) {
+  static saveTextFile(text, fileName) {
     try {
       const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      
+
       a.href = url;
       a.download = fileName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       return true;
     } catch (error) {
       console.error('保存文件失败:', error);
-      const errorMsg = i18n?.saveFileFailed || t('exportManager.errors.saveFileFailed');
-      alert(errorMsg);
+      alert(gt('errors.saveFileFailed'));
       return false;
     }
   }
@@ -661,35 +406,31 @@ export class FileExporter {
   static async exportSingleFile(data, config = {}) {
     const generator = new MarkdownGenerator(config);
     const markdown = generator.generate(data);
-    // 传递 conversationUuid 或从 data._exportConfig 中获取
     const conversationUuid = config.conversationUuid || data._exportConfig?.conversationUuid;
     const fileName = this.generateFileName(data, 'single', conversationUuid);
-    
-    return this.saveTextFile(markdown, fileName, config.i18n?.errors);
+
+    return this.saveTextFile(markdown, fileName);
   }
 
   /**
    * 导出多个文件
    */
   static async exportMultipleFiles(dataList, config = {}) {
-    const sections = dataList.map((data, index) => {
-      // 对于多文件导出,每个文件都需要单独处理marks
-      // 这里暂时使用空的marks,因为多文件导出的marks处理比较复杂
+    const sections = dataList.map((data) => {
       const fileConfig = {
         ...config,
         marks: { completed: new Set(), important: new Set(), deleted: new Set() },
-        // 传递每个文件的 conversationUuid
         conversationUuid: data._exportConfig?.conversationUuid
       };
-      
+
       const generator = new MarkdownGenerator(fileConfig);
       return generator.generate(data);
     });
-    
+
     const combined = sections.join('\n\n---\n---\n\n');
     const fileName = this.generateFileName(null, 'multiple');
-    
-    return this.saveTextFile(combined, fileName, config.i18n?.errors);
+
+    return this.saveTextFile(combined, fileName);
   }
 
   /**
@@ -698,28 +439,32 @@ export class FileExporter {
   static generateFileName(data, type = 'single', conversationUuid = null) {
     const date = DateTimeUtils.getCurrentDate();
     const renameManager = getRenameManager();
-    
+
     if (type === 'single' && data) {
-      // 优先使用传入的 conversationUuid，然后是 _exportConfig 中的，最后是 meta_info 中的
       const uuid = conversationUuid || data._exportConfig?.conversationUuid || data.meta_info?.uuid;
       const originalTitle = data.meta_info?.title || 'conversation';
-      
-      // 使用重命名管理器获取名称
       const title = uuid ? renameManager.getRename(uuid, originalTitle) : originalTitle;
-      
-      // 清理文件名中的非法字符
       const cleanTitle = title.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_');
       return `${cleanTitle}_${date}.md`;
     }
-    
+
     return `export_${date}.md`;
   }
 }
 
 /**
- * 处理导出操作(从App.js移入以简化主文件)
- * @param {Object} params - 导出参数
- * @returns {Promise<boolean>} 成功与否
+ * 辅助函数：处理单个文件
+ */
+async function processFileForExport(file, fileIndex) {
+  const text = await file.text();
+  const jsonData = JSON.parse(text);
+  let data = extractChatData(jsonData, file.name);
+  data = detectBranches(data);
+  return data;
+}
+
+/**
+ * 处理导出操作
  */
 export async function handleExport({
   exportOptions,
@@ -750,30 +495,20 @@ export async function handleExport({
     switch (exportOptions.scope) {
       case 'current':
         if (processedData) {
-          const messagesToExport = sortManagerRef?.current?.hasCustomSort() ? 
+          const messagesToExport = sortManagerRef?.current?.hasCustomSort() ?
             sortedMessages : (processedData.chat_history || []);
-          
-          // 获取当前对话的UUID - 修复：需要正确处理所有格式
+
+          // 内联：获取对话UUID
           let conversationUuid = null;
-          
-          // 对于 claude_full_export 格式，从当前选中的对话获取UUID
           if (processedData.format === 'claude_full_export') {
-            // 从 processedData 或 exportOptions 中获取当前选中的对话UUID
-            const selectedConversationUuid = exportOptions.selectedConversationUuid || processedData.meta_info?.uuid;
-            if (selectedConversationUuid && files[currentFileIndex]) {
-              conversationUuid = generateConversationCardUuid(
-                currentFileIndex,
-                selectedConversationUuid,
-                files[currentFileIndex]
-              );
+            const uuid = exportOptions.selectedConversationUuid || processedData.meta_info?.uuid;
+            if (uuid && files[currentFileIndex]) {
+              conversationUuid = generateConversationCardUuid(currentFileIndex, uuid, files[currentFileIndex]);
             }
-          } else {
-            // 对于普通文件，使用文件UUID
-            if (files[currentFileIndex]) {
-              conversationUuid = generateFileCardUuid(currentFileIndex, files[currentFileIndex]);
-            }
+          } else if (files[currentFileIndex]) {
+            conversationUuid = generateFileCardUuid(currentFileIndex, files[currentFileIndex]);
           }
-          
+
           dataToExport = [{
             ...processedData,
             chat_history: messagesToExport,
@@ -784,28 +519,24 @@ export async function handleExport({
       
       case 'currentBranch':
         if (processedData && processedData.chat_history) {
-          // 使用 displayMessages（时间线组件中已经过滤好的当前分支消息）
-          // 如果没有提供 displayMessages，则使用所有消息作为 fallback
           let branchMessages = displayMessages || processedData.chat_history || [];
-          
-          // 如果启用了自定义排序，应用排序
-          const messagesToExport = sortManagerRef?.current?.hasCustomSort() ? 
-            sortManagerRef.current.getSortedMessages().filter(msg => 
+
+          const messagesToExport = sortManagerRef?.current?.hasCustomSort() ?
+            sortManagerRef.current.getSortedMessages().filter(msg =>
               branchMessages.some(bm => bm.uuid === msg.uuid)
             ) : branchMessages;
-          
-          // 获取当前对话的UUID
+
+          // 内联：获取对话UUID
           let conversationUuid = null;
-          if (processedData.format === 'claude_full_export' && processedData.meta_info?.uuid) {
-            conversationUuid = generateConversationCardUuid(
-              currentFileIndex,
-              processedData.meta_info.uuid,
-              files[currentFileIndex]
-            );
+          if (processedData.format === 'claude_full_export') {
+            const uuid = processedData.meta_info?.uuid;
+            if (uuid && files[currentFileIndex]) {
+              conversationUuid = generateConversationCardUuid(currentFileIndex, uuid, files[currentFileIndex]);
+            }
           } else if (files[currentFileIndex]) {
             conversationUuid = generateFileCardUuid(currentFileIndex, files[currentFileIndex]);
           }
-          
+
           dataToExport = [{
             ...processedData,
             chat_history: messagesToExport,
@@ -816,13 +547,13 @@ export async function handleExport({
         
       case 'operated':
         const processedFileIndices = new Set();
-        
+
         for (const fileUuid of operatedFiles) {
           const parsed = parseUuid(fileUuid);
           let fileIndex = -1;
           let isConversation = false;
           let conversationUuid = null;
-          
+
           if (parsed.conversationUuid) {
             isConversation = true;
             conversationUuid = parsed.conversationUuid;
@@ -833,29 +564,26 @@ export async function handleExport({
               return fUuid === fileUuid || fileUuid.includes(generateFileHash(file));
             });
           }
-          
+
           if (fileIndex !== -1 && !processedFileIndices.has(fileIndex)) {
             const file = files[fileIndex];
             try {
-              const text = await file.text();
-              const jsonData = JSON.parse(text);
-              let data = extractChatData(jsonData, file.name);
-              data = detectBranches(data);
-              
+              const data = await processFileForExport(file, fileIndex);
+
               if (data.format === 'claude_full_export' && isConversation && conversationUuid) {
                 const conversation = data.views?.conversationList?.find(
                   conv => conv.uuid === conversationUuid
                 );
-                
+
                 if (conversation) {
                   const conversationMessages = data.chat_history?.filter(
                     msg => msg.conversation_uuid === conversationUuid && !msg.is_conversation_header
                   ) || [];
-                  
+
                   const convUuid = generateConversationCardUuid(fileIndex, conversationUuid, file);
                   const convSortManager = new SortManager(conversationMessages, convUuid);
                   const sortedMsgs = convSortManager.getSortedMessages();
-                  
+
                   dataToExport.push({
                     ...data,
                     meta_info: {
@@ -873,12 +601,12 @@ export async function handleExport({
               } else {
                 const fileSortManager = new SortManager(data.chat_history || [], fileUuid);
                 const sortedMsgs = fileSortManager.getSortedMessages();
-                
+
                 dataToExport.push({
                   ...data,
                   chat_history: sortedMsgs
                 });
-                
+
                 processedFileIndices.add(fileIndex);
               }
             } catch (err) {
@@ -892,15 +620,12 @@ export async function handleExport({
         for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
           const file = files[fileIndex];
           try {
-            const text = await file.text();
-            const jsonData = JSON.parse(text);
-            let data = extractChatData(jsonData, file.name);
-            data = detectBranches(data);
-            
+            const data = await processFileForExport(file, fileIndex);
+
             const fileUuid = generateFileCardUuid(fileIndex, file);
             const fileSortManager = new SortManager(data.chat_history || [], fileUuid);
             const sortedMsgs = fileSortManager.getSortedMessages();
-            
+
             dataToExport.push({
               ...data,
               chat_history: sortedMsgs
@@ -913,11 +638,10 @@ export async function handleExport({
     }
     
     if (dataToExport.length === 0) {
-      const errorMsg = i18n?.errors?.noDataToExport || t('exportManager.errors.noDataToExport');
-      alert(errorMsg);
+      alert(gt('errors.noDataToExport'));
       return false;
     }
-    
+
     const success = await exportData({
       scope: dataToExport.length === 1 ? 'current' : 'multiple',
       data: dataToExport.length === 1 ? dataToExport[0] : null,
@@ -930,18 +654,14 @@ export async function handleExport({
           important: new Set(),
           deleted: new Set()
         },
-        conversationUuid: dataToExport.length === 1 ? dataToExport[0]._exportConfig?.conversationUuid : null,
-        i18n: i18n
+        conversationUuid: dataToExport.length === 1 ? dataToExport[0]._exportConfig?.conversationUuid : null
       }
     });
-    
+
     return success;
   } catch (error) {
     console.error('导出失败:', error);
-    const errorMsg = i18n?.errors?.exportFailed 
-      ? `${i18n.errors.exportFailed}: ${error.message}`
-      : `${t('exportManager.errors.exportFailed')}: ${error.message}`;
-    alert(errorMsg);
+    alert(`${gt('errors.exportFailed')}: ${error.message}`);
     return false;
   }
 }
@@ -950,35 +670,24 @@ export async function handleExport({
  * 主导出函数
  */
 export async function exportData(options) {
-  const {
-    scope = 'current',
-    data = null,
-    dataList = [],
-    config = {}
-  } = options;
-
-  const i18n = config.i18n?.errors || {
-    noDataToExport: t('exportManager.errors.noDataToExport'),
-    unknownScope: t('exportManager.errors.unknownScope'),
-    exportFailed: t('exportManager.errors.exportFailed')
-  };
+  const { scope = 'current', data = null, dataList = [], config = {} } = options;
 
   try {
     switch (scope) {
       case 'current':
-        if (!data) throw new Error(i18n.noDataToExport);
+        if (!data) throw new Error(gt('errors.noDataToExport'));
         return FileExporter.exportSingleFile(data, config);
-        
+
       case 'multiple':
-        if (dataList.length === 0) throw new Error(i18n.noDataToExport);
+        if (dataList.length === 0) throw new Error(gt('errors.noDataToExport'));
         return FileExporter.exportMultipleFiles(dataList, config);
-        
+
       default:
-        throw new Error(`${i18n.unknownScope} ${scope}`);
+        throw new Error(`${gt('errors.unknownScope')} ${scope}`);
     }
   } catch (error) {
     console.error('导出失败:', error);
-    alert(`${i18n.exportFailed}: ${error.message}`);
+    alert(`${gt('errors.exportFailed')}: ${error.message}`);
     return false;
   }
 }

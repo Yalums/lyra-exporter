@@ -9,31 +9,449 @@ import ConversationTimeline from './components/ConversationTimeline';
 import FullExportCardFilter from './components/FullExportCardFilter';
 import FloatingActionButton from './components/FloatingActionButton';
 import SettingsPanel from './components/SettingsManager';
+import ExportPanel from './components/ExportPanel';
 import { CardGrid } from './components/UnifiedCard';
 
 // 工具函数导入
-import { ThemeUtils, StorageUtils } from './utils/commonUtils';
-import { PostMessageHandler, StatsCalculator, DataProcessor } from './utils/dataManager';
-import { extractChatData, detectBranches } from './utils/fileParser';
-import { 
-  generateFileCardUuid, 
-  generateConversationCardUuid, 
-  parseUuid, 
+import { ThemeUtils } from './utils/themeManager';
+import { PostMessageHandler, StatsCalculator, DataProcessor } from './utils/data';
+import { extractChatData, detectBranches, parseJSONL } from './utils/fileParser';
+import {
+  generateFileCardUuid,
+  generateConversationCardUuid,
+  parseUuid,
   getCurrentFileUuid,
-  generateFileHash 
-} from './utils/uuidManager';
-import { MarkManager, getAllMarksStats } from './utils/markManager';
-import { StarManager } from './utils/starManager';
-import { SortManager } from './utils/sortManager';
+  generateFileHash
+} from './utils/data/uuidManager';
+import { MarkManager, getAllMarksStats } from './utils/data/markManager';
+import { StarManager } from './utils/data/starManager';
+import { SortManager } from './utils/data/sortManager';
 import { SearchManager } from './utils/searchManager';
-
-// Hooks导入
-import { useFileManager } from './hooks/useFileManager';
-import { useFullExportCardFilter } from './hooks/useFullExportCardFilter';
-import { useI18n } from './hooks/useI18n';
 
 import EnhancedSearchBox from './components/EnhancedSearchBox';
 import { getGlobalSearchManager } from './utils/globalSearchManager';
+import { useI18n } from './index.js';
+
+// ==================== 通用工具类 ====================
+
+/**
+ * Storage 工具类 - 封装 localStorage 操作
+ */
+export const StorageUtils = {
+  getLocalStorage(key, defaultValue = null) {
+    try {
+      const item = localStorage.getItem(key);
+      return item ? JSON.parse(item) : defaultValue;
+    } catch (error) {
+      console.error(`Failed to get ${key} from localStorage:`, error);
+      return defaultValue;
+    }
+  },
+
+  setLocalStorage(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      return true;
+    } catch (error) {
+      console.error(`Failed to set ${key} in localStorage:`, error);
+      return false;
+    }
+  }
+};
+
+/**
+ * Validation 工具类 - 验证跨窗口通信来源
+ */
+export const ValidationUtils = {
+  isAllowedOrigin(origin) {
+    const allowedOrigins = [
+      'https://claude.ai',
+      'https://claude.easychat.top',
+      'https://pro.easychat.top',
+      'https://chatgpt.com',
+      'https://gemini.google.com',
+      'https://aistudio.google.com',
+      'http://localhost:3789',
+      'https://yalums.github.io'
+    ];
+    return allowedOrigins.some(allowed => origin === allowed) ||
+           origin.includes('localhost') ||
+           origin.includes('127.0.0.1');
+  }
+};
+
+// ==================== 内联的 Hooks ====================
+
+/**
+ * useFullExportCardFilter - 卡片筛选Hook
+ */
+const useFullExportCardFilter = (conversations = [], operatedUuids = new Set()) => {
+  const [filters, setFilters] = useState({
+    name: '',
+    dateRange: 'all',
+    customDateStart: '',
+    customDateEnd: '',
+    project: 'all',
+    starred: 'all',
+    operated: 'all'
+  });
+
+  // 获取所有可用的项目
+  const availableProjects = useMemo(() => {
+    const projects = new Map();
+    conversations.forEach(conv => {
+      if (conv.project && conv.project.uuid) {
+        projects.set(conv.project.uuid, conv.project);
+      }
+    });
+    return Array.from(projects.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [conversations]);
+
+  // 筛选逻辑
+  const filteredConversations = useMemo(() => {
+    return conversations.filter(conv => {
+      // 名称筛选
+      if (filters.name.trim()) {
+        const nameMatch = conv.name?.toLowerCase().includes(filters.name.toLowerCase());
+        const projectMatch = conv.project?.name?.toLowerCase().includes(filters.name.toLowerCase());
+        if (!nameMatch && !projectMatch) return false;
+      }
+
+      // 项目筛选
+      if (filters.project !== 'all') {
+        if (filters.project === 'no_project') {
+          if (conv.project && conv.project.uuid) return false;
+        } else {
+          if (!conv.project || conv.project.uuid !== filters.project) return false;
+        }
+      }
+
+      // 星标筛选
+      if (filters.starred !== 'all') {
+        if (filters.starred === 'starred' && !conv.is_starred) return false;
+        if (filters.starred === 'unstarred' && conv.is_starred) return false;
+      }
+
+      // 操作状态筛选
+      if (filters.operated !== 'all') {
+        const isOperated = operatedUuids.has(conv.uuid);
+        if (filters.operated === 'operated' && !isOperated) return false;
+        if (filters.operated === 'unoperated' && isOperated) return false;
+      }
+
+      // 日期筛选
+      if (filters.dateRange !== 'all' && conv.created_at) {
+        try {
+          const convDate = new Date(conv.created_at);
+          const now = new Date();
+          switch (filters.dateRange) {
+            case 'today':
+              const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+              const convDay = new Date(convDate.getFullYear(), convDate.getMonth(), convDate.getDate());
+              if (convDay.getTime() !== today.getTime()) return false;
+              break;
+            case 'week':
+              const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+              if (convDate < weekAgo) return false;
+              break;
+            case 'month':
+              const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+              if (convDate < monthAgo) return false;
+              break;
+            case 'custom':
+              if (filters.customDateStart) {
+                const startDate = new Date(filters.customDateStart);
+                if (convDate < startDate) return false;
+              }
+              if (filters.customDateEnd) {
+                const endDate = new Date(filters.customDateEnd + 'T23:59:59');
+                if (convDate > endDate) return false;
+              }
+              break;
+          }
+        } catch (error) {
+          console.warn('日期解析失败:', conv.created_at);
+        }
+      }
+
+      return true;
+    });
+  }, [conversations, filters, operatedUuids]);
+
+  // 设置单个筛选器
+  const setFilter = useCallback((key, value) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  }, []);
+
+  // 批量设置筛选器
+  const updateFilters = useCallback((newFilters) => {
+    setFilters(prev => ({ ...prev, ...newFilters }));
+  }, []);
+
+  // 重置筛选器
+  const resetFilters = useCallback(() => {
+    setFilters({
+      name: '',
+      dateRange: 'all',
+      customDateStart: '',
+      customDateEnd: '',
+      project: 'all',
+      starred: 'all',
+      operated: 'all'
+    });
+  }, []);
+
+  // 获取筛选统计
+  const filterStats = useMemo(() => {
+    const hasActiveFilters = filters.name.trim() ||
+                           filters.dateRange !== 'all' ||
+                           filters.project !== 'all' ||
+                           filters.starred !== 'all' ||
+                           filters.operated !== 'all';
+    return {
+      total: conversations.length,
+      filtered: filteredConversations.length,
+      hasActiveFilters,
+      activeFilterCount: [
+        filters.name.trim(),
+        filters.dateRange !== 'all',
+        filters.project !== 'all',
+        filters.starred !== 'all',
+        filters.operated !== 'all'
+      ].filter(Boolean).length
+    };
+  }, [conversations.length, filteredConversations.length, filters]);
+
+  // 获取筛选器摘要文本
+  const getFilterSummary = useCallback(() => {
+    const parts = [];
+    if (filters.name.trim()) {
+      parts.push(`名称: "${filters.name}"`);
+    }
+    if (filters.dateRange !== 'all') {
+      const dateLabels = {
+        today: '今天',
+        week: '最近一周',
+        month: '最近一月',
+        custom: '自定义时间'
+      };
+      parts.push(`时间: ${dateLabels[filters.dateRange] || filters.dateRange}`);
+    }
+    if (filters.project !== 'all') {
+      if (filters.project === 'no_project') {
+        parts.push('项目: 无项目');
+      } else {
+        const project = availableProjects.find(p => p.uuid === filters.project);
+        parts.push(`项目: ${project?.name || '未知项目'}`);
+      }
+    }
+    if (filters.starred !== 'all') {
+      parts.push(`星标: ${filters.starred === 'starred' ? '已星标' : '未星标'}`);
+    }
+    if (filters.operated !== 'all') {
+      parts.push(`操作: ${filters.operated === 'operated' ? '有过操作' : '未操作'}`);
+    }
+    return parts.join(', ');
+  }, [filters, availableProjects]);
+
+  return {
+    filters,
+    filteredConversations,
+    availableProjects,
+    filterStats,
+    actions: {
+      setFilter,
+      updateFilters,
+      resetFilters,
+      getFilterSummary
+    }
+  };
+};
+
+/**
+ * useFileManager - 文件管理Hook
+ */
+const useFileManager = () => {
+  const [files, setFiles] = useState([]);
+  const [currentFileIndex, setCurrentFileIndex] = useState(0);
+  const [processedData, setProcessedData] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [showTypeConflictModal, setShowTypeConflictModal] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState([]);
+  const [fileMetadata, setFileMetadata] = useState({});
+
+  // 智能解析文件（JSON或JSONL）
+  const parseFile = useCallback(async (file) => {
+    const text = await file.text();
+    const isJSONL = file.name.endsWith('.jsonl') || (text.includes('\n{') && !text.trim().startsWith('['));
+    return isJSONL ? parseJSONL(text) : JSON.parse(text);
+  }, []);
+
+  // 处理当前文件
+  const processCurrentFile = useCallback(async () => {
+    if (!files.length || currentFileIndex >= files.length) {
+      setProcessedData(null);
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      const file = files[currentFileIndex];
+      const jsonData = await parseFile(file);
+      let data = extractChatData(jsonData, file.name);
+      data = detectBranches(data);
+      setProcessedData(data);
+    } catch (err) {
+      console.error('处理文件出错:', err);
+      setError(err.message);
+      setProcessedData(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [files, currentFileIndex, parseFile]);
+
+  useEffect(() => {
+    processCurrentFile();
+  }, [processCurrentFile]);
+
+  // 检查文件兼容性
+  const checkCompatibility = useCallback(async (newFiles) => {
+    if (!files.length) return true;
+    try {
+      const newData = extractChatData(await parseFile(newFiles[0]), newFiles[0].name);
+      const curData = extractChatData(await parseFile(files[currentFileIndex]), files[currentFileIndex].name);
+      const isNewFull = newData.format === 'claude_full_export';
+      const isCurFull = curData.format === 'claude_full_export';
+      return !(isNewFull !== isCurFull);
+    } catch {
+      return true;
+    }
+  }, [files, currentFileIndex, parseFile]);
+
+  // 加载文件
+  const loadFiles = useCallback(async (fileList) => {
+    const validFiles = fileList.filter(f =>
+      f.name.endsWith('.json') || f.name.endsWith('.jsonl') || f.type === 'application/json'
+    );
+    if (!validFiles.length) {
+      setError('未找到有效的JSON/JSONL文件');
+      return;
+    }
+    const newFiles = validFiles.filter(nf =>
+      !files.some(ef => ef.name === nf.name && ef.lastModified === nf.lastModified)
+    );
+    if (!newFiles.length) {
+      setError('文件已加载');
+      return;
+    }
+    const isCompatible = await checkCompatibility(newFiles);
+    if (!isCompatible) {
+      setPendingFiles(newFiles);
+      setShowTypeConflictModal(true);
+      return;
+    }
+    // 提取元数据
+    const newMeta = {};
+    for (const file of newFiles) {
+      try {
+        const data = extractChatData(await parseFile(file), file.name);
+        newMeta[file.name] = {
+          format: data.format,
+          platform: data.platform || data.format,
+          messageCount: data.chat_history?.length || 0,
+          conversationCount: data.format === 'claude_full_export' ?
+            (data.views?.conversationList?.length || 0) : 1,
+          title: data.meta_info?.title || file.name,
+          model: data.meta_info?.model || '',
+          created_at: data.meta_info?.created_at,
+          updated_at: data.meta_info?.updated_at
+        };
+      } catch (err) {
+        console.warn(`提取元数据失败 ${file.name}:`, err);
+        newMeta[file.name] = { format: 'unknown', messageCount: 0, title: file.name };
+      }
+    }
+    setFileMetadata(prev => ({ ...prev, ...newMeta }));
+    setFiles(prev => [...prev, ...newFiles]);
+    setError(null);
+  }, [files, checkCompatibility, parseFile]);
+
+  const confirmReplaceFiles = useCallback(() => {
+    setFiles(pendingFiles);
+    setCurrentFileIndex(0);
+    setPendingFiles([]);
+    setShowTypeConflictModal(false);
+    setError(null);
+  }, [pendingFiles]);
+
+  const cancelReplaceFiles = useCallback(() => {
+    setPendingFiles([]);
+    setShowTypeConflictModal(false);
+  }, []);
+
+  const removeFile = useCallback((index) => {
+    const toRemove = files[index];
+    if (toRemove) {
+      setFileMetadata(prev => {
+        const { [toRemove.name]: _, ...rest } = prev;
+        return rest;
+      });
+    }
+    setFiles(prev => {
+      const newFiles = prev.filter((_, i) => i !== index);
+      if (!newFiles.length) setCurrentFileIndex(0);
+      else if (index <= currentFileIndex && currentFileIndex > 0) {
+        setCurrentFileIndex(currentFileIndex - 1);
+      }
+      return newFiles;
+    });
+  }, [currentFileIndex, files]);
+
+  const switchFile = useCallback((index) => {
+    if (index >= 0 && index < files.length) {
+      setCurrentFileIndex(index);
+    }
+  }, [files.length]);
+
+  const reorderFiles = useCallback((fromIdx, toIdx) => {
+    if (fromIdx === toIdx) return;
+    setFiles(prev => {
+      const newFiles = [...prev];
+      const [moved] = newFiles.splice(fromIdx, 1);
+      newFiles.splice(toIdx, 0, moved);
+      if (fromIdx === currentFileIndex) setCurrentFileIndex(toIdx);
+      else if (fromIdx < currentFileIndex && toIdx >= currentFileIndex) {
+        setCurrentFileIndex(currentFileIndex - 1);
+      } else if (fromIdx > currentFileIndex && toIdx <= currentFileIndex) {
+        setCurrentFileIndex(currentFileIndex + 1);
+      }
+      return newFiles;
+    });
+  }, [currentFileIndex]);
+
+  const actions = useMemo(() => ({
+    loadFiles,
+    removeFile,
+    switchFile,
+    reorderFiles,
+    confirmReplaceFiles,
+    cancelReplaceFiles
+  }), [loadFiles, removeFile, switchFile, reorderFiles, confirmReplaceFiles, cancelReplaceFiles]);
+
+  return {
+    files,
+    currentFile: files[currentFileIndex] || null,
+    currentFileIndex,
+    processedData,
+    isLoading,
+    error,
+    showTypeConflictModal,
+    pendingFiles,
+    fileMetadata,
+    actions
+  };
+};
 
 function App() {
   // ==================== Hooks和状态管理 ====================
@@ -849,198 +1267,25 @@ function App() {
           />
 
           {/* 导出面板 */}
-          {showExportPanel && (
-            <div className="modal-overlay" onClick={() => setShowExportPanel(false)}>
-              <div className="modal-content export-modal" onClick={e => e.stopPropagation()}>
-                <div className="modal-header">
-                  <h2>{t('app.export.title')}</h2>
-                  <button className="close-btn" onClick={() => setShowExportPanel(false)}>×</button>
-                </div>
-                
-                <div className="export-options">
-                  <div className="option-group">
-                    <h3>{t('app.export.scope.title')}</h3>
-                    <label className="radio-option">
-                      <input 
-                        type="radio" 
-                        name="scope" 
-                        value="current"
-                        checked={exportOptions.scope === 'current'}
-                        onChange={(e) => setExportOptions({...exportOptions, scope: e.target.value})}
-                        disabled={viewMode !== 'timeline'}
-                      />
-                      <div className="option-label">
-                        <span>{t('app.export.scope.current')}</span>
-                        {viewMode === 'timeline' ? (
-                          <span className="option-description">
-                            {t('app.export.scope.currentDesc')}
-                          </span>
-                        ) : (
-                          <span className="hint">{t('app.export.scope.hint.enterTimeline')}</span>
-                        )}
-                      </div>
-                    </label>
-                    <label className="radio-option">
-                      <input 
-                        type="radio" 
-                        name="scope" 
-                        value="currentBranch"
-                        checked={exportOptions.scope === 'currentBranch'}
-                        onChange={(e) => setExportOptions({...exportOptions, scope: e.target.value})}
-                        disabled={viewMode !== 'timeline' || currentBranchState.showAllBranches}
-                      />
-                      <div className="option-label">
-                        <span>{t('app.export.scope.currentBranch')}</span>
-                        {viewMode === 'timeline' ? (
-                          currentBranchState.showAllBranches ? (
-                            <span className="hint">{t('app.export.scope.hint.showAllBranches')}</span>
-                          ) : (
-                            <span className="option-description">
-                              {t('app.export.scope.currentBranchDesc')}
-                            </span>
-                          )
-                        ) : (
-                          <span className="hint">{t('app.export.scope.hint.enterTimeline')}</span>
-                        )}
-                      </div>
-                    </label>
-                    <label className="radio-option">
-                      <input 
-                        type="radio" 
-                        name="scope" 
-                        value="operated"
-                        checked={exportOptions.scope === 'operated'}
-                        onChange={(e) => setExportOptions({...exportOptions, scope: e.target.value})}
-                        disabled={operatedFiles.size === 0}
-                      />
-                      <div className="option-label">
-                        <span>{t('app.export.scope.operated')} <span className="option-count">({operatedFiles.size}个)</span></span>
-                        {operatedFiles.size > 0 ? (
-                          <span className="option-description">
-                            {t('app.export.scope.operatedDesc')}
-                          </span>
-                        ) : (
-                          <span className="hint">{t('app.export.scope.hint.markFirst')}</span>
-                        )}
-                      </div>
-                    </label>
-                    <label className="radio-option">
-                      <input 
-                        type="radio" 
-                        name="scope" 
-                        value="all"
-                        checked={exportOptions.scope === 'all'}
-                        onChange={(e) => setExportOptions({...exportOptions, scope: e.target.value})}
-                      />
-                      <div className="option-label">
-                        <span>{t('app.export.scope.all')} <span className="option-count">({files.length}个)</span></span>
-                        <span className="option-description">
-                          {t('app.export.scope.allDesc')}
-                        </span>
-                      </div>
-                    </label>
-                  </div>
-                  
-                  <div className="option-group">
-                    <h3>{t('app.export.filters.title')}</h3>
-                    <label className="checkbox-option">
-                      <input 
-                        type="checkbox" 
-                        checked={exportOptions.excludeDeleted}
-                        onChange={(e) => setExportOptions({...exportOptions, excludeDeleted: e.target.checked})}
-                      />
-                      <div className="option-label">
-                        <span>{t('app.export.filters.excludeDeleted')}</span>
-                        <span className="option-description">
-                          {t('app.export.filters.excludeDeletedDesc')}
-                        </span>
-                      </div>
-                    </label>
-                    <label className="checkbox-option">
-                      <input 
-                        type="checkbox" 
-                        checked={exportOptions.includeCompleted}
-                        onChange={(e) => setExportOptions({...exportOptions, includeCompleted: e.target.checked})}
-                      />
-                      <div className="option-label">
-                        <span>{t('app.export.filters.includeCompleted')}</span>
-                        <span className="option-description">
-                          {t('app.export.filters.includeCompletedDesc')}
-                        </span>
-                      </div>
-                    </label>
-                    <label className="checkbox-option">
-                      <input 
-                        type="checkbox" 
-                        checked={exportOptions.includeImportant}
-                        onChange={(e) => setExportOptions({...exportOptions, includeImportant: e.target.checked})}
-                      />
-                      <div className="option-label">
-                        <span>{t('app.export.filters.includeImportant')}</span>
-                        <span className="option-description">
-                          {t('app.export.filters.includeImportantDesc')}{exportOptions.includeCompleted && exportOptions.includeImportant ? t('app.export.filters.importantAndCompleted') : ''}
-                        </span>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-                
-                <div className="export-info">
-                  <div className="info-row">
-                    <span className="label">{t('app.export.stats.files')}</span>
-                    <span className="value">{t('app.export.stats.filesDesc', {
-                      fileCount: files.length,
-                      conversationCount: getStats().conversationCount,
-                      totalMessages: getStats().totalMessages
-                    })}</span>
-                  </div>
-                  <div className="info-row">
-                    <span className="label">{t('app.export.stats.marks')}</span>
-                    <span className="value">
-                      {t('app.export.stats.marksDesc', {
-                        completed: getAllMarksStats(files, processedData, currentFileIndex, generateFileCardUuid, generateConversationCardUuid).completed,
-                        important: getAllMarksStats(files, processedData, currentFileIndex, generateFileCardUuid, generateConversationCardUuid).important,
-                        deleted: getAllMarksStats(files, processedData, currentFileIndex, generateFileCardUuid, generateConversationCardUuid).deleted
-                      })}
-                    </span>
-                  </div>
-                  {isFullExportConversationMode && shouldUseStarSystem && starManagerRef.current && (
-                    <div className="info-row">
-                      <span className="label">{t('app.export.stats.stars')}</span>
-                      <span className="value">
-                        {t('app.export.stats.starsDesc', {
-                          starred: starManagerRef.current.getStarStats(allCards.filter(card => card.type === 'conversation')).totalStarred
-                        })}
-                      </span>
-                    </div>
-                  )}
-                  <div className="info-row">
-                    <span className="label">{t('app.export.stats.content')}</span>
-                    <span className="value">
-                      {t('app.export.stats.contentDesc', {
-                        settings: [
-                          exportOptions.includeTimestamps && t('settings.exportContent.timestamps.label'),
-                          exportOptions.includeThinking && t('settings.exportContent.thinking.label'),
-                          exportOptions.includeArtifacts && t('settings.exportContent.artifacts.label'),
-                          exportOptions.includeTools && t('settings.exportContent.tools.label'),
-                          exportOptions.includeCitations && t('settings.exportContent.citations.label')
-                        ].filter(Boolean).join(' · ') || t('app.export.stats.basicOnly')
-                      })}
-                    </span>
-                  </div>
-                </div>
-                
-                <div className="modal-buttons">
-                  <button className="btn-secondary" onClick={() => setShowExportPanel(false)}>
-                    {t('common.cancel')}
-                  </button>
-                  <button className="btn-primary" onClick={handleExportClick}>
-                    {t('app.export.exportToMarkdown')}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          <ExportPanel
+            isOpen={showExportPanel}
+            onClose={() => setShowExportPanel(false)}
+            exportOptions={exportOptions}
+            setExportOptions={setExportOptions}
+            viewMode={viewMode}
+            currentBranchState={currentBranchState}
+            operatedFiles={operatedFiles}
+            files={files}
+            stats={getStats()}
+            starManagerRef={starManagerRef}
+            shouldUseStarSystem={shouldUseStarSystem}
+            isFullExportConversationMode={isFullExportConversationMode}
+            allCards={allCards}
+            processedData={processedData}
+            currentFileIndex={currentFileIndex}
+            onExport={handleExportClick}
+            t={t}
+          />
         </>
       )}
     </div>

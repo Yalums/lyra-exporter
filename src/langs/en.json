@@ -15,6 +15,16 @@
         "title": "Load Conversation Files",
         "description": "Directly load exported JSON files and start managing your conversations",
         "button": "Select Files to Load"
+      },
+      "batchExport": {
+        "badge": "⚡ Batch Processing",
+        "title": "Batch Export Latest Branches",
+        "description": "Select multiple JSON files to automatically export the latest conversation branch from each as Markdown, packaged into a ZIP file",
+        "button": "Start Batch Export",
+        "processing": "Processing...",
+        "progress": "Processing {{current}}/{{total}} files",
+        "complete": "Export Complete!",
+        "result": "Successfully exported {{successful}} files, {{failed}} failed out of {{total}} total"
       }
     },
     "privacyAssurance": {
@@ -254,7 +264,10 @@
       "markImportant": "Star Mark",
       "unmarkImportant": "Unmark important",
       "markDeleted": "Deleted Mark",
-      "unmarkDeleted": "Unmark deleted"
+      "unmarkDeleted": "Unmark deleted",
+      "jumpToLatest": "Jump to Latest",
+      "previousMessage": "Previous message",
+      "nextMessage": "Next message"
     },
     "info": {
       "modelPlatform": "Model/Platform",

@@ -1,7 +1,7 @@
 // utils/globalSearchManager.js
 // 全局搜索管理器 - 支持跨文件搜索消息内容
 
-import { generateConversationCardUuid, generateFileCardUuid } from './uuidManager';
+import { generateConversationCardUuid, generateFileCardUuid } from './data/uuidManager';
 import { extractChatData } from './fileParser';
 
 export class GlobalSearchManager {
@@ -494,6 +494,18 @@ export class GlobalSearchManager {
       messagesWithArtifacts: withArtifacts
     };
   }
+}
+
+/**
+ * 高亮搜索文本
+ * @param {string} text - 要处理的文本
+ * @param {string} query - 搜索查询
+ * @returns {string} 带有 <mark> 标签的高亮文本
+ */
+export function highlightSearchText(text, query) {
+  if (!query || !text) return text;
+  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  return text.replace(regex, '<mark>$1</mark>');
 }
 
 // 单例模式

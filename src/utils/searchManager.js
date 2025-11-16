@@ -87,7 +87,7 @@ export class SearchManager {
           message.model,
           message.platform
         ].filter(Boolean).join(' ').toLowerCase();
-        
+
         if (searchableText.includes(lowerQuery)) {
           shouldInclude = true;
           matches.push({
@@ -109,7 +109,7 @@ export class SearchManager {
 
     this.results = searchResults;
     this.filteredMessages = filtered;
-    
+
     return { results: this.results, filteredMessages: this.filteredMessages };
   }
 
@@ -118,17 +118,17 @@ export class SearchManager {
    */
   getExcerpt(text, query) {
     if (!text) return '';
-    
+
     const index = text.toLowerCase().indexOf(query.toLowerCase());
     if (index === -1) return text.slice(0, 100) + '...';
 
     const start = Math.max(0, index - 50);
     const end = Math.min(text.length, index + query.length + 50);
-    
+
     let excerpt = text.slice(start, end);
     if (start > 0) excerpt = '...' + excerpt;
     if (end < text.length) excerpt = excerpt + '...';
-    
+
     return excerpt;
   }
 
@@ -137,7 +137,7 @@ export class SearchManager {
    */
   searchWithDebounce(searchText, messageList, callback) {
     clearTimeout(this.debounceTimer);
-    
+
     if (!searchText.trim()) {
       this.query = '';
       this.results = [];
@@ -147,7 +147,7 @@ export class SearchManager {
     }
 
     this.query = searchText;
-    
+
     this.debounceTimer = setTimeout(() => {
       const result = this.performSearch(searchText, messageList);
       if (callback) callback(result);
@@ -172,8 +172,8 @@ export class SearchManager {
     if (!searchQuery || !text) return text;
 
     const parts = text.split(new RegExp(`(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'));
-    return parts.map((part, index) => 
-      part.toLowerCase() === searchQuery.toLowerCase() 
+    return parts.map((part, index) =>
+      part.toLowerCase() === searchQuery.toLowerCase()
         ? `<mark key="${index}">${part}</mark>`
         : part
     ).join('');
@@ -183,10 +183,10 @@ export class SearchManager {
    * 获取结果统计
    */
   getResultStats() {
-    const totalMatches = this.results.reduce((acc, result) => 
+    const totalMatches = this.results.reduce((acc, result) =>
       acc + result.matches.length, 0
     );
-    
+
     return {
       messageCount: this.results.length,
       totalMatches,

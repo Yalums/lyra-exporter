@@ -1,31 +1,230 @@
 // utils/fileParser.js
-// 文件解析相关功能 - 修复版，支持Claude、Gemini/NotebookLM格式
+// 集成文件解析和通用工具函数
 
-// ==================== 通用工具函数 ====================
-// 解析JSONL文本（每行一个JSON对象）
+// ==================== 通用工具函数模块 ====================
+
+/**
+ * 获取当前语言设置
+ */
+const getCurrentLocale = () => {
+  try {
+    const saved = localStorage.getItem('lyra_exporter_language') || 'en';
+    if (saved === 'zh') {
+      const browserLang = navigator.language || navigator.userLanguage || '';
+      const lowerLang = browserLang.toLowerCase();
+      if (lowerLang.includes('tw') || lowerLang.includes('hk') ||
+          lowerLang.includes('mo') || lowerLang.includes('hant')) {
+        return 'zh-TW';
+      }
+      return 'zh-CN';
+    }
+    return saved;
+  } catch {
+    return 'en';
+  }
+};
+
+// ==================== 日期时间工具 ====================
+export const DateTimeUtils = {
+  formatDate(dateStr) {
+    if (!dateStr) {
+      const locale = getCurrentLocale();
+      return locale.startsWith('zh') ? '未知时间' : 'Unknown time';
+    }
+    try {
+      const date = new Date(dateStr);
+      const locale = getCurrentLocale();
+      return date.toLocaleDateString(locale, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return dateStr;
+    }
+  },
+
+  formatTime(timestamp) {
+    if (!timestamp) return '';
+    try {
+      const date = new Date(timestamp);
+      const locale = getCurrentLocale();
+      return date.toLocaleTimeString(locale, {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    } catch {
+      return timestamp;
+    }
+  },
+
+  formatDateTime(timestamp) {
+    if (!timestamp) {
+      const locale = getCurrentLocale();
+      return locale.startsWith('zh') ? '未知时间' : 'Unknown time';
+    }
+    try {
+      const date = new Date(timestamp);
+      const locale = getCurrentLocale();
+      return date.toLocaleString(locale, {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return timestamp;
+    }
+  },
+
+  getCurrentDate() {
+    return new Date().toISOString().split('T')[0];
+  },
+
+  toISODate(dateStr) {
+    if (!dateStr) return '';
+    try {
+      return new Date(dateStr).toISOString().split('T')[0];
+    } catch {
+      return '';
+    }
+  }
+};
+
+// ==================== 平台和模型工具 ====================
+export const PlatformUtils = {
+  getModelDisplay(model) {
+    if (!model || model === '未知模型') return 'Claude Sonnet';
+    const modelMap = {
+      'opus-4': 'Claude Opus 4',
+      'opus4': 'Claude Opus 4',
+      'claude-3-opus': 'Claude Opus 3',
+      'opus-3': 'Claude Opus 3',
+      'opus3': 'Claude Opus 3',
+      'sonnet-4': 'Claude Sonnet 4',
+      'sonnet4': 'Claude Sonnet 4',
+      'haiku': 'Claude Haiku'
+    };
+    for (const [key, value] of Object.entries(modelMap)) {
+      if (model.includes(key)) return value;
+    }
+    return model;
+  },
+
+  getPlatformName(platform) {
+    const platformMap = {
+      'gemini': 'Gemini',
+      'notebooklm': 'NotebookLM',
+      'aistudio': 'Google AI Studio',
+      'claude': 'Claude',
+      'jsonl_chat': 'SillyTavern',
+      'chatgpt': 'ChatGPT'
+    };
+    return platformMap[platform?.toLowerCase()] || 'Claude';
+  },
+
+  getPlatformClass(platform) {
+    const classMap = {
+      'gemini': 'platform-gemini',
+      'google ai studio': 'platform-gemini',
+      'aistudio': 'platform-gemini',
+      'notebooklm': 'platform-notebooklm',
+      'jsonl_chat': 'platform-jsonl',
+      'chatgpt': 'platform-chatgpt'
+    };
+    return classMap[platform?.toLowerCase()] || 'platform-claude';
+  },
+
+  getFormatFromPlatform(platform) {
+    const formatMap = {
+      'gemini': 'gemini_notebooklm',
+      'google ai studio': 'gemini_notebooklm',
+      'aistudio': 'gemini_notebooklm',
+      'notebooklm': 'gemini_notebooklm',
+      'chatgpt': 'chatgpt'
+    };
+    return formatMap[platform?.toLowerCase()] || 'claude';
+  }
+};
+
+// ==================== 文件操作工具 ====================
+export const FileUtils = {
+  formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  },
+
+  getFileTypeText(format, platform, model) {
+    const locale = getCurrentLocale();
+    const isChinese = locale.startsWith('zh');
+    switch (format) {
+      case 'claude':
+        return PlatformUtils.getModelDisplay(model);
+      case 'claude_conversations':
+        return isChinese ? '对话列表' : 'Conversation List';
+      case 'claude_full_export':
+        return isChinese ? '完整导出' : 'Full Export';
+      case 'gemini_notebooklm':
+        if (platform === 'notebooklm') return 'NotebookLM';
+        if (platform === 'aistudio') return 'Google AI Studio';
+        return 'Gemini';
+      case 'jsonl_chat':
+        return isChinese ? 'SillyTavern' : 'JSONL Chat';
+      case 'chatgpt':
+        return 'ChatGPT';
+      default:
+        return isChinese ? '未知格式' : 'Unknown Format';
+    }
+  }
+};
+
+// 导出 formatFileSize 供外部使用
+export const formatFileSize = FileUtils.formatFileSize;
+
+// ==================== 文本处理工具 ====================
+export const TextUtils = {
+  filterImageReferences(text) {
+    if (!text) return '';
+    return text
+      .replace(/\[(?:图片|附件|图像|image|attachment)\d*\s*[:：]\s*[^\]]+\]/gi, '')
+      .replace(/\[(?:图片|附件|图像|image|attachment)\d+\]/gi, '')
+      .replace(/\[图片[1-5]\]/gi, '')
+      .trim();
+  },
+
+  getPreview(text, maxLength = 200) {
+    if (!text) return '';
+    const filteredText = this.filterImageReferences(text);
+    if (filteredText.length <= maxLength) return filteredText;
+    return filteredText.substring(0, maxLength) + '...';
+  }
+};
+
+// ==================== 文件解析专用函数 ====================
+
 export const parseJSONL = (text) => {
   if (!text) return [];
   return text.split('\n')
     .filter(line => line.trim())
     .map(line => {
-      try { return JSON.parse(line); } 
-      catch (e) { 
-        console.warn('JSONL解析失败:', e.message); 
-        return null; 
+      try { return JSON.parse(line); }
+      catch (e) {
+        console.warn('JSONL解析失败:', e.message);
+        return null;
       }
     })
     .filter(Boolean);
 };
 
-// 解析时间戳
 export const parseTimestamp = (timestampStr) => {
   if (!timestampStr) return "未知时间";
-  
   try {
-    const cleanTimestamp = timestampStr
-      .replace(/\+.*$/, '')
-      .replace('Z', '');
-    
+    const cleanTimestamp = timestampStr.replace(/\+.*$/, '').replace('Z', '');
     const dt = new Date(cleanTimestamp);
     return dt.toLocaleString('zh-CN', {
       year: 'numeric',
@@ -41,13 +240,28 @@ export const parseTimestamp = (timestampStr) => {
   }
 };
 
-// 格式化文件大小
-const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+// 过滤citations,移除文件引用
+const filterCitations = (citations) => {
+  if (!Array.isArray(citations)) return [];
+  return citations.filter((cit) => {
+    if (!cit || typeof cit !== 'object') return false;
+    const meta = cit.metadata || {};
+    return meta.type !== 'file' && meta.source !== 'my_files';
+  });
+};
+
+// 处理附件
+const processAttachments = (attachments) => {
+  if (!Array.isArray(attachments)) return [];
+  return attachments.map(att => ({
+    id: att.id || '',
+    file_name: att.name || att.file_name || '未知文件',
+    file_size: att.size || att.file_size || 0,
+    file_type: att.mimeType || att.mime_type || att.file_type || '',
+    extracted_content: att.extractedContent || att.extracted_content || '',
+    link: att.link || att.url || att.download_url || att.href || '',
+    has_link: !!(att.link || att.url || att.download_url || att.href)
+  }));
 };
 
 // ==================== 格式检测 ====================
@@ -62,16 +276,11 @@ export const detectFileFormat = (jsonData) => {
   }
   
   // Gemini/NotebookLM格式
-  if (jsonData?.title && jsonData?.platform && jsonData?.exportedAt && 
+  if (jsonData?.title && jsonData?.platform && jsonData?.exportedAt &&
       Array.isArray(jsonData.conversation)) {
     return 'gemini_notebooklm';
   }
-  
-  // Claude完整导出格式
-  if (jsonData?.exportedAt && Array.isArray(jsonData.conversations)) {
-    return 'claude_full_export';
-  }
-  
+
   // Claude单个对话格式
   if (Array.isArray(jsonData.chat_messages)) {
     return 'claude';
@@ -95,8 +304,6 @@ export const extractChatData = (jsonData, fileName = '') => {
       return extractClaudeData(jsonData);
     case 'gemini_notebooklm':
       return extractGeminiNotebookLMData(jsonData, fileName);
-    case 'claude_full_export':
-      return extractClaudeFullExportData(jsonData, fileName);
     case 'jsonl_chat':
       return extractJSONLChatData(jsonData, fileName);
     case 'chatgpt':
@@ -115,21 +322,16 @@ export const extractChatData = (jsonData, fileName = '') => {
  */
 const extractChatGPTData = (jsonData, fileName = '') => {
   try {
-    // 元信息
     const title = jsonData.title || fileName.replace(/\.(jsonl|json)$/i, '') || 'ChatGPT 对话';
     const createdAt = jsonData.create_time ? parseTimestamp(new Date(jsonData.create_time * 1000).toISOString()) : new Date().toLocaleString('zh-CN');
-    const updatedAt = jsonData.update_time ? parseTimestamp(new Date(jsonData.update_time * 1000).toISOString()) : createdAt;
-
-    const modelSlug = jsonData.default_model_slug || '';
-    const convUuid = jsonData.conversation_id || jsonData.id || '';
 
     const metaInfo = {
       title,
       created_at: createdAt,
-      updated_at: updatedAt,
+      updated_at: jsonData.update_time ? parseTimestamp(new Date(jsonData.update_time * 1000).toISOString()) : createdAt,
       project_uuid: '',
-      uuid: convUuid,
-      model: modelSlug,
+      uuid: jsonData.conversation_id || jsonData.id || '',
+      model: jsonData.default_model_slug || '',
       platform: 'chatgpt',
       has_embedded_images: false,
       images_processed: 0
@@ -244,19 +446,8 @@ const extractChatGPTData = (jsonData, fileName = '') => {
         // === 系统消息：用于把附件附加到最近的用户消息 ===
         if (role === 'system') {
           if (!metadata?.is_visually_hidden_from_conversation && Array.isArray(metadata?.attachments) && lastUserMessage) {
-            metadata.attachments.forEach(att => {
-              const attachmentInfo = {
-                id: att.id || '',
-                file_name: att.name || att.file_name || '未知文件',
-                file_size: att.size || att.file_size || 0,
-                // 优先使用 mimeType，其次 mime_type，再次 file_type
-                file_type: att.mimeType || att.mime_type || att.file_type || '',
-                extracted_content: att.extractedContent || att.extracted_content || ''
-                ,
-                link: att.link || att.url || att.download_url || att.href || '',
-                has_link: !!(att.link || att.url || att.download_url || att.href)
-              };
-              lastUserMessage.attachments.push(attachmentInfo);
+            processAttachments(metadata.attachments).forEach(att => {
+              lastUserMessage.attachments.push(att);
             });
           }
         }
@@ -268,62 +459,27 @@ const extractChatGPTData = (jsonData, fileName = '') => {
           pendingRecap = '';
 
           const uuid = msg.id || nodeId;
-          // 定位父消息，如果不存在则挂在根UUID
           let parentUuid = findNearestMessageUuid(node.parent);
           if (!parentUuid) parentUuid = ROOT_UUID;
           const timestamp = msg.create_time ? parseTimestamp(new Date(msg.create_time * 1000).toISOString()) : '';
-          const messageData = createMessage(messageIndex++, uuid, parentUuid, 'human', 'User', timestamp);
-          messageData._node_id = nodeId;
 
           // 处理用户文本内容
           const content = msg.content || {};
           const contentType = content.content_type || '';
           let rawText = '';
           if (contentType === 'text') {
-            if (Array.isArray(content.parts)) {
-              rawText = content.parts.join('');
-            } else if (typeof content.content === 'string') {
-              rawText = content.content;
-            }
+            rawText = Array.isArray(content.parts) ? content.parts.join('') : (content.content || '');
           } else {
-            if (typeof content.content === 'string') {
-              rawText = content.content;
-            } else if (Array.isArray(content.parts)) {
-              rawText = content.parts.join('');
-            }
-          }
-          const extracted = extractThinkingAndContent(rawText);
-          messageData.raw_text = rawText;
-          messageData.display_text = extracted.content || rawText;
-
-          // citations
-          if (Array.isArray(metadata?.citations)) {
-            // 过滤掉引用用户上传文件的条目（metadata.type === 'file' 或来源为 my_files）
-            messageData.citations = metadata.citations.filter((cit) => {
-              if (!cit || typeof cit !== 'object') return false;
-              const meta = cit.metadata || {};
-              const isFileCitation = meta.type === 'file' || meta.source === 'my_files';
-              return !isFileCitation;
-            });
+            rawText = content.content || (Array.isArray(content.parts) ? content.parts.join('') : '');
           }
 
-          // 处理用户上传的附件（直接挂在 user.metadata.attachments）
-          if (Array.isArray(metadata?.attachments)) {
-            metadata.attachments.forEach(att => {
-              const attachmentInfo = {
-                id: att.id || '',
-                file_name: att.name || att.file_name || '未知文件',
-                file_size: att.size || att.file_size || 0,
-                file_type: att.mimeType || att.mime_type || att.file_type || '',
-                extracted_content: att.extractedContent || att.extracted_content || '',
-                link: att.link || att.url || att.download_url || att.href || '',
-                has_link: !!(att.link || att.url || att.download_url || att.href)
-              };
-              messageData.attachments.push(attachmentInfo);
-            });
-          }
+          const messageData = new MessageBuilder(messageIndex++, uuid, parentUuid, 'human', 'User', timestamp)
+            .setContent(rawText)
+            .addCitations(metadata)
+            .addAttachments(metadata)
+            .finalize(true);
 
-          finalizeDisplayText(messageData, true);
+          messageData._node_id = nodeId;
           chatHistory.push(messageData);
           nodeIdToMessage.set(nodeId, messageData);
           lastUserMessage = messageData;
@@ -387,93 +543,46 @@ const extractChatGPTData = (jsonData, fileName = '') => {
             let parentUuid = findNearestMessageUuid(node.parent);
             if (!parentUuid) parentUuid = ROOT_UUID;
             const timestamp = msg.create_time ? parseTimestamp(new Date(msg.create_time * 1000).toISOString()) : '';
-            const messageData = createMessage(messageIndex++, uuid, parentUuid, 'assistant', 'ChatGPT', timestamp);
-            messageData._node_id = nodeId;
 
             // 处理文本内容
             let rawText = '';
+            let imageAttachment = null;
             if (contentType === 'text' || contentType === 'code') {
-              if (Array.isArray(content.parts)) {
-                rawText = content.parts.join('');
-              } else if (typeof content.content === 'string') {
-                rawText = content.content;
-              } else if (content.text) {
-                rawText = content.text;
-              }
+              rawText = Array.isArray(content.parts) ? content.parts.join('') : (content.content || content.text || '');
             } else if (contentType === 'image_file') {
               const fileId = content.file_id || content.fileID || '';
               const fileName = content.name || content.file_name || 'image';
-              const fileSize = content.size || 0;
-              const fileType = content.mimeType || 'image/png';
-              messageData.attachments.push({
+              imageAttachment = {
                 id: fileId,
                 file_name: fileName,
-                file_size: fileSize,
-                file_type: fileType,
+                file_size: content.size || 0,
+                file_type: content.mimeType || 'image/png',
                 extracted_content: '',
-                // 将文件ID作为链接，表明可供下载
                 link: fileId || '',
                 has_link: !!fileId
-              });
+              };
               rawText = `[图片: ${fileName}]`;
             } else {
-              try {
-                rawText = JSON.stringify(content);
-              } catch (e) {
-                rawText = '';
-              }
+              try { rawText = JSON.stringify(content); } catch (e) { rawText = ''; }
             }
 
-            const extracted = extractThinkingAndContent(rawText);
-            const displayText = extracted.content || rawText;
-            messageData.raw_text = rawText;
-            messageData.display_text = displayText;
-            messageData.thinking = pendingThinking;
+            const messageData = new MessageBuilder(messageIndex++, uuid, parentUuid, 'assistant', 'ChatGPT', timestamp)
+              .setContent(rawText)
+              .setThinking(pendingThinking)
+              .addCitations(metadata)
+              .addAttachments(metadata)
+              .addTools(pendingTools.map(t => ({ ...t })))
+              .finalize(false);
 
-            // 将 pendingAttachments 附加到当前助手消息
+            messageData._node_id = nodeId;
+            if (imageAttachment) messageData.attachments.unshift(imageAttachment);
             if (pendingAttachments.length > 0) {
-              pendingAttachments.forEach(att => {
-                messageData.attachments.push({ ...att });
-              });
+              messageData.attachments.push(...pendingAttachments);
               pendingAttachments = [];
             }
 
-            // 如果此助手消息有 metadata.attachments，也要附加
-            if (Array.isArray(metadata?.attachments)) {
-              metadata.attachments.forEach(att => {
-                const attachmentInfo = {
-                  id: att.id || '',
-                  file_name: att.name || att.file_name || '未知文件',
-                  file_size: att.size || att.file_size || 0,
-                  file_type: att.mimeType || att.mime_type || att.file_type || '',
-                  extracted_content: att.extractedContent || att.extracted_content || '',
-                  link: att.link || att.url || att.download_url || att.href || '',
-                  has_link: !!(att.link || att.url || att.download_url || att.href)
-                };
-                messageData.attachments.push(attachmentInfo);
-              });
-            }
-
-            // citations
-            if (Array.isArray(metadata?.citations)) {
-              // 过滤掉引用用户上传文件的条目（metadata.type === 'file' 或来源为 my_files）
-              messageData.citations = metadata.citations.filter((cit) => {
-                if (!cit || typeof cit !== 'object') return false;
-                const meta = cit.metadata || {};
-                const isFileCitation = meta.type === 'file' || meta.source === 'my_files';
-                return !isFileCitation;
-              });
-            }
-
-            // 工具调用
-            if (pendingTools.length > 0) {
-              messageData.tools = pendingTools.map(t => ({ ...t }));
-            }
-
-            finalizeDisplayText(messageData, false);
             chatHistory.push(messageData);
             nodeIdToMessage.set(nodeId, messageData);
-            // 不在这里重置 pendingThinking 或 pendingTools
           }
         }
         // === 工具消息 ===
@@ -540,18 +649,7 @@ const extractChatGPTData = (jsonData, fileName = '') => {
 
           // 工具产生的附件暂存到 pendingAttachments
           if (Array.isArray(metadata?.attachments)) {
-            metadata.attachments.forEach(att => {
-              const attachmentInfo = {
-                id: att.id || '',
-                file_name: att.name || att.file_name || '未知文件',
-                file_size: att.size || att.file_size || 0,
-                file_type: att.mimeType || att.mime_type || att.file_type || '',
-                extracted_content: att.extractedContent || att.extracted_content || '',
-                link: att.link || att.url || att.download_url || att.href || '',
-                has_link: !!(att.link || att.url || att.download_url || att.href)
-              };
-              pendingAttachments.push(attachmentInfo);
-            });
+            pendingAttachments.push(...processAttachments(metadata.attachments));
           }
           // 工具消息不生成可见消息
         }
@@ -608,54 +706,42 @@ const extractClaudeData = (jsonData) => {
   messages.forEach((msg, msgIdx) => {
     const sender = msg.sender || "unknown";
     const senderLabel = sender === "human" ? "User" : "Claude";
-    const timestamp = parseTimestamp(msg.created_at);
+    const isHuman = sender === "human";
 
-    const messageData = {
-      index: msgIdx,
-      uuid: msg.uuid || "",
-      parent_uuid: msg.parent_message_uuid || "",
+    const messageData = new MessageBuilder(
+      msgIdx,
+      msg.uuid || "",
+      msg.parent_message_uuid || "",
       sender,
-      sender_label: senderLabel,
-      timestamp,
-      content_items: [],
-      raw_text: "",
-      display_text: "",
-      thinking: "",
-      tools: [],
-      artifacts: [],
-      citations: [],
-      images: [],
-      attachments: [], // 添加附件字段
-      branch_id: null,
-      is_branch_point: false,
-      branch_level: 0
-    };
+      senderLabel,
+      parseTimestamp(msg.created_at)
+    ).build();
 
     // 处理消息内容
     if (msg.content && Array.isArray(msg.content)) {
-      processContentArray(msg.content, messageData, sender === "human");
+      processContentArray(msg.content, messageData, isHuman);
     } else if (msg.text) {
       messageData.raw_text = msg.text;
       messageData.display_text = msg.text;
     }
-    
+
     // 处理附件
     if (msg.attachments && Array.isArray(msg.attachments)) {
-      messageData.attachments = msg.attachments.map(attachment => ({
-        id: attachment.id || "",
-        file_name: attachment.file_name || "未知文件",
-        file_size: attachment.file_size || 0,
-        file_type: attachment.file_type || "",
-        extracted_content: attachment.extracted_content || "",
-        created_at: attachment.created_at ? parseTimestamp(attachment.created_at) : ""
+      messageData.attachments = msg.attachments.map(att => ({
+        id: att.id || "",
+        file_name: att.file_name || "未知文件",
+        file_size: att.file_size || 0,
+        file_type: att.file_type || "",
+        extracted_content: att.extracted_content || "",
+        created_at: att.created_at ? parseTimestamp(att.created_at) : ""
       }));
     }
-    
+
     // 处理附件图片
     processMessageImages(msg, messageData);
-    
+
     // 整理最终显示文本
-    finalizeDisplayText(messageData, sender === "human");
+    finalizeDisplayText(messageData, isHuman);
 
     chatHistory.push(messageData);
   });
@@ -668,19 +754,53 @@ const extractClaudeData = (jsonData) => {
   };
 };
 
+// ==================== Gemini/NotebookLM辅助函数 ====================
+// 处理Gemini消息的图片
+const processGeminiMessageImages = (content, itemIndex, platform, metaInfo, message) => {
+  if (!content.images || content.images.length === 0) return;
+
+  metaInfo.has_embedded_images = true;
+  content.images.forEach((imgData, imgIndex) => {
+    metaInfo.totalImagesProcessed++;
+    const imageInfo = processGeminiImage(imgData, itemIndex, imgIndex, platform);
+    if (imageInfo) {
+      message.images.push(imageInfo);
+    }
+  });
+
+  // 添加图片标记
+  if (message.images.length > 0) {
+    const imageMarkdown = message.images
+      .map((img, idx) => `[图片${idx + 1}]`)
+      .join(' ');
+    message.display_text = `${imageMarkdown}\n\n${message.display_text}`.trim();
+  }
+};
+
 // ==================== Gemini/NotebookLM解析器 ====================
 const extractGeminiNotebookLMData = (jsonData, fileName) => {
+  // 检测是否为新的多分支格式
+  const isMultiBranchFormat = jsonData.conversation &&
+    jsonData.conversation.length > 0 &&
+    jsonData.conversation[0].turnIndex !== undefined &&
+    jsonData.conversation[0].human?.versions !== undefined;
+
+  if (isMultiBranchFormat) {
+    return extractGeminiMultiBranchData(jsonData, fileName);
+  }
+
+  // 原有的 Gemini 格式解析逻辑
   const title = jsonData.title || 'AI对话记录';
   const platform = jsonData.platform || 'AI';
-  const exportedAt = jsonData.exportedAt ? 
-    parseTimestamp(jsonData.exportedAt) : 
+  const exportedAt = jsonData.exportedAt ?
+    parseTimestamp(jsonData.exportedAt) :
     new Date().toLocaleString('zh-CN');
-  
-  const platformName = platform === 'gemini' ? 'Gemini' : 
+
+  const platformName = platform === 'gemini' ? 'Gemini' :
                       platform === 'notebooklm' ? 'NotebookLM' :
                       platform === 'aistudio' ? 'Google AI Studio' :
                       platform.charAt(0).toUpperCase() + platform.slice(1);
-  
+
   const metaInfo = {
     title: title,
     created_at: exportedAt,
@@ -699,9 +819,9 @@ const extractGeminiNotebookLMData = (jsonData, fileName) => {
   jsonData.conversation.forEach((item, itemIndex) => {
     // 处理人类消息
     if (item.human) {
-      const humanContent = typeof item.human === 'string' ? 
+      const humanContent = typeof item.human === 'string' ?
         { text: item.human, images: [] } : item.human;
-      
+
       if (humanContent.text || (humanContent.images && humanContent.images.length > 0)) {
         const humanMessage = createMessage(
           messageIndex++,
@@ -716,39 +836,20 @@ const extractGeminiNotebookLMData = (jsonData, fileName) => {
         humanMessage.display_text = humanContent.text || '';
 
         // 挂载可选的 Canvas 内容
-        // Gemini NotebookLM 数据中，human 或 assistant 消息可能包含 canvas 字段
-        // 若存在非空字符串，则将其保存到 message.canvas
         if (typeof humanContent.canvas === 'string' && humanContent.canvas.trim()) {
           humanMessage.canvas = humanContent.canvas.trim();
         }
 
         // 处理图片
-        if (humanContent.images && humanContent.images.length > 0) {
-          metaInfo.has_embedded_images = true;
-          humanContent.images.forEach((imgData, imgIndex) => {
-            metaInfo.totalImagesProcessed++;
-            const imageInfo = processGeminiImage(imgData, itemIndex, imgIndex, platform);
-            if (imageInfo) {
-              humanMessage.images.push(imageInfo);
-            }
-          });
-          
-          // 添加图片标记
-          if (humanMessage.images.length > 0) {
-            const imageMarkdown = humanMessage.images
-              .map((img, idx) => `[图片${idx + 1}]`)
-              .join(' ');
-            humanMessage.display_text = `${imageMarkdown}\n\n${humanMessage.display_text}`.trim();
-          }
-        }
-        
+        processGeminiMessageImages(humanContent, itemIndex, platform, metaInfo, humanMessage);
+
         chatHistory.push(humanMessage);
       }
     }
 
     // 处理AI助手消息
     if (item.assistant) {
-      const assistantContent = typeof item.assistant === 'string' ? 
+      const assistantContent = typeof item.assistant === 'string' ?
         { text: item.assistant, images: [] } : item.assistant;
 
       if (assistantContent.text || (assistantContent.images && assistantContent.images.length > 0)) {
@@ -770,25 +871,8 @@ const extractGeminiNotebookLMData = (jsonData, fileName) => {
         }
 
         // 处理图片
-        if (assistantContent.images && assistantContent.images.length > 0) {
-          metaInfo.has_embedded_images = true;
-          assistantContent.images.forEach((imgData, imgIndex) => {
-            metaInfo.totalImagesProcessed++;
-            const imageInfo = processGeminiImage(imgData, itemIndex, imgIndex, platform);
-            if (imageInfo) {
-              assistantMessage.images.push(imageInfo);
-            }
-          });
-          
-          // 添加图片标记
-          if (assistantMessage.images.length > 0) {
-            const imageMarkdown = assistantMessage.images
-              .map((img, idx) => `[图片${idx + 1}]`)
-              .join(' ');
-            assistantMessage.display_text = `${imageMarkdown}\n\n${assistantMessage.display_text}`.trim();
-          }
-        }
-        
+        processGeminiMessageImages(assistantContent, itemIndex, platform, metaInfo, assistantMessage);
+
         chatHistory.push(assistantMessage);
       }
     }
@@ -803,146 +887,182 @@ const extractGeminiNotebookLMData = (jsonData, fileName) => {
   };
 };
 
-// ==================== Claude完整导出解析器 ====================
-const extractClaudeFullExportData = (jsonData, fileName) => {
-  const exportedAt = parseTimestamp(jsonData.exportedAt);
-  const conversations = jsonData.conversations || [];
-  const totalConversations = jsonData.totalConversations || conversations.length;
-  
+// ==================== Gemini 多分支格式解析器 ====================
+const extractGeminiMultiBranchData = (jsonData, fileName) => {
+  const title = jsonData.title || 'AI对话记录';
+  const platform = jsonData.platform || 'gemini';
+  const exportedAt = jsonData.exportedAt ?
+    parseTimestamp(jsonData.exportedAt) :
+    new Date().toLocaleString('zh-CN');
+
+  const platformName = platform === 'gemini' ? 'Gemini' :
+                      platform === 'notebooklm' ? 'NotebookLM' :
+                      platform === 'aistudio' ? 'Google AI Studio' :
+                      platform.charAt(0).toUpperCase() + platform.slice(1);
+
   const metaInfo = {
-    title: `Claude完整导出 (${totalConversations}个对话)`,
+    title: title,
     created_at: exportedAt,
     updated_at: exportedAt,
     project_uuid: "",
-    uuid: `claude_full_export_${Date.now()}`,
-    model: "Claude完整导出",
-    platform: 'claude_full_export',
-    exportedAt: exportedAt,
-    totalConversations: totalConversations,
-    includesImages: jsonData.includesImages || false,
+    uuid: `${platform.toLowerCase()}_${Date.now()}`,
+    model: platformName,
+    platform: platform.toLowerCase(),
+    has_embedded_images: false,
     totalImagesProcessed: 0
   };
 
-  const allMessages = [];
-  const conversationGroups = {};
-  const projectGroups = {};
-  let globalMessageIndex = 0;
+  const chatHistory = [];
+  let messageIndex = 0;
 
-  conversations.forEach((conversation, convIdx) => {
-    const convUuid = conversation.uuid;
-    const convName = conversation.name || `对话 ${convIdx + 1}`;
-    const projectUuid = conversation.project_uuid || 'no_project';
-    const projectName = conversation.project?.name || '无项目';
-    
-    // 累加图片总数
-    if(conversation._debug_info?.images_processed) {
-      metaInfo.totalImagesProcessed += conversation._debug_info.images_processed;
-    }
-    
-    // 初始化分组
-    if (!conversationGroups[convUuid]) {
-      conversationGroups[convUuid] = {
-        uuid: convUuid,
-        name: convName,
-        model: conversation.model,
-        created_at: parseTimestamp(conversation.created_at),
-        updated_at: parseTimestamp(conversation.updated_at),
-        is_starred: conversation.is_starred,
-        project: conversation.project,
-        messages: [],
-        messageCount: 0
-      };
-    }
-    
-    if (!projectGroups[projectUuid]) {
-      projectGroups[projectUuid] = {
-        uuid: projectUuid,
-        name: projectName,
-        conversations: [],
-        messages: [],
-        messageCount: 0
-      };
-    }
-    
-    // 添加对话分隔标记
-    const conversationHeader = {
-      index: globalMessageIndex++,
-      uuid: `conv_header_${convIdx}`,
-      parent_uuid: globalMessageIndex > 1 ? allMessages[allMessages.length - 1].uuid : "",
-      sender: "system",
-      sender_label: "对话开始",
-      timestamp: parseTimestamp(conversation.created_at),
-      content_items: [],
-      raw_text: `### ${convName} ${conversation.is_starred ? '⭐' : ''}\n\n**模型**: ${conversation.model || '未知'}\n**项目**: ${projectName}\n**创建时间**: ${parseTimestamp(conversation.created_at)}`,
-      display_text: `### ${convName} ${conversation.is_starred ? '⭐' : ''}\n\n**模型**: ${conversation.model || '未知'}\n**项目**: ${projectName}\n**创建时间**: ${parseTimestamp(conversation.created_at)}`,
-      thinking: "",
-      tools: [],
-      artifacts: [],
-      citations: [],
-      images: [],
-      branch_id: null,
-      is_branch_point: false,
-      branch_level: 0,
-      conversation_uuid: convUuid,
-      project_uuid: projectUuid,
-      is_conversation_header: true,
-      conversation_name: convName,
-      project_name: projectName,
-      model: conversation.model,
-      is_starred: conversation.is_starred,
-      created_at: parseTimestamp(conversation.created_at),
-      messageCount: conversation.chat_messages ? conversation.chat_messages.length : 0
-    };
-    
-    allMessages.push(conversationHeader);
-    conversationGroups[convUuid].messages.push(conversationHeader);
-    projectGroups[projectUuid].messages.push(conversationHeader);
-    
-    // 处理该对话的所有消息
-    if (conversation.chat_messages && Array.isArray(conversation.chat_messages)) {
-      const singleConvData = extractClaudeData(conversation);
-      singleConvData.chat_history.forEach(msg => {
-        const updatedMsg = {
-          ...msg,
-          index: globalMessageIndex++,
-          parent_uuid: msg.parent_uuid || (globalMessageIndex > 1 ? allMessages[allMessages.length - 1].uuid : ""),
-          conversation_uuid: convUuid,
-          project_uuid: projectUuid,
-          conversation_name: convName,
-          project_name: projectName
-        };
-        allMessages.push(updatedMsg);
-        conversationGroups[convUuid].messages.push(updatedMsg);
-        conversationGroups[convUuid].messageCount++;
-        projectGroups[projectUuid].messages.push(updatedMsg);
-        projectGroups[projectUuid].messageCount++;
+  // 遍历每个 turn
+  jsonData.conversation.forEach((turn) => {
+    const turnIndex = turn.turnIndex;
+
+    // 处理人类消息的所有版本
+    if (turn.human && turn.human.versions) {
+      turn.human.versions.forEach((humanVersion, versionIdx) => {
+        const uuid = `human_${turnIndex}_v${humanVersion.version}`;
+        const parentUuid = turnIndex > 0 ? `assistant_${turnIndex - 1}_v0` : "";
+
+        const humanMessage = createMessage(
+          messageIndex++,
+          uuid,
+          parentUuid,
+          "human",
+          "人类",
+          exportedAt
+        );
+
+        humanMessage.raw_text = humanVersion.text || '';
+        humanMessage.display_text = humanVersion.text || '';
+        humanMessage._version = humanVersion.version;
+        humanMessage._version_type = humanVersion.type || 'normal';
+
+        chatHistory.push(humanMessage);
       });
     }
-    
-    // 将对话添加到项目组
-    if (!projectGroups[projectUuid].conversations.find(c => c.uuid === convUuid)) {
-      projectGroups[projectUuid].conversations.push(conversationGroups[convUuid]);
+
+    // 处理助手消息的所有版本
+    if (turn.assistant && turn.assistant.versions) {
+      turn.assistant.versions.forEach((assistantVersion, versionIdx) => {
+        const uuid = `assistant_${turnIndex}_v${assistantVersion.version}`;
+        // assistant 的 parent 是对应的 human version
+        const userVersion = assistantVersion.userVersion !== undefined ?
+          assistantVersion.userVersion : 0;
+        const parentUuid = `human_${turnIndex}_v${userVersion}`;
+
+        const assistantMessage = createMessage(
+          messageIndex++,
+          uuid,
+          parentUuid,
+          "assistant",
+          platformName,
+          exportedAt
+        );
+
+        assistantMessage.raw_text = assistantVersion.text || '';
+        assistantMessage.display_text = assistantVersion.text || '';
+        assistantMessage._version = assistantVersion.version;
+        assistantMessage._version_type = assistantVersion.type || 'normal';
+        assistantMessage._user_version = userVersion;
+
+        chatHistory.push(assistantMessage);
+      });
     }
   });
 
   return {
     meta_info: metaInfo,
-    chat_history: allMessages,
+    chat_history: chatHistory,
     raw_data: jsonData,
-    format: 'claude_full_export',
-    platform: 'claude_full_export',
-    views: {
-      conversations: conversationGroups,
-      projects: projectGroups,
-      conversationList: Object.values(conversationGroups),
-      projectList: Object.values(projectGroups)
-    }
+    format: 'gemini_notebooklm',
+    platform: platform.toLowerCase()
   };
 };
 
 // ==================== 辅助函数 ====================
 
-// 创建消息对象
+// 消息构建器类 - 简化消息创建过程
+class MessageBuilder {
+  constructor(index, uuid, parentUuid, sender, senderLabel, timestamp) {
+    this.message = {
+      index,
+      uuid,
+      parent_uuid: parentUuid || "",
+      sender,
+      sender_label: senderLabel,
+      timestamp,
+      content_items: [],
+      raw_text: "",
+      display_text: "",
+      thinking: "",
+      tools: [],
+      artifacts: [],
+      citations: [],
+      images: [],
+      attachments: [],
+      branch_id: null,
+      is_branch_point: false,
+      branch_level: 0
+    };
+  }
+
+  setRawText(rawText) {
+    this.message.raw_text = rawText;
+    return this;
+  }
+
+  setContent(rawText) {
+    const { thinking, content } = extractThinkingAndContent(rawText);
+    this.message.raw_text = rawText;
+    this.message.thinking = thinking;
+    this.message.display_text = content;
+    return this;
+  }
+
+  setThinking(thinking) {
+    this.message.thinking = thinking;
+    return this;
+  }
+
+  setDisplayText(text) {
+    this.message.display_text = text;
+    return this;
+  }
+
+  addAttachments(metadata) {
+    if (Array.isArray(metadata?.attachments)) {
+      this.message.attachments.push(...processAttachments(metadata.attachments));
+    }
+    return this;
+  }
+
+  addCitations(metadata) {
+    if (Array.isArray(metadata?.citations)) {
+      this.message.citations.push(...filterCitations(metadata.citations));
+    }
+    return this;
+  }
+
+  addTools(tools) {
+    if (Array.isArray(tools)) {
+      this.message.tools.push(...tools);
+    }
+    return this;
+  }
+
+  finalize(isHuman) {
+    finalizeDisplayText(this.message, isHuman);
+    return this.message;
+  }
+
+  build() {
+    return this.message;
+  }
+}
+
+// 创建消息对象（保留向后兼容）
 function createMessage(index, uuid, parentUuid, sender, senderLabel, timestamp) {
     return {
     index,
@@ -979,18 +1099,9 @@ function processContentArray(contentArray, messageData, isHumanMessage = false) 
       const text = item.text || "";
       messageData.raw_text += text;
       displayText += text;
-      
+
       if (item.citations && Array.isArray(item.citations)) {
-        item.citations.forEach(citation => {
-          if (citation && typeof citation === 'object') {
-            // 过滤掉引用用户上传文件的条目（metadata.type === 'file' 或来源为 my_files）
-            const meta = citation.metadata || {};
-            const isFileCitation = meta.type === 'file' || meta.source === 'my_files';
-            if (!isFileCitation) {
-              messageData.citations.push(citation);
-            }
-          }
-        });
+        messageData.citations.push(...filterCitations(item.citations));
       }
     }
     else if (contentType === "image") {
@@ -1051,55 +1162,41 @@ function processContentArray(contentArray, messageData, isHumanMessage = false) 
 
 // 处理消息中的图片文件
 function processMessageImages(message, messageData) {
+  const addImage = (imageInfo) => {
+    imageInfo.index = messageData.images.length;
+    messageData.images.push(imageInfo);
+  };
+
   const processFiles = (files, version = '') => {
-    if (files && Array.isArray(files)) {
-      files.forEach((file) => {
-        if (file.file_kind === 'image') {
-          const imageInfo = {
-            index: messageData.images.length,
-            file_name: file.file_name || `image_${version}_${messageData.images.length}`,
-            file_uuid: file.file_uuid,
-            created_at: file.created_at,
-            thumbnail_url: file.thumbnail_url,
-            preview_url: file.preview_url,
-            embedded_image: null,
-            display_mode: 'url'
-          };
-          
-          if (file.embedded_image && file.embedded_image.data) {
-            imageInfo.embedded_image = file.embedded_image;
-            imageInfo.display_mode = 'base64';
-          }
-          
-          messageData.images.push(imageInfo);
-        }
-      });
-    }
+    if (!Array.isArray(files)) return;
+    files.forEach((file) => {
+      if (file.file_kind === 'image') {
+        addImage({
+          file_name: file.file_name || `image_${version}_${messageData.images.length}`,
+          file_uuid: file.file_uuid,
+          created_at: file.created_at,
+          thumbnail_url: file.thumbnail_url,
+          preview_url: file.preview_url,
+          embedded_image: file.embedded_image?.data ? file.embedded_image : null,
+          display_mode: file.embedded_image?.data ? 'base64' : 'url'
+        });
+      }
+    });
   };
 
   processFiles(message.files, 'v1');
-  if (messageData.images.length === 0) {
-    processFiles(message.files_v2, 'v2');
-  }
+  if (messageData.images.length === 0) processFiles(message.files_v2, 'v2');
 
-  if (message.attachments && Array.isArray(message.attachments)) {
-    message.attachments.forEach((attachment) => {
-      if (attachment.file_type && attachment.file_type.startsWith('image/')) {
-        const imageInfo = {
-          index: messageData.images.length,
-          file_name: attachment.file_name || `attachment_${messageData.images.length}`,
-          file_type: attachment.file_type,
-          file_url: attachment.file_url,
-          embedded_image: null,
-          display_mode: 'url'
-        };
-        
-        if (attachment.embedded_image && attachment.embedded_image.data) {
-          imageInfo.embedded_image = attachment.embedded_image;
-          imageInfo.display_mode = 'base64';
-        }
-        
-        messageData.images.push(imageInfo);
+  if (Array.isArray(message.attachments)) {
+    message.attachments.forEach((att) => {
+      if (att.file_type?.startsWith('image/')) {
+        addImage({
+          file_name: att.file_name || `attachment_${messageData.images.length}`,
+          file_type: att.file_type,
+          file_url: att.file_url,
+          embedded_image: att.embedded_image?.data ? att.embedded_image : null,
+          display_mode: att.embedded_image?.data ? 'base64' : 'url'
+        });
       }
     });
   }
@@ -1107,51 +1204,40 @@ function processMessageImages(message, messageData) {
 
 // 处理Gemini格式的图片
 function processGeminiImage(imgData, itemIndex, imgIndex, platform) {
+  const fileName = `${platform}_image_${itemIndex}_${imgIndex}`;
+
   if (typeof imgData === 'string') {
     return {
       index: imgIndex,
-      file_name: `${platform}_image_${itemIndex}_${imgIndex}`,
-      file_type: imgData.startsWith('data:image/') ? 
-        imgData.split(';')[0].replace('data:', '') : 'image/png',
+      file_name: fileName,
+      file_type: imgData.startsWith('data:image/') ? imgData.split(';')[0].replace('data:', '') : 'image/png',
       display_mode: 'base64',
-      embedded_image: {
-        data: imgData,
-        size: 0,
-      }
+      embedded_image: { data: imgData, size: 0 }
     };
-  } else if (typeof imgData === 'object') {
+  }
+
+  if (typeof imgData === 'object') {
+    const format = imgData.format || 'image/png';
     return {
       index: imgIndex,
-      file_name: `${platform}_image_${itemIndex}_${imgIndex}`,
-      file_type: imgData.format || 'image/png',
+      file_name: fileName,
+      file_type: format,
       display_mode: 'base64',
-      embedded_image: {
-        data: `data:${imgData.format || 'image/png'};base64,${imgData.data}`,
-        size: imgData.size || 0,
-      },
+      embedded_image: { data: `data:${format};base64,${imgData.data}`, size: imgData.size || 0 },
       original_src: imgData.original_src
     };
   }
+
   return null;
 }
 
 // 生成最终显示文本
 function finalizeDisplayText(messageData, isHumanMessage = false) {
-  const hasAttachmentImages = messageData.images.some(img => !img.placeholder);
-  
-  // 添加图片标记
-  if (hasAttachmentImages) {
-    const imageMarkdown = messageData.images
-      .filter(img => !img.placeholder)
-      .map((img, idx) => `[图片${idx + 1}: ${img.file_name}]`)
-      .join(' ');
-      
-    if (imageMarkdown) {
-      messageData.display_text = `${imageMarkdown}\n\n${messageData.display_text}`.trim();
-    }
+  const attachImages = messageData.images.filter(img => !img.placeholder);
+  if (attachImages.length > 0) {
+    const imageMarkdown = attachImages.map((img, idx) => `[图片${idx + 1}: ${img.file_name}]`).join(' ');
+    messageData.display_text = `${imageMarkdown}\n\n${messageData.display_text}`.trim();
   }
-  
-  // 注意：附件信息不再添加到display_text中，而是保留在attachments字段中单独显示
 }
 
 // 提取artifact信息
@@ -1159,25 +1245,12 @@ function extractArtifact(artifactItem) {
   try {
     const input = artifactItem.input || {};
     const command = input.command || "";
-    
+
     if (command === "create") {
-      return {
-        id: input.id || "",
-        command,
-        type: input.type || "",
-        title: input.title || "无标题",
-        content: input.content || "",
-        language: input.language || "",
-        result: null
-      };
-    } else if (command === "update" || command === "rewrite") {
-      return {
-        id: input.id || "",
-        command,
-        old_str: input.old_str || "",
-        new_str: input.new_str || "",
-        result: null
-      };
+      return { id: input.id || "", command, type: input.type || "", title: input.title || "无标题", content: input.content || "", language: input.language || "", result: null };
+    }
+    if (command === "update" || command === "rewrite") {
+      return { id: input.id || "", command, old_str: input.old_str || "", new_str: input.new_str || "", result: null };
     }
   } catch (error) {
     console.error("提取artifact时出错:", error);
@@ -1187,34 +1260,43 @@ function extractArtifact(artifactItem) {
 
 // 提取工具使用信息
 function extractToolUse(toolItem) {
-  const toolData = {
-    name: toolItem.name || "unknown",
-    input: toolItem.input || {},
-    result: null
-  };
-
-  if (toolItem.name === "web_search" && toolItem.input?.query) {
-    toolData.query = toolItem.input.query;
-  }
-
+  const toolData = { name: toolItem.name || "unknown", input: toolItem.input || {}, result: null };
+  if (toolItem.name === "web_search" && toolItem.input?.query) toolData.query = toolItem.input.query;
   return toolData;
 }
 
 // 提取工具结果信息
 function extractToolResult(resultItem) {
-  return {
-    name: resultItem.name || "unknown",
-    is_error: resultItem.is_error || false,
-    content: resultItem.content || []
-  };
+  return { name: resultItem.name || "unknown", is_error: resultItem.is_error || false, content: resultItem.content || [] };
 }
+
+// ==================== 分支检测辅助函数 ====================
+// 构建消息父子关系映射
+const buildMessageMaps = (messages) => {
+  const parentChildMap = new Map();
+  const messageMap = new Map();
+
+  messages.forEach(msg => {
+    messageMap.set(msg.uuid, msg);
+    const parentUuid = msg.parent_uuid;
+
+    if (parentUuid) {
+      if (!parentChildMap.has(parentUuid)) {
+        parentChildMap.set(parentUuid, []);
+      }
+      parentChildMap.get(parentUuid).push(msg.uuid);
+    }
+  });
+
+  return { parentChildMap, messageMap };
+};
 
 // ==================== 分支检测（简化版） ====================
 export const detectBranches = (processedData) => {
   if (!processedData?.chat_history) {
     return processedData;
   }
-  
+
   // 如果是 JSONL 格式，使用专门的分支检测
   if (processedData.format === 'jsonl_chat') {
     return detectJSONLBranches(processedData);
@@ -1223,26 +1305,11 @@ export const detectBranches = (processedData) => {
   if (processedData.format === 'chatgpt') {
     return detectChatGPTBranches(processedData);
   }
-  
+
   try {
     const messages = processedData.chat_history;
     const ROOT_UUID = '00000000-0000-4000-8000-000000000000';
-    
-    // 构建父子关系映射
-    const parentChildMap = new Map();
-    const messageMap = new Map();
-    
-    messages.forEach(msg => {
-      messageMap.set(msg.uuid, msg);
-      const parentUuid = msg.parent_uuid;
-      
-      if (parentUuid) {
-        if (!parentChildMap.has(parentUuid)) {
-          parentChildMap.set(parentUuid, []);
-        }
-        parentChildMap.get(parentUuid).push(msg.uuid);
-      }
-    });
+    const { parentChildMap, messageMap } = buildMessageMaps(messages);
     
     // 标记分支点
     const branchPoints = [];
@@ -1300,27 +1367,19 @@ export const detectBranches = (processedData) => {
 
 // 标记分支路径
 function markBranchPath(nodeUuid, branchPath, level, messageMap, parentChildMap, visited) {
-  if (visited.has(nodeUuid) || !messageMap.has(nodeUuid)) {
-    return;
-  }
-  
+  if (visited.has(nodeUuid) || !messageMap.has(nodeUuid)) return;
+
   visited.add(nodeUuid);
   const node = messageMap.get(nodeUuid);
-  
   node.branch_id = branchPath;
   node.branch_level = level;
-  
+
   const children = parentChildMap.get(nodeUuid) || [];
-  
-  if (children.length === 1) {
-    markBranchPath(children[0], branchPath, level, messageMap, parentChildMap, visited);
-  } else if (children.length > 1) {
-    children.forEach((childUuid, index) => {
-      const childPath = index === 0 ? branchPath : `${branchPath}.${index}`;
-      const childLevel = index === 0 ? level : level + 1;
-      markBranchPath(childUuid, childPath, childLevel, messageMap, parentChildMap, visited);
-    });
-  }
+  children.forEach((childUuid, index) => {
+    const childPath = index === 0 ? branchPath : `${branchPath}.${index}`;
+    const childLevel = index === 0 ? level : level + 1;
+    markBranchPath(childUuid, childPath, childLevel, messageMap, parentChildMap, visited);
+  });
 }
 
 // 提取分支信息
@@ -1355,7 +1414,7 @@ export const getImageDisplayData = (imageInfo) => {
     return {
       src: imageInfo.embedded_image.data,
       alt: imageInfo.file_name,
-      title: `${imageInfo.file_name} (${formatFileSize(imageInfo.embedded_image.size)})`,
+      title: `${imageInfo.file_name} (${FileUtils.formatFileSize(imageInfo.embedded_image.size)})`,
       isBase64: true
     };
   }
@@ -1372,18 +1431,16 @@ const extractJSONLChatData = (jsonData, fileName) => {
   // 检查第一行是否为元数据
   const firstLine = jsonData[0] || {};
   const hasMetadata = firstLine.chat_metadata !== undefined;
-  
-  const title = hasMetadata && firstLine.character_name ? 
-    `与${firstLine.character_name}的对话` : 
-    fileName.replace(/\.(jsonl|json)$/i, '') || '聊天记录';
-  
+  const charName = firstLine.character_name;
+  const now = new Date().toLocaleString('zh-CN');
+
   const metaInfo = {
-    title,
-    created_at: firstLine.create_date || new Date().toLocaleString('zh-CN'),
-    updated_at: new Date().toLocaleString('zh-CN'),
+    title: hasMetadata && charName ? `与${charName}的对话` : (fileName.replace(/\.(jsonl|json)$/i, '') || '聊天记录'),
+    created_at: firstLine.create_date || now,
+    updated_at: now,
     project_uuid: "",
     uuid: `jsonl_${Date.now()}`,
-    model: firstLine.character_name || "Chat Bot",
+    model: charName || "Chat Bot",
     platform: 'jsonl_chat',
     has_embedded_images: false,
     images_processed: 0
@@ -1456,42 +1513,25 @@ const extractJSONLChatData = (jsonData, fileName) => {
 
 // 创建JSONL格式的消息对象
 function createJSONLMessage(entryIndex, swipeIndex, name, senderLabel, timestamp, isUser, messageText, swipeInfo) {
-  const messageData = {
-    index: entryIndex * 1000 + swipeIndex, // 确保每个分支有唯一的index
-    uuid: `jsonl_${entryIndex}_${swipeIndex}`,
-    parent_uuid: entryIndex > 0 ? `jsonl_${entryIndex - 1}_0` : "",
-    sender: isUser ? "human" : "assistant",
-    sender_label: senderLabel,
-    timestamp,
-    content_items: [],
-    raw_text: messageText,
-    display_text: "",
-    thinking: "",
-    tools: [],
-    artifacts: [],
-    citations: [],
-    images: [],
-    attachments: [],
-    branch_id: null,
-    is_branch_point: false,
-    branch_level: 0,
-    swipe_info: swipeInfo // 添加swipe信息
-  };
-  
-  // 提取thinking和content
-  const { thinking, content } = extractThinkingAndContent(messageText);
-  
-  messageData.thinking = thinking;
-  messageData.display_text = content;
-  
+  const messageData = new MessageBuilder(
+    entryIndex * 1000 + swipeIndex,
+    `jsonl_${entryIndex}_${swipeIndex}`,
+    entryIndex > 0 ? `jsonl_${entryIndex - 1}_0` : "",
+    isUser ? "human" : "assistant",
+    senderLabel,
+    timestamp
+  ).setContent(messageText).build();
+
+  messageData.swipe_info = swipeInfo;
+
   // 如果有swipe信息，添加到display_text前面作为标记
   if (swipeInfo) {
-    const branchLabel = swipeInfo.isSelected ? 
+    const branchLabel = swipeInfo.isSelected ?
       `**[${swipeInfo.swipeIndex + 1}/${swipeInfo.totalSwipes}] 🚩**` :
       `**[${swipeInfo.swipeIndex + 1}/${swipeInfo.totalSwipes}]**`;
     messageData.display_text = `${branchLabel}\n\n${messageData.display_text}`;
   }
-  
+
   return messageData;
 }
 
@@ -1583,25 +1623,15 @@ export function detectChatGPTBranches(processedData) {
     curr = parent;
   }
 
-  // 构建消息级的 parent-child 映射
-  const messageMap = new Map();
+  // 清理旧的 branch 标记
   messages.forEach(msg => {
-    messageMap.set(msg.uuid, msg);
-    // 清理旧的 branch 标记
     msg.is_branch_point = false;
     msg.branch_id = null;
     msg.branch_level = 0;
   });
-  const parentChildMap = new Map();
-  messages.forEach(msg => {
-    const parentUuid = msg.parent_uuid;
-    if (parentUuid && messageMap.has(parentUuid)) {
-      if (!parentChildMap.has(parentUuid)) {
-        parentChildMap.set(parentUuid, []);
-      }
-      parentChildMap.get(parentUuid).push(msg.uuid);
-    }
-  });
+
+  // 构建消息级的 parent-child 映射
+  const { parentChildMap, messageMap } = buildMessageMaps(messages);
 
   // 标记消息级的分支点：具有多个子消息的父消息
   parentChildMap.forEach((children, parentUuid) => {
@@ -1704,22 +1734,10 @@ export function detectChatGPTBranches(processedData) {
       }
     }
   });
-  // 构建 branches 列表
-  const branches = [];
-  const branchGroups = new Map();
-  messages.forEach(msg => {
-    if (msg.branch_id && msg.branch_id !== 'main') {
-      if (!branchGroups.has(msg.branch_id)) branchGroups.set(msg.branch_id, []);
-      branchGroups.get(msg.branch_id).push(msg.uuid);
-    }
-  });
-  branchGroups.forEach((uuids, branchId) => {
-    branches.push({ path: branchId, level: 0, id: branchId, messages: uuids });
-  });
 
   return {
     ...processedData,
     branch_points: branchPoints,
-    branches
+    branches: extractBranchInfo(messages)
   };
 }

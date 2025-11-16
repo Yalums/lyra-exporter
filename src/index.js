@@ -1,7 +1,18 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
+
+// 导入语言包
+import enTranslations from './langs/en.json';
+import zhTranslations from './langs/zh.json';
+import jaTranslations from './langs/ja.json';
+
+const staticTranslations = {
+  en: enTranslations,
+  zh: zhTranslations,
+  ja: jaTranslations
+};
 
 // =============================================================================
 // i18n 国际化系统核心配置
@@ -226,6 +237,171 @@ export const saveLanguage = (languageCode) => {
   } catch (error) {
     console.warn('Failed to save language to localStorage:', error);
   }
+};
+
+// =============================================================================
+// i18n 工具函数和 Hook（从 utils/i18n.js 合并）
+// =============================================================================
+
+/**
+ * 获取当前语言
+ */
+export function getCurrentLanguage() {
+  try {
+    return localStorage.getItem(STORAGE_KEY) || 'en';
+  } catch {
+    return 'en';
+  }
+}
+
+/**
+ * 翻译函数 - 用于非 React 组件
+ * @param {string} key - 翻译键
+ * @param {object} params - 插值参数
+ * @returns {string} 翻译后的文本
+ */
+export function t(key, params = {}) {
+  const language = getCurrentLanguage();
+  const languagePack = staticTranslations[language] || staticTranslations.en;
+
+  const translation = getNestedValue(languagePack, key);
+
+  if (translation === null || translation === undefined) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`Translation missing for key: ${key}`);
+    }
+    const fallback = key.split('.').pop();
+    return interpolate(fallback, params);
+  }
+
+  if (typeof translation === 'string') {
+    return interpolate(translation, params);
+  }
+
+  return translation;
+}
+
+/**
+ * useI18n Hook - 国际化核心Hook
+ *
+ * 用法示例：
+ * const { t, currentLanguage, changeLanguage, availableLanguages } = useI18n();
+ */
+export const useI18n = () => {
+  const [currentLanguage, setCurrentLanguage] = useState(DEFAULT_LANGUAGE);
+  const [translations, setTranslations] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+
+  // 初始化语言设置
+  useEffect(() => {
+    const initializeLanguage = async () => {
+      setIsLoading(true);
+
+      const savedLanguage = getSavedLanguage();
+      setCurrentLanguage(savedLanguage);
+
+      try {
+        const languagePack = await loadLanguagePack(savedLanguage);
+        setTranslations(languagePack);
+      } catch (error) {
+        console.error('Failed to load initial language pack:', error);
+        setTranslations({});
+      }
+
+      setIsLoading(false);
+      setIsReady(true);
+    };
+
+    initializeLanguage();
+  }, []);
+
+  // 切换语言函数
+  const changeLanguage = useCallback(async (languageCode) => {
+    if (!SUPPORTED_LANGUAGES[languageCode]) {
+      console.warn(`Unsupported language: ${languageCode}`);
+      return false;
+    }
+
+    if (languageCode === currentLanguage) {
+      return true;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const languagePack = await loadLanguagePack(languageCode);
+      setTranslations(languagePack);
+      setCurrentLanguage(languageCode);
+      saveLanguage(languageCode);
+      return true;
+    } catch (error) {
+      console.error(`Failed to change language to ${languageCode}:`, error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentLanguage]);
+
+  // 翻译函数
+  const tHook = useCallback((key, params = {}) => {
+    if (!key) {
+      console.warn('Translation key is required');
+      return '';
+    }
+
+    // 获取翻译文本
+    const translation = getNestedValue(translations, key);
+
+    if (translation === null || translation === undefined) {
+      // 返回键的最后一部分作为fallback
+      const fallback = key.split('.').pop();
+      return interpolate(fallback, params);
+    }
+
+    // 如果翻译存在，进行参数插值
+    if (typeof translation === 'string') {
+      return interpolate(translation, params);
+    }
+
+    // 如果翻译不是字符串，返回原始值
+    return translation;
+  }, [translations]);
+
+  // 检查是否存在翻译
+  const hasTranslation = useCallback((key) => {
+    return getNestedValue(translations, key) !== null;
+  }, [translations]);
+
+  // 获取当前语言信息
+  const currentLanguageInfo = useMemo(() => {
+    return SUPPORTED_LANGUAGES[currentLanguage] || SUPPORTED_LANGUAGES[DEFAULT_LANGUAGE];
+  }, [currentLanguage]);
+
+  // 可用语言列表
+  const availableLanguages = useMemo(() => {
+    return Object.values(SUPPORTED_LANGUAGES);
+  }, []);
+
+  return {
+    // 核心函数
+    t: tHook,
+
+    // 语言状态
+    currentLanguage,
+    currentLanguageInfo,
+    availableLanguages,
+
+    // 语言切换
+    changeLanguage,
+
+    // 状态标志
+    isLoading,
+    isReady,
+
+    // 工具函数
+    hasTranslation
+  };
 };
 
 // =============================================================================

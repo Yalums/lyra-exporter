@@ -7,8 +7,8 @@ import remarkGfm from 'remark-gfm';
 import MessageDetail from './MessageDetail';
 import PlatformIcon from './PlatformIcon';
 import { copyMessage } from '../utils/copyManager';
-import { PlatformUtils, DateTimeUtils, TextUtils } from '../utils/commonUtils';
-import { useI18n } from '../hooks/useI18n';
+import { PlatformUtils, DateTimeUtils, TextUtils } from '../utils/fileParser';
+import { useI18n } from '../index.js';
 import { getRenameManager } from '../utils/renameManager';
 
 // ==================== 重命名对话框组件 ====================
@@ -1157,7 +1157,162 @@ const ConversationTimeline = ({
   const handleCancelRename = () => {
     setShowRenameDialog(false);
   };
-  
+
+  // 跳转到最新对话分支
+  const handleJumpToLatest = useCallback(() => {
+    if (!messages || messages.length === 0) {
+      console.warn('[跳转到最新] 没有可用的消息');
+      return;
+    }
+
+    // 找到时间戳最新的消息（按时间排序，取最后一个）
+    const sortedMessages = [...messages].sort((a, b) => {
+      const timeA = new Date(a.timestamp).getTime();
+      const timeB = new Date(b.timestamp).getTime();
+      return timeA - timeB;
+    });
+
+    const latestMessage = sortedMessages[sortedMessages.length - 1];
+    console.log(`[跳转到最新] 找到最新消息 - index: ${latestMessage.index}, uuid: ${latestMessage.uuid}, timestamp: ${latestMessage.timestamp}`);
+
+    // 检查消息是否在当前显示的消息中
+    const isMessageVisible = displayMessages.some(msg => msg.uuid === latestMessage.uuid);
+
+    if (!isMessageVisible && branchAnalysis.branchPoints.size > 0 && !showAllBranches) {
+      // 消息不在当前分支，需要切换分支
+      console.log(`[跳转到最新] 消息不在当前分支，尝试切换分支...`);
+
+      // 构建消息路径
+      const messagePath = [];
+      let currentMsg = latestMessage;
+      const visitedUuids = new Set();
+
+      while (currentMsg && !visitedUuids.has(currentMsg.uuid)) {
+        visitedUuids.add(currentMsg.uuid);
+        messagePath.unshift(currentMsg);
+
+        if (currentMsg.parent_uuid) {
+          currentMsg = messages.find(m => m.uuid === currentMsg.parent_uuid);
+        } else {
+          break;
+        }
+      }
+
+      console.log(`[跳转到最新] 构建消息路径，长度: ${messagePath.length}`);
+
+      // 创建新的分支过滤器
+      const newBranchFilters = new Map();
+
+      // 遍历所有分支点，确定正确的分支选择
+      for (const [branchPointUuid, branchData] of branchAnalysis.branchPoints) {
+        let selectedBranchIndex = 0;
+
+        // 检查消息路径是否经过这个分支点的某个分支
+        for (let bIdx = 0; bIdx < branchData.branches.length; bIdx++) {
+          const branch = branchData.branches[bIdx];
+          // 检查路径中是否有消息在这个分支中
+          if (messagePath.some(pathMsg =>
+            branch.messages.some(branchMsg => branchMsg.uuid === pathMsg.uuid)
+          )) {
+            selectedBranchIndex = bIdx;
+            console.log(`[跳转到最新] 分支点 ${branchPointUuid} 需要设置为分支 ${bIdx}`);
+            break;
+          }
+        }
+
+        newBranchFilters.set(branchPointUuid, selectedBranchIndex);
+      }
+
+      console.log(`[跳转到最新] 批量更新分支过滤器:`, Array.from(newBranchFilters.entries()));
+
+      // 批量更新所有分支过滤器
+      setBranchFilters(newBranchFilters);
+      setShowAllBranches(false);
+      setForceUpdateCounter(prev => prev + 1);
+
+      // 通知父组件
+      if (onBranchStateChange) {
+        onBranchStateChange({
+          showAllBranches: false,
+          currentBranchIndexes: newBranchFilters
+        });
+      }
+
+      // 延迟执行定位，等待DOM更新
+      setTimeout(() => {
+        const messageEl = messageRefs.current[latestMessage.index];
+        if (messageEl) {
+          messageEl.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
+          });
+
+          setSelectedMessageIndex(latestMessage.index);
+
+          // 添加高亮效果
+          messageEl.classList.add('highlight-from-search');
+          setTimeout(() => {
+            messageEl.classList.remove('highlight-from-search');
+          }, 3000);
+        } else {
+          console.warn(`[跳转到最新] 切换分支后仍未找到消息元素: ${latestMessage.index}`);
+          // 可能需要更多时间等待渲染
+          setTimeout(() => {
+            const el = messageRefs.current[latestMessage.index];
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              setSelectedMessageIndex(latestMessage.index);
+              el.classList.add('highlight-from-search');
+              setTimeout(() => el.classList.remove('highlight-from-search'), 3000);
+            }
+          }, 300);
+        }
+      }, 600);
+    } else {
+      // 消息在当前分支中可见，直接定位
+      console.log(`[跳转到最新] 消息在当前分支中，直接定位`);
+      const messageEl = messageRefs.current[latestMessage.index];
+      if (!messageEl) {
+        console.warn(`[跳转到最新] 未找到消息元素: ${latestMessage.index}`);
+        // 可能需要等待DOM渲染
+        setTimeout(() => {
+          const el = messageRefs.current[latestMessage.index];
+          if (el) {
+            el.scrollIntoView({
+              behavior: 'smooth',
+              block: 'center'
+            });
+
+            setSelectedMessageIndex(latestMessage.index);
+
+            el.classList.add('highlight-from-search');
+            setTimeout(() => {
+              el.classList.remove('highlight-from-search');
+            }, 3000);
+          } else {
+            console.warn(`[跳转到最新] 延迟后仍未找到元素`);
+          }
+        }, 200);
+        return;
+      }
+
+      // 滚动到视图中心
+      messageEl.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+
+      // 设置选中状态
+      setSelectedMessageIndex(latestMessage.index);
+
+      // 添加高亮效果
+      messageEl.classList.add('highlight-from-search');
+      setTimeout(() => {
+        messageEl.classList.remove('highlight-from-search');
+      }, 3000);
+    }
+  }, [messages, displayMessages, branchAnalysis, showAllBranches, onBranchStateChange]);
+
   // ==================== 工具函数 ====================
   
   const getLastUpdatedTime = () => {
@@ -1304,9 +1459,20 @@ const ConversationTimeline = ({
                 </button>
                 {/* 操作按钮组 */}
                 <span className="conversation-actions" style={{ marginLeft: '12px', display: 'inline-flex', gap: '8px' }}>
+                  {/* 跳转到最新消息按钮 */}
+                  {messages && messages.length > 0 && (
+                    <button
+                      className="btn-secondary small"
+                      onClick={handleJumpToLatest}
+                      title={t('timeline.actions.jumpToLatest')}
+                      style={{ fontSize: '12px', padding: '2px 8px' }}
+                    >
+                      ⏩ {t('timeline.actions.jumpToLatest')}
+                    </button>
+                  )}
                   {/* 重置当前对话标记 */}
                   {markActions && (
-                    <button 
+                    <button
                       className="btn-secondary small"
                       onClick={() => {
                         if (window.confirm(t('timeline.actions.confirmClearMarks'))) {
@@ -1321,7 +1487,7 @@ const ConversationTimeline = ({
                   )}
                   {/* 重置排序按钮(在启用排序时显示) */}
                   {sortingEnabled && sortActions && (
-                    <button 
+                    <button
                       className="btn-secondary small"
                       onClick={() => {
                         if (window.confirm(t('timeline.actions.confirmResetSort'))) {

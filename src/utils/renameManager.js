@@ -1,7 +1,7 @@
 // utils/renameManager.js
 // 对话和文件重命名管理器
 
-import { StorageUtils } from './commonUtils';
+import { StorageUtils } from '../App';
 
 /**
  * 重命名管理器类

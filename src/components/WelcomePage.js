@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, MessageCircle, Download, Database, Info, Star, Brain, Clock, FolderTree, Moon, Sun, CheckCircle, Wrench, Sparkles} from 'lucide-react';
-import { useI18n } from '../hooks/useI18n.js';
+import { FileText, MessageCircle, Download, Database, Info, Star, Brain, Clock, FolderTree, Moon, Sun, CheckCircle, Wrench, Sparkles, Package} from 'lucide-react';
+import { useI18n } from '../index.js';
 import LanguageSwitcher from '../components/LanguageSwitcher.js';
-import { ThemeUtils } from '../utils/commonUtils.js';
+import { ThemeUtils } from '../utils/themeManager.js';
+import { batchExportManager } from '../utils/batchExportManager.js';
 
 // 隐私保障说明组件 - 国际化版本（简化版）
 const PrivacyAssurance = () => {
@@ -218,16 +219,66 @@ const FeatureCard = ({ titleKey, descriptionKey }) => {
 const WelcomePage = ({ handleLoadClick }) => {
   const { t, isReady } = useI18n();
   const [currentTheme, setCurrentTheme] = useState(ThemeUtils.getCurrentTheme());
-  
+
+  // 批量导出相关状态
+  const [batchExporting, setBatchExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState({ current: 0, total: 0, fileName: '' });
+  const [exportResult, setExportResult] = useState(null);
+
   // 处理主题切换（不刷新）
   const handleThemeToggle = () => {
     const newTheme = ThemeUtils.toggleTheme();
     setCurrentTheme(newTheme);
   };
-  
+
   // 处理语言切换（强制刷新）
   const handleLanguageChange = () => {
     setTimeout(() => window.location.reload(), 300);
+  };
+
+  // 处理批量导出
+  const handleBatchExport = async () => {
+    // 创建文件输入元素
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.multiple = true;
+
+    input.onchange = async (e) => {
+      const files = Array.from(e.target.files);
+
+      if (files.length === 0) {
+        return;
+      }
+
+      setBatchExporting(true);
+      setExportProgress({ current: 0, total: files.length, fileName: '' });
+      setExportResult(null);
+
+      try {
+        const result = await batchExportManager.exportLatestBranchesToZip(
+          files,
+          (current, total, fileName) => {
+            setExportProgress({ current, total, fileName });
+          }
+        );
+
+        setExportResult(result);
+
+        // 3秒后自动关闭结果显示
+        setTimeout(() => {
+          setBatchExporting(false);
+          setExportResult(null);
+        }, 3000);
+
+      } catch (error) {
+        console.error('批量导出失败:', error);
+        alert(`批量导出失败: ${error.message}`);
+        setBatchExporting(false);
+      }
+    };
+
+    input.click();
   };
   
   // 模拟打字效果 - 使用国际化文本
@@ -345,6 +396,72 @@ const WelcomePage = ({ handleLoadClick }) => {
               <Download className="h-5 w-5 mr-2" />
               {t('welcomePage.actionCards.install.button')}
             </button>
+          </div>
+        </div>
+
+        {/* 批量导出卡片 */}
+        <div className="mt-6">
+          <div className="action-card special">
+            <div className="action-badge">{t('welcomePage.actionCards.batchExport.badge')}</div>
+            <div className="action-icon">
+              <Package className="h-8 w-8" />
+            </div>
+            <h3 className="action-title">{t('welcomePage.actionCards.batchExport.title')}</h3>
+            <p className="action-description">
+              {t('welcomePage.actionCards.batchExport.description')}
+            </p>
+            <button
+              onClick={handleBatchExport}
+              className="action-button special"
+              disabled={batchExporting}
+            >
+              <Package className="h-5 w-5 mr-2" />
+              {batchExporting ? t('welcomePage.actionCards.batchExport.processing') : t('welcomePage.actionCards.batchExport.button')}
+            </button>
+
+            {/* 导出进度 */}
+            {batchExporting && !exportResult && (
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-blue-800">
+                    {t('welcomePage.actionCards.batchExport.progress', { current: exportProgress.current, total: exportProgress.total })}
+                  </span>
+                  <span className="text-sm text-blue-600">
+                    {Math.round((exportProgress.current / exportProgress.total) * 100)}%
+                  </span>
+                </div>
+                <div className="w-full bg-blue-200 rounded-full h-2 mb-2">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${(exportProgress.current / exportProgress.total) * 100}%` }}
+                  ></div>
+                </div>
+                {exportProgress.fileName && (
+                  <p className="text-xs text-blue-700 truncate">
+                    {t('welcomePage.actionCards.batchExport.processing')}: {exportProgress.fileName}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* 导出结果 */}
+            {exportResult && (
+              <div className={`mt-4 p-3 rounded-lg ${exportResult.failed > 0 ? 'bg-yellow-50 border border-yellow-200' : 'bg-green-50 border border-green-200'}`}>
+                <div className="flex items-center mb-2">
+                  <CheckCircle className={`h-5 w-5 mr-2 ${exportResult.failed > 0 ? 'text-yellow-600' : 'text-green-600'}`} />
+                  <span className={`font-medium ${exportResult.failed > 0 ? 'text-yellow-800' : 'text-green-800'}`}>
+                    {t('welcomePage.actionCards.batchExport.complete')}
+                  </span>
+                </div>
+                <p className={`text-sm ${exportResult.failed > 0 ? 'text-yellow-700' : 'text-green-700'}`}>
+                  {t('welcomePage.actionCards.batchExport.result', {
+                    successful: exportResult.successful,
+                    failed: exportResult.failed,
+                    total: exportResult.total
+                  })}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -627,9 +744,41 @@ const WelcomePage = ({ handleLoadClick }) => {
           [data-theme="dark"] .action-button {
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
           }
-          
+
           [data-theme="dark"] .action-button:hover {
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
+          }
+
+          /* 特殊操作卡片样式 - 批量导出 */
+          .action-card.special {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            border: 2px solid #8B5CF6;
+          }
+
+          .action-card.special .action-badge {
+            background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%);
+          }
+
+          .action-card.special .action-icon {
+            background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%);
+            color: white;
+          }
+
+          .action-button.special {
+            background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%);
+            color: white;
+            border: none;
+          }
+
+          .action-button.special:hover:not(:disabled) {
+            background: linear-gradient(135deg, #7C3AED 0%, #8B5CF6 100%);
+            transform: scale(1.05);
+          }
+
+          .action-button.special:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
           }
           
           /* 边框颜色 */
