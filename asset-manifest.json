@@ -1,10 +1,10 @@
 {
   "files": {
-    "main.css": "/lyra-exporter/static/css/main.ad3fc9c8.css",
-    "main.js": "/lyra-exporter/static/js/main.580212af.js",
+    "main.css": "/lyra-exporter/static/css/main.a7d6fbc4.css",
+    "main.js": "/lyra-exporter/static/js/main.08d758b5.js",
     "static/js/161.e31cae80.chunk.js": "/lyra-exporter/static/js/161.e31cae80.chunk.js",
     "static/js/438.b42e1fdb.chunk.js": "/lyra-exporter/static/js/438.b42e1fdb.chunk.js",
-    "static/js/991.d337f0a2.chunk.js": "/lyra-exporter/static/js/991.d337f0a2.chunk.js",
+    "static/js/991.5654018c.chunk.js": "/lyra-exporter/static/js/991.5654018c.chunk.js",
     "static/js/977.c868f4df.chunk.js": "/lyra-exporter/static/js/977.c868f4df.chunk.js",
     "static/js/455.335b23c6.chunk.js": "/lyra-exporter/static/js/455.335b23c6.chunk.js",
     "static/js/221.36833cec.chunk.js": "/lyra-exporter/static/js/221.36833cec.chunk.js",
@@ -23,6 +23,7 @@
     "static/media/KaTeX_Main-Regular.woff2": "/lyra-exporter/static/media/KaTeX_Main-Regular.f650f111a3b890d116f1.woff2",
     "static/media/KaTeX_Main-Bold.woff2": "/lyra-exporter/static/media/KaTeX_Main-Bold.39890742bc957b368704.woff2",
     "static/media/KaTeX_SansSerif-Bold.ttf": "/lyra-exporter/static/media/KaTeX_SansSerif-Bold.5b49f4993ae22d7975b4.ttf",
+    "static/media/SillyTavern.png": "/lyra-exporter/static/media/SillyTavern.2f7a548f7c6e7fa101c4.png",
     "static/media/KaTeX_SansSerif-Italic.ttf": "/lyra-exporter/static/media/KaTeX_SansSerif-Italic.b257a18c016f37ee4543.ttf",
     "static/media/KaTeX_Main-Italic.woff": "/lyra-exporter/static/media/KaTeX_Main-Italic.fd947498bc16392e76c2.woff",
     "static/media/KaTeX_Fraktur-Bold.ttf": "/lyra-exporter/static/media/KaTeX_Fraktur-Bold.4c761b3711973ab04edf.ttf",
@@ -55,6 +56,7 @@
     "static/media/KaTeX_Size4-Regular.ttf": "/lyra-exporter/static/media/KaTeX_Size4-Regular.4ad7c7e8bb8d10a34bb7.ttf",
     "static/media/KaTeX_SansSerif-Regular.woff2": "/lyra-exporter/static/media/KaTeX_SansSerif-Regular.cd5e231e0cc53b2cb2c0.woff2",
     "static/media/KaTeX_Script-Regular.woff2": "/lyra-exporter/static/media/KaTeX_Script-Regular.c81d1b2a4b75d3eded60.woff2",
+    "index.html": "/lyra-exporter/index.html",
     "static/media/KaTeX_Caligraphic-Bold.woff": "/lyra-exporter/static/media/KaTeX_Caligraphic-Bold.d757c535a2e5902f1325.woff",
     "static/media/KaTeX_Caligraphic-Regular.woff": "/lyra-exporter/static/media/KaTeX_Caligraphic-Regular.db074fa22cf224af93d7.woff",
     "static/media/KaTeX_Size3-Regular.ttf": "/lyra-exporter/static/media/KaTeX_Size3-Regular.8d6b6822586eea3d3b20.ttf",
@@ -63,21 +65,24 @@
     "static/media/KaTeX_Size1-Regular.woff": "/lyra-exporter/static/media/KaTeX_Size1-Regular.0108e89c9003e8c14ea3.woff",
     "static/media/KaTeX_Size2-Regular.woff": "/lyra-exporter/static/media/KaTeX_Size2-Regular.3a99e70aee4076660d38.woff",
     "static/media/KaTeX_Size4-Regular.woff": "/lyra-exporter/static/media/KaTeX_Size4-Regular.aeffd8025cba3647f1a6.woff",
-    "index.html": "/lyra-exporter/index.html",
     "static/media/KaTeX_Size1-Regular.woff2": "/lyra-exporter/static/media/KaTeX_Size1-Regular.6eec866c69313624be60.woff2",
     "static/media/KaTeX_Size2-Regular.woff2": "/lyra-exporter/static/media/KaTeX_Size2-Regular.2960900c4f271311eb36.woff2",
     "static/media/KaTeX_Size4-Regular.woff2": "/lyra-exporter/static/media/KaTeX_Size4-Regular.e418bf257af1052628d8.woff2",
     "static/media/KaTeX_Size3-Regular.woff": "/lyra-exporter/static/media/KaTeX_Size3-Regular.7947224e8a9914fa332b.woff",
     "static/media/KaTeX_Size3-Regular.woff2": "/lyra-exporter/static/media/KaTeX_Size3-Regular.e1951519f6f0596f7356.woff2",
-    "main.ad3fc9c8.css.map": "/lyra-exporter/static/css/main.ad3fc9c8.css.map",
-    "main.580212af.js.map": "/lyra-exporter/static/js/main.580212af.js.map",
-    "991.d337f0a2.chunk.js.map": "/lyra-exporter/static/js/991.d337f0a2.chunk.js.map",
+    "static/media/Gemini.svg": "/lyra-exporter/static/media/Gemini.c20aaf93b8e5e93613798f8292fded40.svg",
+    "static/media/ChatGPT.svg": "/lyra-exporter/static/media/ChatGPT.d0c0a23bf0b03f3132a7e3bacede3149.svg",
+    "static/media/Claude.svg": "/lyra-exporter/static/media/Claude.b5a44e9c077d65a50f3ce745cfa01257.svg",
+    "static/media/NotebookLM.svg": "/lyra-exporter/static/media/NotebookLM.057c65b5ca959c143621dfab949f1883.svg",
+    "main.a7d6fbc4.css.map": "/lyra-exporter/static/css/main.a7d6fbc4.css.map",
+    "main.08d758b5.js.map": "/lyra-exporter/static/js/main.08d758b5.js.map",
+    "991.5654018c.chunk.js.map": "/lyra-exporter/static/js/991.5654018c.chunk.js.map",
     "977.c868f4df.chunk.js.map": "/lyra-exporter/static/js/977.c868f4df.chunk.js.map",
     "455.335b23c6.chunk.js.map": "/lyra-exporter/static/js/455.335b23c6.chunk.js.map",
     "221.36833cec.chunk.js.map": "/lyra-exporter/static/js/221.36833cec.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.ad3fc9c8.css",
-    "static/js/main.580212af.js"
+    "static/css/main.a7d6fbc4.css",
+    "static/js/main.08d758b5.js"
   ]
 }
