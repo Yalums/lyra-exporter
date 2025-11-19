@@ -155,6 +155,17 @@
       "title": "エクスポートオプション",
       "button": "エクスポート",
       "exportToMarkdown": "Markdownとしてエクスポート",
+      "previewAndExport": "プレビューしてエクスポート",
+      "exportToPDF": "PDFとしてエクスポート",
+      "format": {
+        "title": "エクスポート形式",
+        "markdown": "Markdownドキュメント",
+        "markdownDesc": "プレーンテキストMarkdown形式でエクスポート",
+        "screenshot": "会話のスクリーンショット",
+        "screenshotDesc": "長いスクリーンショットとしてエクスポート、編集とプレビューをサポート",
+        "pdf": "PDFドキュメント",
+        "pdfDesc": "検索可能なプレーンテキストPDFとしてエクスポート（画像はサポートされていません）"
+      },
       "scope": {
         "title": "エクスポート範囲",
         "current": "現在のタイムラインファイル",
@@ -616,7 +627,10 @@
       "saveFileFailed": "ファイルの保存に失敗しました。もう一度お試しください",
       "noDataToExport": "エクスポートするデータがありません",
       "exportFailed": "エクスポートに失敗しました",
-      "unknownScope": "不明なエクスポート範囲："
+      "unknownScope": "不明なエクスポート範囲：",
+      "screenshotOnlySupportsCurrent": "スクリーンショットエクスポートは現在の会話または現在のブランチのみサポートします",
+      "pdfOnlySupportsCurrent": "PDFエクスポートは現在の会話または現在のブランチのみサポートします",
+      "noMatchingMessages": "フィルター条件に一致するメッセージがありません"
     }
   }
 }

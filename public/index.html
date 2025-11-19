@@ -129,5 +129,258 @@ if ('serviceWorker' in navigator && window.location.hostname !== 'localhost' && 
   console.log('开发环境 - Service Worker 已禁用');
 }
     </script>
+
+    <!-- 版本更新公告 -->
+    <div id="version-announcement" style="display: none;">
+      <div style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        box-sizing: border-box;
+      ">
+        <div style="
+          background: white;
+          border-radius: 12px;
+          padding: 24px;
+          max-width: 500px;
+          width: 100%;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+          animation: slideIn 0.3s ease-out;
+        ">
+          <h2 style="
+            margin: 0 0 16px 0;
+            color: #333;
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          ">
+            <span style="font-size: 24px;">🎉</span>
+            版本更新 - 新功能上线
+          </h2>
+
+          <div style="
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+          ">
+            <p style="margin: 0 0 12px 0; font-weight: 500; color: #444;">本次更新带来以下新功能：</p>
+            <ul style="margin: 0; padding-left: 20px;">
+              <li style="margin-bottom: 8px;">
+                <strong>支持 Gemini 多分支解析</strong><br/>
+                <span style="color: #888; font-size: 13px;">打开配套脚本的「实时」选项即可使用</span>
+              </li>
+              <li style="margin-bottom: 8px;">
+                <strong>批量导出最新分支功能</strong><br/>
+                <span style="color: #888; font-size: 13px;">原来的 claude_all_conversation 现在可以导出到一个压缩包内</span>
+              </li>
+              <li style="margin-bottom: 8px;">
+                <strong>一键跳转到最新分支</strong><br/>
+                <span style="color: #888; font-size: 13px;">快速查看对话的最新内容</span>
+              </li>
+              <li style="margin-bottom: 0;">
+                <strong>批量导出对话的最新分支</strong><br/>
+                <span style="color: #888; font-size: 13px;">更便捷的批量导出体验</span>
+              </li>
+              <li style="margin-bottom: 0;">
+                <strong>支持PDF和长截图格式导出</strong><br/>
+                <span style="color: #888; font-size: 13px;">正在不断优化导出体验</span>
+              </li>
+            </ul>
+          </div>
+
+          <button onclick="closeAnnouncement()" style="
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s;
+          " onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+            我知道了
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <style>
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @media (prefers-color-scheme: dark) {
+        #version-announcement > div > div {
+          background: #2a2a2a !important;
+        }
+        #version-announcement h2 {
+          color: #e0e0e0 !important;
+        }
+        #version-announcement p,
+        #version-announcement strong {
+          color: #d0d0d0 !important;
+        }
+        #version-announcement li span {
+          color: #999 !important;
+        }
+      }
+    </style>
+
+    <script>
+      // 版本公告管理
+      const ANNOUNCEMENT_VERSION = 'v1.1.0'; // 更新版本号会重新显示公告
+      const STORAGE_KEY = 'announcement_seen_' + ANNOUNCEMENT_VERSION;
+
+      // 检测语言变体：简体中文(zh)、繁体中文(zh_)、英文(en)
+      function detectAnnouncementLanguage() {
+        try {
+          // 优先读取应用设置
+          const savedLang = localStorage.getItem('lyra_exporter_language');
+          if (savedLang) {
+            if (savedLang === 'zh') {
+              // 检测简繁体
+              const browserLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
+              if (browserLang.includes('tw') || browserLang.includes('hk') ||
+                  browserLang.includes('mo') || browserLang.includes('hant')) {
+                return 'zh_'; // 繁体
+              }
+              return 'zh'; // 简体
+            }
+            return 'en'; // 其他语言都显示英文
+          }
+
+          // 没有保存设置，根据浏览器语言判断
+          const browserLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
+          if (browserLang.startsWith('zh')) {
+            if (browserLang.includes('tw') || browserLang.includes('hk') ||
+                browserLang.includes('mo') || browserLang.includes('hant')) {
+              return 'zh_'; // 繁体
+            }
+            return 'zh'; // 简体
+          }
+          return 'en'; // 默认英文
+        } catch (error) {
+          return 'en';
+        }
+      }
+
+      // 多语言公告文本
+      const announcementTexts = {
+        zh: {
+          title: '版本更新 - 新功能上线',
+          intro: '本次更新带来以下新功能：',
+          button: '我知道了',
+          features: [
+            { title: '支持 Gemini 多分支解析', desc: '打开配套脚本的「实时」选项即可使用' },
+            { title: '批量导出最新分支功能', desc: '原来的 claude_all_conversation 现在可以导出到一个压缩包内' },
+            { title: '一键跳转到最新分支', desc: '快速查看对话的最新内容' },
+            { title: '批量导出对话的最新分支', desc: '更便捷的批量导出体验' },
+            { title: '支持PDF和长截图格式导出', desc: '正在不断优化导出体验' }
+          ]
+        },
+        zh_: {
+          title: '版本更新 - 新功能上線',
+          intro: '本次更新帶來以下新功能：',
+          button: '我知道了',
+          features: [
+            { title: '支援 Gemini 多分支解析', desc: '開啟配套腳本的「即時」選項即可使用' },
+            { title: '批次匯出最新分支功能', desc: '原來的 claude_all_conversation 現在可以匯出到一個壓縮包內' },
+            { title: '一鍵跳轉到最新分支', desc: '快速查看對話的最新內容' },
+            { title: '批次匯出對話的最新分支', desc: '更便捷的批次匯出體驗' },
+            { title: '支援PDF和長截圖格式匯出', desc: '正在不斷優化匯出體驗' }
+          ]
+        },
+        en: {
+          title: 'Version Update - New Features',
+          intro: 'This update brings the following new features:',
+          button: 'Got it',
+          features: [
+            { title: 'Gemini Multi-branch Parsing', desc: 'Enable the "Realtime" option in the companion script to use' },
+            { title: 'Batch Export Latest Branch', desc: 'Export claude_all_conversation to a single zip file' },
+            { title: 'Jump to Latest Branch', desc: 'Quickly view the latest content of conversations' },
+            { title: 'Batch Export Latest Branches', desc: 'More convenient batch export experience' },
+            { title: 'PDF and Long Screenshot Export', desc: 'Continuously improving export experience' }
+          ]
+        }
+      };
+
+      // 更新公告语言
+      function updateAnnouncementLanguage() {
+        const lang = detectAnnouncementLanguage();
+        const texts = announcementTexts[lang] || announcementTexts.en;
+
+        // 更新标题
+        const titleEl = document.querySelector('#version-announcement h2');
+        if (titleEl) {
+          titleEl.innerHTML = '<span style="font-size: 24px;">🎉</span> ' + texts.title;
+        }
+
+        // 更新介绍文字
+        const introEl = document.querySelector('#version-announcement p');
+        if (introEl) {
+          introEl.textContent = texts.intro;
+        }
+
+        // 更新按钮
+        const btnEl = document.querySelector('#version-announcement button');
+        if (btnEl) {
+          btnEl.textContent = texts.button;
+        }
+
+        // 更新功能列表
+        const listEl = document.querySelector('#version-announcement ul');
+        if (listEl) {
+          listEl.innerHTML = texts.features.map(function(f) {
+            return '<li style="margin-bottom: 8px;">' +
+              '<strong>' + f.title + '</strong><br/>' +
+              '<span style="color: #888; font-size: 13px;">' + f.desc + '</span>' +
+            '</li>';
+          }).join('');
+        }
+      }
+
+      function closeAnnouncement() {
+        const announcement = document.getElementById('version-announcement');
+        if (announcement) {
+          announcement.style.display = 'none';
+          localStorage.setItem(STORAGE_KEY, 'true');
+        }
+      }
+
+      // 页面加载时检查是否需要显示公告
+      window.addEventListener('load', function() {
+        const hasSeenAnnouncement = localStorage.getItem(STORAGE_KEY);
+        if (!hasSeenAnnouncement) {
+          const announcement = document.getElementById('version-announcement');
+          if (announcement) {
+            updateAnnouncementLanguage(); // 先更新语言
+            // 延迟500ms显示，让页面先加载
+            setTimeout(function() {
+              announcement.style.display = 'block';
+            }, 500);
+          }
+        }
+      });
+    </script>
   </body>
 </html>

@@ -10,6 +10,7 @@ import FullExportCardFilter from './components/FullExportCardFilter';
 import FloatingActionButton from './components/FloatingActionButton';
 import SettingsPanel from './components/SettingsManager';
 import ExportPanel from './components/ExportPanel';
+import ScreenshotPreviewPanel from './components/ScreenshotPreviewPanel';
 import { CardGrid } from './components/UnifiedCard';
 
 // 工具函数导入
@@ -474,6 +475,10 @@ function App() {
   const [activeTab, setActiveTab] = useState('content');
   const [showExportPanel, setShowExportPanel] = useState(false);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
+  const [screenshotPreview, setScreenshotPreview] = useState({
+    isOpen: false,
+    data: null
+  });
   const [viewMode, setViewMode] = useState('conversations');
   const [selectedFileIndex, setSelectedFileIndex] = useState(null);
   const [selectedConversationUuid, setSelectedConversationUuid] = useState(null);
@@ -495,6 +500,7 @@ function App() {
     const savedExportConfig = StorageUtils.getLocalStorage('export-config', {});
     return {
       scope: 'current',
+      exportFormat: 'markdown', // 新增：导出格式（markdown 或 screenshot）
       excludeDeleted: true,
       includeCompleted: false,
       includeImportant: false,
@@ -876,6 +882,17 @@ function App() {
     setMarkVersion(v => v + 1);
   };
 
+  // 打开截图预览面板
+  const openScreenshotPreview = (data) => {
+    setScreenshotPreview({ isOpen: true, data });
+    setShowExportPanel(false); // 关闭导出面板
+  };
+
+  // 关闭截图预览面板
+  const closeScreenshotPreview = () => {
+    setScreenshotPreview({ isOpen: false, data: null });
+  };
+
   // 导出功能 - 使用exportManager中的handleExport
   const handleExportClick = async () => {
     const { handleExport } = await import('./utils/exportManager');
@@ -892,9 +909,12 @@ function App() {
       operatedFiles,
       files,
       currentFileIndex,
-      displayMessages: viewMode === 'timeline' ? timelineDisplayMessages : null // 使用从 ConversationTimeline 传回的实际显示消息
+      displayMessages: viewMode === 'timeline' ? timelineDisplayMessages : null, // 使用从 ConversationTimeline 传回的实际显示消息
+      openScreenshotPreview, // 新增：打开截图预览面板
+      currentTheme: ThemeUtils.getCurrentTheme(), // 新增：当前主题
+      conversation: selectedConversation // 新增：当前对话信息
     });
-    
+
     if (success) {
       setShowExportPanel(false);
     }
@@ -1286,6 +1306,15 @@ function App() {
             onExport={handleExportClick}
             t={t}
           />
+
+          {/* 长截图预览面板 */}
+          {screenshotPreview.isOpen && screenshotPreview.data && (
+            <ScreenshotPreviewPanel
+              {...screenshotPreview.data}
+              isOpen={screenshotPreview.isOpen}
+              onClose={closeScreenshotPreview}
+            />
+          )}
         </>
       )}
     </div>

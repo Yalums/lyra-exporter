@@ -21,6 +21,9 @@
 /* 5. 导出面板样式 */
 @import './export.css';
 
+/* 5.1. 长截图预览面板样式 */
+@import './screenshot.css';
+
 /* 6. 卡片视图和时间线样式 */
 @import './cards-timeline.css';
 

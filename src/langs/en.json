@@ -155,6 +155,17 @@
       "title": "Export Options",
       "button": "Export",
       "exportToMarkdown": "Export as Markdown",
+      "previewAndExport": "Preview and Export",
+      "exportToPDF": "Export as PDF",
+      "format": {
+        "title": "Export Format",
+        "markdown": "Markdown Document",
+        "markdownDesc": "Export as plain text Markdown format",
+        "screenshot": "Conversation Screenshot",
+        "screenshotDesc": "Export as long screenshot, supports editing and preview",
+        "pdf": "PDF Document",
+        "pdfDesc": "Export as searchable plain text PDF (images not supported)"
+      },
       "scope": {
         "title": "Export Scope",
         "current": "Current Timeline File",
@@ -606,7 +617,10 @@
       "saveFileFailed": "Failed to save file, please try again",
       "noDataToExport": "No data to export",
       "exportFailed": "Export failed",
-      "unknownScope": "Unknown export scope:"
+      "unknownScope": "Unknown export scope:",
+      "screenshotOnlySupportsCurrent": "Screenshot export only supports current conversation or current branch",
+      "pdfOnlySupportsCurrent": "PDF export only supports current conversation or current branch",
+      "noMatchingMessages": "No messages match the filter criteria"
     }
   },
   "search": {

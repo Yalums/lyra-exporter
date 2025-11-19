@@ -155,6 +155,17 @@
       "title": "내보내기 옵션",
       "button": "내보내기",
       "exportToMarkdown": "Markdown으로 내보내기",
+      "previewAndExport": "미리보기 및 내보내기",
+      "exportToPDF": "PDF로 내보내기",
+      "format": {
+        "title": "내보내기 형식",
+        "markdown": "Markdown 문서",
+        "markdownDesc": "일반 텍스트 Markdown 형식으로 내보내기",
+        "screenshot": "대화 스크린샷",
+        "screenshotDesc": "긴 스크린샷으로 내보내기, 편집 및 미리보기 지원",
+        "pdf": "PDF 문서",
+        "pdfDesc": "검색 가능한 일반 텍스트 PDF로 내보내기(이미지 미지원)"
+      },
       "scope": {
         "title": "내보내기 범위",
         "current": "현재 타임라인 파일",

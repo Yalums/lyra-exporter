@@ -464,6 +464,47 @@ async function processFileForExport(file, fileIndex) {
 }
 
 /**
+ * 根据导出选项筛选消息
+ */
+function filterMessagesByOptions(messages, exportOptions, markManagerRef) {
+  return messages.filter(msg => {
+    const marks = markManagerRef?.current ? {
+      completed: markManagerRef.current.isMarked(msg.index, 'completed'),
+      important: markManagerRef.current.isMarked(msg.index, 'important'),
+      deleted: markManagerRef.current.isMarked(msg.index, 'deleted')
+    } : {
+      completed: false,
+      important: false,
+      deleted: false
+    };
+
+    // 排除已删除
+    if (exportOptions.excludeDeleted && marks.deleted) {
+      return false;
+    }
+
+    // 仅已完成
+    if (exportOptions.includeCompleted && !marks.completed) {
+      return false;
+    }
+
+    // 仅重点
+    if (exportOptions.includeImportant && !marks.important) {
+      return false;
+    }
+
+    // 已完成且重点（同时满足两个条件）
+    if (exportOptions.includeCompleted && exportOptions.includeImportant) {
+      if (!marks.completed || !marks.important) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+}
+
+/**
  * 处理导出操作
  */
 export async function handleExport({
@@ -477,9 +518,130 @@ export async function handleExport({
   files,
   currentFileIndex,
   displayMessages,
-  i18n
+  i18n,
+  openScreenshotPreview,  // 新增：打开截图预览面板的回调
+  currentTheme,            // 新增：当前主题
+  conversation             // 新增：当前对话信息
 }) {
   try {
+    // 检查是否为PDF导出
+    if (exportOptions.exportFormat === 'pdf') {
+      // PDF导出只支持当前对话或当前分支
+      if (exportOptions.scope !== 'current' && exportOptions.scope !== 'currentBranch') {
+        alert(gt('errors.pdfOnlySupportsCurrent'));
+        return false;
+      }
+
+      // 准备要导出的消息
+      let messagesToExport = [];
+      if (exportOptions.scope === 'current') {
+        messagesToExport = sortManagerRef?.current?.hasCustomSort() ?
+          sortedMessages : (processedData.chat_history || []);
+      } else if (exportOptions.scope === 'currentBranch') {
+        const branchMessages = displayMessages || processedData.chat_history || [];
+        messagesToExport = sortManagerRef?.current?.hasCustomSort() ?
+          sortManagerRef.current.getSortedMessages().filter(msg =>
+            branchMessages.some(bm => bm.uuid === msg.uuid)
+          ) : branchMessages;
+      }
+
+      // 应用筛选条件
+      const filteredMessages = filterMessagesByOptions(messagesToExport, exportOptions, markManagerRef);
+
+      if (filteredMessages.length === 0) {
+        alert(gt('errors.noMatchingMessages'));
+        return false;
+      }
+
+      // 动态导入PDF导出管理器
+      const { PDFExportManager } = await import('./export/pdfExportManager');
+      const pdfManager = new PDFExportManager();
+
+      // 获取最后更新时间
+      const getLastUpdatedTime = (messages) => {
+        if (!messages || messages.length === 0) return null;
+        const lastMsg = messages[messages.length - 1];
+        return lastMsg.timestamp || null;
+      };
+
+      // 导出PDF
+      return pdfManager.exportToPDF(
+        filteredMessages,
+        {
+          name: processedData?.meta_info?.title || 'Conversation',
+          platform: processedData?.meta_info?.platform || 'Claude',
+          created_at: processedData?.meta_info?.created_at,
+          updated_at: getLastUpdatedTime(filteredMessages)
+        },
+        {
+          includeThinking: exportOptions.includeThinking,
+          includeArtifacts: exportOptions.includeArtifacts,
+          includeTimestamps: exportOptions.includeTimestamps,
+          includeTools: exportOptions.includeTools,
+          includeCitations: exportOptions.includeCitations
+        }
+      );
+    }
+
+    // 检查是否为截图导出
+    if (exportOptions.exportFormat === 'screenshot') {
+      // 截图导出只支持当前对话或当前分支
+      if (exportOptions.scope !== 'current' && exportOptions.scope !== 'currentBranch') {
+        alert(gt('errors.screenshotOnlySupportsCurrent'));
+        return false;
+      }
+
+      // 准备要导出的消息
+      let messagesToExport = [];
+      if (exportOptions.scope === 'current') {
+        messagesToExport = sortManagerRef?.current?.hasCustomSort() ?
+          sortedMessages : (processedData.chat_history || []);
+      } else if (exportOptions.scope === 'currentBranch') {
+        const branchMessages = displayMessages || processedData.chat_history || [];
+        messagesToExport = sortManagerRef?.current?.hasCustomSort() ?
+          sortManagerRef.current.getSortedMessages().filter(msg =>
+            branchMessages.some(bm => bm.uuid === msg.uuid)
+          ) : branchMessages;
+      }
+
+      // 应用筛选条件
+      const filteredMessages = filterMessagesByOptions(messagesToExport, exportOptions, markManagerRef);
+
+      if (filteredMessages.length === 0) {
+        alert(gt('errors.noMatchingMessages'));
+        return false;
+      }
+
+      // 添加标记信息到消息中
+      const messagesWithMarks = filteredMessages.map(msg => ({
+        ...msg,
+        marks: {
+          completed: markManagerRef?.current?.isMarked(msg.index, 'completed'),
+          important: markManagerRef?.current?.isMarked(msg.index, 'important'),
+          deleted: markManagerRef?.current?.isMarked(msg.index, 'deleted')
+        }
+      }));
+
+      // 打开截图预览面板
+      // 注意：所有截图设置(宽度、高度、质量)现在统一由预览面板管理
+      if (openScreenshotPreview) {
+        openScreenshotPreview({
+          conversation: conversation || {
+            name: processedData?.meta_info?.title || 'conversation',
+            uuid: processedData?.meta_info?.uuid
+          },
+          initialMessages: messagesWithMarks,
+          exportOptions: {}, // 空对象，使用预览面板的默认设置
+          currentTheme: currentTheme || 'light',
+          platform: processedData?.meta_info?.platform || 'claude',
+          format: processedData?.format || 'claude'
+        });
+      }
+
+      return true;
+    }
+
+    // 原有的 Markdown 导出逻辑
     const exportFormatConfig = StorageUtils.getLocalStorage('export-config', {
       includeNumbering: true,
       numberingFormat: 'numeric',
@@ -489,7 +651,7 @@ export async function handleExport({
       includeHeaderPrefix: true,
       headerLevel: 2
     });
-    
+
     let dataToExport = [];
     
     switch (exportOptions.scope) {

@@ -41,6 +41,56 @@ const ExportPanel = ({
         </div>
 
         <div className="export-options">
+          {/* 导出格式选择 */}
+          <div className="option-group">
+            <h3>{t('app.export.format.title')}</h3>
+            <label className="radio-option">
+              <input
+                type="radio"
+                name="exportFormat"
+                value="markdown"
+                checked={exportOptions.exportFormat === 'markdown'}
+                onChange={(e) => setExportOptions({...exportOptions, exportFormat: e.target.value})}
+              />
+              <div className="option-label">
+                <span>{t('app.export.format.markdown')}</span>
+                <span className="option-description">
+                  {t('app.export.format.markdownDesc')}
+                </span>
+              </div>
+            </label>
+            <label className="radio-option">
+              <input
+                type="radio"
+                name="exportFormat"
+                value="screenshot"
+                checked={exportOptions.exportFormat === 'screenshot'}
+                onChange={(e) => setExportOptions({...exportOptions, exportFormat: e.target.value})}
+              />
+              <div className="option-label">
+                <span>{t('app.export.format.screenshot')}</span>
+                <span className="option-description">
+                  {t('app.export.format.screenshotDesc')}
+                </span>
+              </div>
+            </label>
+            <label className="radio-option">
+              <input
+                type="radio"
+                name="exportFormat"
+                value="pdf"
+                checked={exportOptions.exportFormat === 'pdf'}
+                onChange={(e) => setExportOptions({...exportOptions, exportFormat: e.target.value})}
+              />
+              <div className="option-label">
+                <span>{t('app.export.format.pdf')}</span>
+                <span className="option-description">
+                  {t('app.export.format.pdfDesc')}
+                </span>
+              </div>
+            </label>
+          </div>
+
           <div className="option-group">
             <h3>{t('app.export.scope.title')}</h3>
             <label className="radio-option">
@@ -218,7 +268,11 @@ const ExportPanel = ({
             {t('common.cancel')}
           </button>
           <button className="btn-primary" onClick={onExport}>
-            {t('app.export.exportToMarkdown')}
+            {exportOptions.exportFormat === 'screenshot'
+              ? t('app.export.previewAndExport')
+              : exportOptions.exportFormat === 'pdf'
+              ? t('app.export.exportToPDF')
+              : t('app.export.exportToMarkdown')}
           </button>
         </div>
       </div>

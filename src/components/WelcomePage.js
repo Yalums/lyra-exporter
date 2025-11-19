@@ -751,28 +751,17 @@ const WelcomePage = ({ handleLoadClick }) => {
 
           /* 特殊操作卡片样式 - 批量导出 */
           .action-card.special {
-            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
-            border: 2px solid #8B5CF6;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-primary);
           }
 
           .action-card.special .action-badge {
-            background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%);
+            background: #D97706;
           }
 
           .action-card.special .action-icon {
-            background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%);
-            color: white;
-          }
-
-          .action-button.special {
-            background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%);
-            color: white;
-            border: none;
-          }
-
-          .action-button.special:hover:not(:disabled) {
-            background: linear-gradient(135deg, #7C3AED 0%, #8B5CF6 100%);
-            transform: scale(1.05);
+            background: var(--bg-tertiary);
+            color: #D97706;
           }
 
           .action-button.special:disabled {

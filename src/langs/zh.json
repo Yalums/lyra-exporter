@@ -124,10 +124,32 @@
     "success": "成功",
     "cancel": "取消",
     "confirm": "确认",
+    "save": "保存",
     "close": "关闭",
     "expand": "展开",
     "collapse": "收起",
     "retry": "重试"
+  },
+  "screenshot": {
+    "previewTitle": "长截图预览",
+    "width": "导出宽度",
+    "heightLimit": "单张高度限制",
+    "recommended": "推荐",
+    "highQuality": "高清模式",
+    "totalMessages": "共 {{count}} 条消息",
+    "willGenerate": "将生成 {{count}} 张图片",
+    "generating": "生成中",
+    "export": "导出长截图",
+    "reset": "重置编辑",
+    "edit": "编辑",
+    "delete": "删除",
+    "splitLine": "截图分割线",
+    "image": "图片",
+    "confirmDelete": "确定要删除这条消息吗？",
+    "confirmReset": "确定要重置所有编辑吗？",
+    "noMessages": "没有可导出的消息",
+    "exportError": "导出失败：",
+    "doubleClickToEdit": "双击编辑文本"
   },
   "app": {
     "title": "Lyra Exporter",
@@ -155,6 +177,24 @@
       "title": "导出选项",
       "button": "导出",
       "exportToMarkdown": "导出为 Markdown",
+      "previewAndExport": "预览并导出",
+      "exportToPDF": "导出为 PDF",
+      "format": {
+        "title": "导出格式",
+        "markdown": "Markdown 文档",
+        "markdownDesc": "导出为纯文本 Markdown 格式",
+        "screenshot": "对话截图",
+        "screenshotDesc": "导出为长截图，支持编辑和预览",
+        "pdf": "PDF 文档",
+        "pdfDesc": "导出为可搜索的纯文本 PDF（图片无法显示）"
+      },
+      "screenshot": {
+        "title": "截图设置",
+        "heightLimit": "单张高度限制",
+        "recommended": "推荐",
+        "highQuality": "高清模式 (2x Retina)",
+        "highQualityDesc": "导出 2 倍分辨率图片，文件更大但更清晰"
+      },
       "scope": {
         "title": "导出范围",
         "current": "当前时间线文件",
@@ -644,7 +684,10 @@
       "saveFileFailed": "保存文件失败，请重试",
       "noDataToExport": "没有可导出的数据",
       "exportFailed": "导出失败",
-      "unknownScope": "未知的导出范围："
+      "unknownScope": "未知的导出范围：",
+      "screenshotOnlySupportsCurrent": "截图导出仅支持当前对话或当前分支",
+      "pdfOnlySupportsCurrent": "PDF导出仅支持当前对话或当前分支",
+      "noMatchingMessages": "没有符合条件的消息"
     }
   },
   "search": {

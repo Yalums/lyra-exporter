@@ -159,6 +159,17 @@
       "title": "匯出選項",
       "button": "匯出",
       "exportToMarkdown": "匯出為Markdown",
+      "previewAndExport": "預覽並匯出",
+      "exportToPDF": "匯出為PDF",
+      "format": {
+        "title": "匯出格式",
+        "markdown": "Markdown文件",
+        "markdownDesc": "匯出為純文字Markdown格式",
+        "screenshot": "對話截圖",
+        "screenshotDesc": "匯出為長截圖，支援編輯和預覽",
+        "pdf": "PDF文件",
+        "pdfDesc": "匯出為可搜尋的純文字PDF（圖片無法顯示）"
+      },
       "scope": {
         "title": "匯出範圍",
         "current": "當前時間線檔案",
