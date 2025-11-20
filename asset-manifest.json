@@ -1,7 +1,7 @@
 {
   "files": {
     "main.css": "/lyra-exporter/static/css/main.a7d6fbc4.css",
-    "main.js": "/lyra-exporter/static/js/main.08d758b5.js",
+    "main.js": "/lyra-exporter/static/js/main.3e8f116f.js",
     "static/js/161.e31cae80.chunk.js": "/lyra-exporter/static/js/161.e31cae80.chunk.js",
     "static/js/438.b42e1fdb.chunk.js": "/lyra-exporter/static/js/438.b42e1fdb.chunk.js",
     "static/js/991.5654018c.chunk.js": "/lyra-exporter/static/js/991.5654018c.chunk.js",
@@ -75,7 +75,7 @@
     "static/media/Claude.svg": "/lyra-exporter/static/media/Claude.b5a44e9c077d65a50f3ce745cfa01257.svg",
     "static/media/NotebookLM.svg": "/lyra-exporter/static/media/NotebookLM.057c65b5ca959c143621dfab949f1883.svg",
     "main.a7d6fbc4.css.map": "/lyra-exporter/static/css/main.a7d6fbc4.css.map",
-    "main.08d758b5.js.map": "/lyra-exporter/static/js/main.08d758b5.js.map",
+    "main.3e8f116f.js.map": "/lyra-exporter/static/js/main.3e8f116f.js.map",
     "991.5654018c.chunk.js.map": "/lyra-exporter/static/js/991.5654018c.chunk.js.map",
     "977.c868f4df.chunk.js.map": "/lyra-exporter/static/js/977.c868f4df.chunk.js.map",
     "455.335b23c6.chunk.js.map": "/lyra-exporter/static/js/455.335b23c6.chunk.js.map",
@@ -83,6 +83,6 @@
   },
   "entrypoints": [
     "static/css/main.a7d6fbc4.css",
-    "static/js/main.08d758b5.js"
+    "static/js/main.3e8f116f.js"
   ]
 }
