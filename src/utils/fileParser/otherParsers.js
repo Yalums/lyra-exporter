@@ -6,7 +6,8 @@ import {
   createMessage,
   DateTimeUtils,
   processGeminiImage,
-  extractThinkingAndContent
+  extractThinkingAndContent,
+  PARSER_CONFIG
 } from './helpers.js';
 
 // ==================== Gemini/NotebookLM 解析器 ====================
@@ -200,7 +201,8 @@ const extractGeminiMultiBranchData = (jsonData, fileName) => {
         const uuid = `human_${turnIndex}_v${humanVersion.version}`;
 
         // 确定 parent：指向上一轮的最后一个 assistant version
-        let parentUuid = "";
+        // 使用 ROOT_UUID 作为首轮消息的 parent，以便 UI 能够检测首轮分支
+        let parentUuid = PARSER_CONFIG.ROOT_UUID;
         if (turnIndex > 0) {
           const prevLastVersion = lastAssistantVersions[turnIndex - 1];
           if (prevLastVersion !== undefined) {
