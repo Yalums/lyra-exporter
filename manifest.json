@@ -1,6 +1,6 @@
 {
   "short_name": "Lyra Exporter",
-  "name": "Lyra Exporter for Claude, Gemini etc.",
+  "name": "Lyra Exporter for Claude, ChatGPT, Gemini, SillyTavern",
   "description": "Open-source multi-platform AI conversation manager supporting Claude, Gemini, NotebookLM, Google AI Studio, SillyTavern and more. Actively improving mobile experience and expanding platform support",
   "icons": [
     {
