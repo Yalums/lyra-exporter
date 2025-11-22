@@ -20,7 +20,6 @@ const ExportPanel = ({
   processedData,
   currentFileIndex,
   onExport,
-  fontLoadingStatus,
   t
 }) => {
   if (!isOpen) return null;
@@ -87,25 +86,62 @@ const ExportPanel = ({
                 <span>{t('app.export.format.pdf')}</span>
                 <span className="option-description">
                   {t('app.export.format.pdfDesc')}
-                  {fontLoadingStatus && fontLoadingStatus.isLoading && (
-                    <span className="font-status-badge loading">
-                      ⏳ 字体下载中 ({fontLoadingStatus.progress}%)
-                    </span>
-                  )}
-                  {fontLoadingStatus && fontLoadingStatus.isLoaded && (
-                    <span className="font-status-badge ready">
-                      ✓ 字体已就绪
-                    </span>
-                  )}
-                  {fontLoadingStatus && fontLoadingStatus.error && (
-                    <span className="font-status-badge error">
-                      ⚠ 字体加载失败（中文可能显示为方框）
-                    </span>
-                  )}
                 </span>
               </div>
             </label>
           </div>
+
+          {/* PDF 页面格式选择 - 仅在选中 PDF 时显示 */}
+          {exportOptions.exportFormat === 'pdf' && (
+            <div className="option-group">
+              <h3>{t('app.export.pageFormat.title')}</h3>
+              <label className="radio-option">
+                <input
+                  type="radio"
+                  name="pageFormat"
+                  value="a4"
+                  checked={exportOptions.pageFormat === 'a4' || !exportOptions.pageFormat}
+                  onChange={(e) => setExportOptions({...exportOptions, pageFormat: e.target.value})}
+                />
+                <div className="option-label">
+                  <span>A4</span>
+                  <span className="option-description">
+                    210mm × 297mm {t('app.export.pageFormat.standard')}
+                  </span>
+                </div>
+              </label>
+              <label className="radio-option">
+                <input
+                  type="radio"
+                  name="pageFormat"
+                  value="letter"
+                  checked={exportOptions.pageFormat === 'letter'}
+                  onChange={(e) => setExportOptions({...exportOptions, pageFormat: e.target.value})}
+                />
+                <div className="option-label">
+                  <span>Letter</span>
+                  <span className="option-description">
+                    8.5" × 11" (215.9mm × 279.4mm) {t('app.export.pageFormat.northAmerica')}
+                  </span>
+                </div>
+              </label>
+              <label className="radio-option">
+                <input
+                  type="radio"
+                  name="pageFormat"
+                  value="supernote"
+                  checked={exportOptions.pageFormat === 'supernote'}
+                  onChange={(e) => setExportOptions({...exportOptions, pageFormat: e.target.value})}
+                />
+                <div className="option-label">
+                  <span>Supernote Manta</span>
+                  <span className="option-description">
+                    227mm × 303mm (10.7" @ 300 PPI) {t('app.export.pageFormat.supernote')}
+                  </span>
+                </div>
+              </label>
+            </div>
+          )}
 
           <div className="option-group">
             <h3>{t('app.export.scope.title')}</h3>
