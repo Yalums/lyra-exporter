@@ -282,3 +282,109 @@ label {
 .tooltip:hover .tooltip-content {
   opacity: 1;
 }
+
+/* ==================== PDF 字体加载通知 ==================== */
+.font-loading-notification {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 16px;
+  max-width: 400px;
+  z-index: 9999;
+  animation: slideInFromBottom 0.3s ease-out;
+}
+
+.font-loading-notification.error {
+  border-color: var(--accent-danger);
+}
+
+@keyframes slideInFromBottom {
+  from {
+    transform: translateY(100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.font-loading-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.font-loading-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.loading-icon {
+  font-size: 18px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.font-loading-progress {
+  width: 100%;
+  height: 4px;
+  background: var(--bg-secondary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.font-loading-progress-bar {
+  height: 100%;
+  background: var(--accent-primary);
+  transition: width 0.3s ease-out;
+  border-radius: 2px;
+}
+
+.font-loading-hint {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  line-height: 1.4;
+}
+
+/* PDF 字体状态徽章（用于导出面板） */
+.font-status-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.font-status-badge.loading {
+  background: var(--accent-warning);
+  color: white;
+}
+
+.font-status-badge.ready {
+  background: #10b981;
+  color: white;
+}
+
+.font-status-badge.error {
+  background: var(--accent-danger);
+  color: white;
+}

@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#F2F0E9" id="theme-color-meta" />
     <meta
       name="description"
-      content="Claude和Gemini聊天记录管理工具 - 整理、搜索和导出对话数据"
+      content="Powerful tool for manage Claude, ChatGPT, Gemini and SillyTavern chat conversations."
     />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo1024.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
@@ -18,9 +18,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Lyra Exporter">
     
-    <title>Claude聊天记录管理 | Lyra's Exporter</title>
-    <meta name="author" content="Lyra (Yalums)" />
-    <meta name="copyright" content="© 2025 Lyra's Exporter. All Rights Reserved." />
+    <title>Lyra's Exporter</title>
+    <meta name="author" content="Yalums" />
+    <meta name="copyright" content="© 2025 Lyra Exporter. All Rights Reserved." />
     
     <!-- 动态主题色设置 -->
     <script>
@@ -130,93 +130,6 @@ if ('serviceWorker' in navigator && window.location.hostname !== 'localhost' && 
 }
     </script>
 
-    <!-- 版本更新公告 -->
-    <div id="version-announcement" style="display: none;">
-      <div style="
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 9999;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-        box-sizing: border-box;
-      ">
-        <div style="
-          background: white;
-          border-radius: 12px;
-          padding: 24px;
-          max-width: 500px;
-          width: 100%;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-          animation: slideIn 0.3s ease-out;
-        ">
-          <h2 style="
-            margin: 0 0 16px 0;
-            color: #333;
-            font-size: 20px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-          ">
-            <span style="font-size: 24px;">🎉</span>
-            版本更新 - 新功能上线
-          </h2>
-
-          <div style="
-            color: #666;
-            font-size: 14px;
-            line-height: 1.6;
-            margin-bottom: 20px;
-          ">
-            <p style="margin: 0 0 12px 0; font-weight: 500; color: #444;">本次更新带来以下新功能：</p>
-            <ul style="margin: 0; padding-left: 20px;">
-              <li style="margin-bottom: 8px;">
-                <strong>支持 Gemini 多分支解析</strong><br/>
-                <span style="color: #888; font-size: 13px;">打开配套脚本的「实时」选项即可使用</span>
-              </li>
-              <li style="margin-bottom: 8px;">
-                <strong>批量导出最新分支功能</strong><br/>
-                <span style="color: #888; font-size: 13px;">原来的 claude_all_conversation 现在可以导出到一个压缩包内</span>
-              </li>
-              <li style="margin-bottom: 8px;">
-                <strong>一键跳转到最新分支</strong><br/>
-                <span style="color: #888; font-size: 13px;">快速查看对话的最新内容</span>
-              </li>
-              <li style="margin-bottom: 0;">
-                <strong>批量导出对话的最新分支</strong><br/>
-                <span style="color: #888; font-size: 13px;">更便捷的批量导出体验</span>
-              </li>
-              <li style="margin-bottom: 0;">
-                <strong>支持PDF和长截图格式导出</strong><br/>
-                <span style="color: #888; font-size: 13px;">正在不断优化导出体验</span>
-              </li>
-            </ul>
-          </div>
-
-          <button onclick="closeAnnouncement()" style="
-            width: 100%;
-            padding: 10px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: transform 0.2s;
-          " onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-            我知道了
-          </button>
-        </div>
-      </div>
-    </div>
-
     <style>
       @keyframes slideIn {
         from {
@@ -248,7 +161,7 @@ if ('serviceWorker' in navigator && window.location.hostname !== 'localhost' && 
 
     <script>
       // 版本公告管理
-      const ANNOUNCEMENT_VERSION = 'v1.1.0'; // 更新版本号会重新显示公告
+      const ANNOUNCEMENT_VERSION = 'v1.2.1'; // 更新版本号会重新显示公告
       const STORAGE_KEY = 'announcement_seen_' + ANNOUNCEMENT_VERSION;
 
       // 检测语言变体：简体中文(zh)、繁体中文(zh_)、英文(en)

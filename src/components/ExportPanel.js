@@ -20,6 +20,7 @@ const ExportPanel = ({
   processedData,
   currentFileIndex,
   onExport,
+  fontLoadingStatus,
   t
 }) => {
   if (!isOpen) return null;
@@ -86,6 +87,21 @@ const ExportPanel = ({
                 <span>{t('app.export.format.pdf')}</span>
                 <span className="option-description">
                   {t('app.export.format.pdfDesc')}
+                  {fontLoadingStatus && fontLoadingStatus.isLoading && (
+                    <span className="font-status-badge loading">
+                      ⏳ 字体下载中 ({fontLoadingStatus.progress}%)
+                    </span>
+                  )}
+                  {fontLoadingStatus && fontLoadingStatus.isLoaded && (
+                    <span className="font-status-badge ready">
+                      ✓ 字体已就绪
+                    </span>
+                  )}
+                  {fontLoadingStatus && fontLoadingStatus.error && (
+                    <span className="font-status-badge error">
+                      ⚠ 字体加载失败（中文可能显示为方框）
+                    </span>
+                  )}
                 </span>
               </div>
             </label>

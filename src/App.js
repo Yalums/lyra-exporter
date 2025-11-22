@@ -32,6 +32,7 @@ import { SearchManager } from './utils/searchManager';
 import EnhancedSearchBox from './components/EnhancedSearchBox';
 import { getGlobalSearchManager } from './utils/globalSearchManager';
 import { useI18n } from './index.js';
+import { preloadFont, getFontStatus } from './utils/export/pdfFontHelper';
 
 // ==================== 通用工具类 ====================
 
@@ -457,7 +458,7 @@ const useFileManager = () => {
 function App() {
   // ==================== Hooks和状态管理 ====================
   // i18n
-  const { t } = useI18n();
+  const { t, currentLanguage } = useI18n();
   
   const { 
     files, 
@@ -496,6 +497,12 @@ function App() {
     currentBranchIndexes: new Map()
   });
   const [timelineDisplayMessages, setTimelineDisplayMessages] = useState([]); // 新增：存储时间线中实际显示的消息（经过分支过滤）
+  const [fontLoadingStatus, setFontLoadingStatus] = useState({
+    isLoading: false,
+    isLoaded: false,
+    progress: 0,
+    error: null
+  }); // PDF 字体加载状态
   const [exportOptions, setExportOptions] = useState(() => {
     const savedExportConfig = StorageUtils.getLocalStorage('export-config', {});
     return {
@@ -560,6 +567,73 @@ function App() {
       searchManagerRef.current = new SearchManager();
     }
   }, []);
+
+  // 预加载 PDF 中文字体（后台异步下载）
+  // 仅在中文环境下预加载，避免非中文用户下载不必要的字体
+  useEffect(() => {
+    // 只有中文用户才需要预加载中文字体
+    if (currentLanguage !== 'zh') {
+      console.log('[App] 非中文环境，跳过中文字体预加载');
+      return;
+    }
+
+    console.log('[App] 中文环境，开始预加载 PDF 中文字体...');
+
+    // 启动预加载
+    preloadFont().then(success => {
+      if (success) {
+        console.log('[App] ✓ PDF 中文字体预加载成功');
+        setFontLoadingStatus({
+          isLoading: false,
+          isLoaded: true,
+          progress: 100,
+          error: null
+        });
+      } else {
+        console.warn('[App] ⚠ PDF 中文字体预加载失败，可能影响 PDF 导出');
+        const status = getFontStatus();
+        setFontLoadingStatus({
+          isLoading: false,
+          isLoaded: false,
+          progress: 0,
+          error: status.error
+        });
+      }
+    }).catch(error => {
+      console.error('[App] PDF 中文字体预加载异常:', error);
+      setFontLoadingStatus({
+        isLoading: false,
+        isLoaded: false,
+        progress: 0,
+        error: error.message
+      });
+    });
+
+    // 定期更新加载进度
+    const progressInterval = setInterval(() => {
+      const status = getFontStatus();
+      if (status.isLoading) {
+        setFontLoadingStatus({
+          isLoading: true,
+          isLoaded: false,
+          progress: status.progress,
+          error: null
+        });
+      } else if (status.isLoaded) {
+        // 已加载完成，停止轮询
+        setFontLoadingStatus({
+          isLoading: false,
+          isLoaded: true,
+          progress: 100,
+          error: null
+        });
+        clearInterval(progressInterval);
+      }
+    }, 500); // 每500ms更新一次进度
+
+    // 清理定时器
+    return () => clearInterval(progressInterval);
+  }, [currentLanguage]); // 当语言切换时重新检查是否需要加载字体
 
   // ==================== 数据计算 - 使用DataProcessor简化 ====================
   
@@ -1304,6 +1378,7 @@ function App() {
             processedData={processedData}
             currentFileIndex={currentFileIndex}
             onExport={handleExportClick}
+            fontLoadingStatus={fontLoadingStatus}
             t={t}
           />
 
@@ -1316,6 +1391,43 @@ function App() {
             />
           )}
         </>
+      )}
+
+      {/* PDF 字体加载状态通知 */}
+      {fontLoadingStatus.isLoading && (
+        <div className="font-loading-notification">
+          <div className="font-loading-content">
+            <div className="font-loading-text">
+              <span className="loading-icon">⏳</span>
+              <span>正在下载 PDF 中文字体... {fontLoadingStatus.progress}%</span>
+            </div>
+            <div className="font-loading-progress">
+              <div
+                className="font-loading-progress-bar"
+                style={{ width: `${fontLoadingStatus.progress}%` }}
+              />
+            </div>
+            <div className="font-loading-hint">
+              首次加载需要下载字体文件（约 3-15 MB），之后将自动缓存
+            </div>
+          </div>
+        </div>
+      )}
+
+      {fontLoadingStatus.error && (
+        <div className="font-loading-notification error">
+          <div className="font-loading-content">
+            <div className="font-loading-text">
+              <span className="loading-icon">⚠️</span>
+              <span>PDF 字体下载失败</span>
+            </div>
+            <div className="font-loading-hint">
+              {fontLoadingStatus.error}
+              <br />
+              导出 PDF 时中文可能显示为方框，建议刷新页面重试
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
