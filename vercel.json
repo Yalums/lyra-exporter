@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/lyra-exporter/:match*",
+      "destination": "/:match*"
+    },
+    {
+      "source": "/lyra-exporter/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
