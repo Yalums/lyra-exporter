@@ -1,5 +1,6 @@
 // utils/export/pdfLatexRenderer.js
 // LaTeX数学公式渲染器 - 使用Unicode映射和自定义绘图实现非SVG渲染
+// 优化版：支持更多LaTeX命令，宽度计算缓存机制
 
 import { cleanText } from './pdfTextHelpers';
 
@@ -62,19 +63,52 @@ const LATEX_UNICODE_MAP = {
   'angle': '∠', 'measuredangle': '∡', 'sphericalangle': '∢',
   
   // 其他
-  'prime': '′', 'backprime': '‵', 'degree': '°'
+  'prime': '′', 'backprime': '‵', 'degree': '°',
+
+  // 三角函数和数学函数（保留名称，不转换为符号）
+  'sin': 'sin', 'cos': 'cos', 'tan': 'tan',
+  'cot': 'cot', 'sec': 'sec', 'csc': 'csc',
+  'arcsin': 'arcsin', 'arccos': 'arccos', 'arctan': 'arctan',
+  'sinh': 'sinh', 'cosh': 'cosh', 'tanh': 'tanh',
+  'log': 'log', 'ln': 'ln', 'exp': 'exp',
+  'lim': 'lim', 'max': 'max', 'min': 'min',
+  'sup': 'sup', 'inf': 'inf', 'det': 'det', 'dim': 'dim'
+};
+
+// 数学花体字母映射表（\mathcal{X}）
+const MATHCAL_MAP = {
+  'A': '𝒜', 'B': 'ℬ', 'C': '𝒞', 'D': '𝒟', 'E': 'ℰ', 'F': 'ℱ',
+  'G': '𝒢', 'H': 'ℋ', 'I': 'ℐ', 'J': '𝒥', 'K': '𝒦', 'L': 'ℒ',
+  'M': 'ℳ', 'N': '𝒩', 'O': '𝒪', 'P': '𝒫', 'Q': '𝒬', 'R': 'ℛ',
+  'S': '𝒮', 'T': '𝒯', 'U': '𝒰', 'V': '𝒱', 'W': '𝒲', 'X': '𝒳',
+  'Y': '𝒴', 'Z': '𝒵'
+};
+
+// 黑板粗体映射（\mathbb{X}）
+const MATHBB_MAP = {
+  'A': '𝔸', 'B': '𝔹', 'C': 'ℂ', 'D': '𝔻', 'E': '𝔼', 'F': '𝔽',
+  'G': '𝔾', 'H': 'ℍ', 'I': '𝕀', 'J': '𝕁', 'K': '𝕂', 'L': '𝕃',
+  'M': '𝕄', 'N': 'ℕ', 'O': '𝕆', 'P': 'ℙ', 'Q': 'ℚ', 'R': 'ℝ',
+  'S': '𝕊', 'T': '𝕋', 'U': '𝕌', 'V': '𝕍', 'W': '𝕎', 'X': '𝕏',
+  'Y': '𝕐', 'Z': 'ℤ'
 };
 
 // 上标数字和字母映射
+// 注意：¹²³ (U+00B9, U+00B2, U+00B3) 被大多数字体支持
+// ⁰⁴-⁹ (U+2070, U+2074-U+2079) 可能不被某些字体支持
 const SUPERSCRIPT_MAP = {
   '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
   '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹',
   '+': '⁺', '-': '⁻', '=': '⁼', '(': '⁽', ')': '⁾',
-  'n': 'ⁿ', 'i': 'ⁱ', 'a': 'ᵃ', 'b': 'ᵇ', 'c': 'ᶜ',
-  'd': 'ᵈ', 'e': 'ᵉ', 'f': 'ᶠ', 'g': 'ᵍ', 'h': 'ʰ',
-  'j': 'ʲ', 'k': 'ᵏ', 'l': 'ˡ', 'm': 'ᵐ', 'o': 'ᵒ',
-  'p': 'ᵖ', 'r': 'ʳ', 's': 'ˢ', 't': 'ᵗ', 'u': 'ᵘ',
-  'v': 'ᵛ', 'w': 'ʷ', 'x': 'ˣ', 'y': 'ʸ', 'z': 'ᶻ'
+  'n': 'ⁿ', 'i': 'ⁱ'
+};
+
+// 上标字符的ASCII回退（当Unicode不被支持时）
+const SUPERSCRIPT_SAFE = {
+  '0': '^0', '1': '¹', '2': '²', '3': '³', '4': '^4',
+  '5': '^5', '6': '^6', '7': '^7', '8': '^8', '9': '^9',
+  '+': '^+', '-': '^-', '=': '^=', '(': '^(', ')': '^)',
+  'n': '^n', 'i': '^i', 'T': '^T', 'H': '^H', '*': '^*'
 };
 
 // 下标数字和字母映射
@@ -89,6 +123,37 @@ const SUBSCRIPT_MAP = {
 };
 
 /**
+ * 提取花括号内的内容（支持嵌套和转义）
+ * @param {string} str - 字符串，从 { 开始
+ * @returns {string|null} - 提取的内容（不包括外层花括号），如果失败返回 null
+ */
+function extractBracedContent(str) {
+  if (!str || !str.startsWith('{')) return null;
+
+  let depth = 0;
+  let i = 0;
+
+  for (; i < str.length; i++) {
+    // 检查转义字符
+    if (str[i] === '\\' && i + 1 < str.length) {
+      i++;
+      continue;
+    }
+    
+    if (str[i] === '{') {
+      depth++;
+    } else if (str[i] === '}') {
+      depth--;
+      if (depth === 0) {
+        return str.substring(1, i);
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
  * LaTeX渲染器类
  */
 export class LaTeXRenderer {
@@ -97,9 +162,53 @@ export class LaTeXRenderer {
     this.config = {
       fontSize: config.fontSize || 10,
       color: config.color || [0, 0, 0],
-      useUnicode: config.useUnicode !== false, // 默认使用Unicode
+      fontName: config.fontName || 'helvetica',
+      useUnicode: config.useUnicode !== false,
       ...config
     };
+
+    // 宽度计算缓存 - 避免重复计算
+    this.widthCache = new Map();
+  }
+
+  /**
+   * 设置渲染字体
+   */
+  setRenderFont(fontSize = null) {
+    if (this.config.fontName) {
+      try {
+        this.pdf.setFont(this.config.fontName, 'normal');
+      } catch (e) {
+        // 字体不可用时回退
+      }
+    }
+    if (fontSize !== null) {
+      this.pdf.setFontSize(fontSize);
+    }
+  }
+
+  /**
+   * 获取文本宽度（带缓存）
+   */
+  getCachedTextWidth(text, fontSize) {
+    const cacheKey = `${text}|${fontSize}|${this.config.fontName}`;
+
+    if (this.widthCache.has(cacheKey)) {
+      return this.widthCache.get(cacheKey);
+    }
+
+    this.setRenderFont(fontSize);
+    const width = this.pdf.getTextWidth(text);
+    this.widthCache.set(cacheKey, width);
+
+    return width;
+  }
+
+  /**
+   * 清除宽度缓存
+   */
+  clearWidthCache() {
+    this.widthCache.clear();
   }
 
   /**
@@ -186,88 +295,205 @@ export class LaTeXRenderer {
   }
 
   /**
-   * 简化LaTeX为Unicode字符
+   * 简化LaTeX为Unicode字符（增强版，支持嵌套）
    * @param {string} latex - LaTeX源码
    * @returns {string} - 转换后的Unicode文本
    */
   simplifyLaTeX(latex) {
-    let result = latex;
+    if (!latex) return '';
     
+    let result = latex;
+
     // 移除多余的空格
     result = result.replace(/\s+/g, ' ').trim();
     
-    // 处理上标（简单情况）
-    result = result.replace(/\^{([^}]+)}/g, (match, content) => {
-      return this.convertToSuperscript(content);
+    // 处理 \left 和 \right 命令（简化为普通括号）
+    result = result.replace(/\\left\(/g, '(');
+    result = result.replace(/\\right\)/g, ')');
+    result = result.replace(/\\left\[/g, '[');
+    result = result.replace(/\\right\]/g, ']');
+    result = result.replace(/\\left\\\{/g, '{');
+    result = result.replace(/\\right\\\}/g, '}');
+    result = result.replace(/\\left\{/g, '{');
+    result = result.replace(/\\right\}/g, '}');
+    result = result.replace(/\\left\|/g, '|');
+    result = result.replace(/\\right\|/g, '|');
+    result = result.replace(/\\left\./g, '');
+    result = result.replace(/\\right\./g, '');
+
+    // 处理 \mathbb{X} 命令 - 黑板粗体
+    result = result.replace(/\\mathbb\{([A-Z])\}/g, (_, letter) => {
+      return MATHBB_MAP[letter] || letter;
     });
-    result = result.replace(/\^(\w)/g, (match, char) => {
-      return this.convertToSuperscript(char);
+
+    // 处理 \mathcal{X} 命令 - 花体字母
+    result = result.replace(/\\mathcal\{([A-Z])\}/g, (_, letter) => {
+      return MATHCAL_MAP[letter] || letter;
     });
+
+    // 处理 \text{} 命令 - 提取文本内容
+    result = result.replace(/\\text\{([^}]*)\}/g, '$1');
+
+    // 处理可扩展箭头命令 \xleftrightarrow{}, \xrightarrow{}, \xleftarrow{}
+    // 内部内容需要递归处理
+    result = result.replace(/\\xleftrightarrow\{([^}]*)\}/g, (match, inner) => {
+      const simplifiedInner = inner ? this.simplifyLaTeX(inner) : '';
+      return `←[${simplifiedInner}]→`;
+    });
+    result = result.replace(/\\xrightarrow\{([^}]*)\}/g, (match, inner) => {
+      const simplifiedInner = inner ? this.simplifyLaTeX(inner) : '';
+      return `→[${simplifiedInner}]`;
+    });
+    result = result.replace(/\\xleftarrow\{([^}]*)\}/g, (match, inner) => {
+      const simplifiedInner = inner ? this.simplifyLaTeX(inner) : '';
+      return `[${simplifiedInner}]←`;
+    });
+
+    // 处理 \frac{a}{b} - 简化为 a/b 形式
+    result = this.simplifyFractions(result);
+
+    // 处理 \sqrt{x} 和 \sqrt[n]{x}
+    result = result.replace(/\\sqrt\[([^\]]+)\]\{([^}]+)\}/g, '($2)^(1/$1)');
+    result = result.replace(/\\sqrt\{([^}]+)\}/g, '√($1)');
+
+    // 处理上标和下标（支持嵌套花括号）
+    result = this.processSupSubScripts(result);
     
-    // 处理下标（简单情况）
-    result = result.replace(/_{([^}]+)}/g, (match, content) => {
-      return this.convertToSubscript(content);
-    });
-    result = result.replace(/_(\w)/g, (match, char) => {
-      return this.convertToSubscript(char);
-    });
-    
-    // 替换LaTeX命令为Unicode
-    Object.keys(LATEX_UNICODE_MAP).forEach(command => {
+    // 替换LaTeX命令为Unicode（按长度降序排列，避免短命令先匹配）
+    const sortedCommands = Object.keys(LATEX_UNICODE_MAP).sort((a, b) => b.length - a.length);
+    sortedCommands.forEach(command => {
       const pattern = new RegExp(`\\\\${command}(?![a-zA-Z])`, 'g');
       result = result.replace(pattern, LATEX_UNICODE_MAP[command]);
     });
     
-    // 清理剩余的反斜杠
+    // 清理剩余的反斜杠命令（保留内容）
     result = result.replace(/\\([a-zA-Z]+)/g, '$1');
     result = result.replace(/\\(.)/g, '$1');
     
-    // 清理花括号
+    // 清理花括号（保留内容）
     result = result.replace(/[{}]/g, '');
     
     return result;
   }
 
   /**
-   * 转换为上标Unicode
+   * 简化分数表达式（支持嵌套）
+   */
+  simplifyFractions(text) {
+    let result = text;
+    let lastResult = '';
+    
+    // 循环处理嵌套分数
+    while (result !== lastResult) {
+      lastResult = result;
+      
+      const fracMatch = result.match(/\\frac/);
+      if (!fracMatch) break;
+      
+      const startIdx = fracMatch.index;
+      const afterFrac = result.substring(startIdx + 5); // 跳过 \frac
+      
+      // 提取分子
+      const numerator = extractBracedContent(afterFrac);
+      if (numerator === null) break;
+      
+      // 提取分母
+      const afterNum = afterFrac.substring(numerator.length + 2);
+      const denominator = extractBracedContent(afterNum);
+      if (denominator === null) break;
+      
+      // 构建替换文本
+      const fullMatch = result.substring(startIdx, startIdx + 5 + numerator.length + 2 + denominator.length + 2);
+      const simplified = `(${numerator})/(${denominator})`;
+      
+      result = result.replace(fullMatch, simplified);
+    }
+    
+    return result;
+  }
+
+  /**
+   * 处理上下标（支持嵌套）
+   */
+  processSupSubScripts(text) {
+    let result = text;
+    
+    // 处理上标 ^{...}
+    let lastResult = '';
+    while (result !== lastResult) {
+      lastResult = result;
+      const supMatch = result.match(/\^(\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|\w)/);
+      if (supMatch) {
+        let content = supMatch[1];
+        if (content.startsWith('{') && content.endsWith('}')) {
+          content = content.slice(1, -1);
+        }
+        const converted = this.convertToSuperscript(content);
+        result = result.replace(supMatch[0], converted);
+      }
+    }
+    
+    // 处理下标 _{...}
+    lastResult = '';
+    while (result !== lastResult) {
+      lastResult = result;
+      const subMatch = result.match(/_(\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|\w)/);
+      if (subMatch) {
+        let content = subMatch[1];
+        if (content.startsWith('{') && content.endsWith('}')) {
+          content = content.slice(1, -1);
+        }
+        const converted = this.convertToSubscript(content);
+        result = result.replace(subMatch[0], converted);
+      }
+    }
+    
+    return result;
+  }
+
+  /**
+   * 转换为上标Unicode（使用安全回退）
    */
   convertToSuperscript(text) {
-    return text.split('').map(char => SUPERSCRIPT_MAP[char] || char).join('');
+    // 先简化内部LaTeX
+    const simplified = this.simplifyLaTeX(text);
+    // 使用安全的上标映射（只用¹²³，其他用^x形式）
+    return simplified.split('').map(char => {
+      if (SUPERSCRIPT_SAFE[char]) return SUPERSCRIPT_SAFE[char];
+      if (SUPERSCRIPT_MAP[char]) return SUPERSCRIPT_MAP[char];
+      return '^' + char;  // 未知字符用^x形式
+    }).join('');
   }
 
   /**
    * 转换为下标Unicode
    */
   convertToSubscript(text) {
-    return text.split('').map(char => SUBSCRIPT_MAP[char] || char).join('');
+    // 先简化内部LaTeX
+    const simplified = this.simplifyLaTeX(text);
+    // 下标数字通常被支持，字母可能不被支持
+    return simplified.split('').map(char => {
+      if (SUBSCRIPT_MAP[char]) return SUBSCRIPT_MAP[char];
+      return '_' + char;  // 未知字符用_x形式
+    }).join('');
   }
 
   /**
-   * 检查是否包含复杂LaTeX结构
+   * 检查是否包含复杂LaTeX结构（需要特殊渲染）
    */
   hasComplexStructure(latex) {
     const complexPatterns = [
       /\\frac\{/,           // 分数
       /\\sqrt[\[\{]/,       // 根号
-      /\\begin\{/,          // 环境（如矩阵）
-      /\\left/,             // 大括号
-      /\\right/,            // 大括号
-      /\\sum/,              // 求和（需要特殊布局）
-      /\\int/,              // 积分（需要特殊布局）
-      /\\prod/,             // 乘积
-      /\\lim/,              // 极限
-      /\\mathbb/,           // 黑板粗体
-      /\\mathcal/,          // 花体
-      /\\boldsymbol/,       // 粗体符号
-      /\\overline/,         // 上划线
-      /\\underline/,        // 下划线
-      /\\vec/,              // 向量
-      /\\hat/,              // 帽子
-      /\\tilde/,            // 波浪号
-      /\\dot/,              // 点
-      /\\ddot/              // 双点
+      /\\begin\{/,          // 环境（如矩阵、cases）
+      /\\xleftrightarrow/,  // 带上标的箭头
+      /\\xrightarrow/,      // 带上标的右箭头
+      /\\xleftarrow/,       // 带上标的左箭头
+      /\\boxed\{/,          // 框住公式
+      /\\underbrace\{/,     // 下括号
+      /\\overbrace\{/       // 上括号
     ];
-    
+
     return complexPatterns.some(pattern => pattern.test(latex));
   }
 

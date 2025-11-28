@@ -212,23 +212,24 @@ export function parseTextWithCodeBlocksAndLatex(text) {
 /**
  * 解析行内markdown格式和LaTeX
  * 返回格式化的文本片段数组
+ * 支持嵌套结构（如 **$...$** 会生成包含LaTeX子节点的粗体节点）
  */
 export function parseInlineMarkdown(text) {
   const segments = [];
 
   // 正则表达式模式（按优先级）
-  // CRITICAL: LaTeX patterns MUST come first to protect LaTeX syntax from Markdown parsing
+  // 粗体/斜体模式在前，它们会包含内部内容并递归解析
   const patterns = [
-    { type: 'latex-inline', regex: /\$([^\$\n]+?)\$/g },  // LaTeX inline math $...$
-    { type: 'latex-inline', regex: /\\\(([^)]*?)\\\)/g }, // LaTeX inline math \(...\)
-    { type: 'code', regex: /`([^`]+)`/g },              // 行内代码
-    { type: 'bold-italic', regex: /\*\*\*(.+?)\*\*\*/g }, // 粗斜体
-    { type: 'bold-italic', regex: /___(.+?)___/g },     // 粗斜体
-    { type: 'bold', regex: /\*\*([^*]+?)\*\*/g },       // 粗体（改进：不匹配*字符）
-    { type: 'bold', regex: /__([^_]+?)__/g },           // 粗体（改进：不匹配_字符）
-    { type: 'italic', regex: /\*([^*]+?)\*/g },         // 斜体（改进：不匹配*字符）
-    { type: 'italic', regex: /_([^_]+?)_/g },           // 斜体（改进：不匹配_字符）
-    { type: 'link', regex: /\[([^\]]+)\]\(([^)]+)\)/g } // 链接
+    { type: 'bold-italic', regex: /\*\*\*(.+?)\*\*\*/g, recursive: true },
+    { type: 'bold-italic', regex: /___(.+?)___/g, recursive: true },
+    { type: 'bold', regex: /\*\*(.+?)\*\*/g, recursive: true },
+    { type: 'bold', regex: /__(.+?)__/g, recursive: true },
+    { type: 'italic', regex: /\*([^*]+?)\*/g, recursive: true },
+    { type: 'italic', regex: /_([^_]+?)_/g, recursive: true },
+    { type: 'latex-inline', regex: /\$([^\$\n]+?)\$/g, recursive: false },
+    { type: 'latex-inline', regex: /\\\(([^)]*?)\\\)/g, recursive: false },
+    { type: 'code', regex: /`([^`]+)`/g, recursive: false },
+    { type: 'link', regex: /\[([^\]]+)\]\(([^)]+)\)/g, recursive: false }
   ];
 
   // 查找所有匹配
@@ -237,22 +238,14 @@ export function parseInlineMarkdown(text) {
     let match;
     const regex = new RegExp(pattern.regex.source, 'g');
     while ((match = regex.exec(text)) !== null) {
-      // CRITICAL: Do NOT clean LaTeX text - preserve backslashes and special characters
-      const isLatex = pattern.type === 'latex-inline';
       matches.push({
         type: pattern.type,
         start: match.index,
         end: regex.lastIndex,
-        text: isLatex ? match[1] : cleanText(match[1]),  // 不清理LaTeX文本
-        url: match[2], // 仅用于链接
-        rawText: match[1] // 保留原始文本用于调试
+        text: match[1],
+        url: match[2],
+        recursive: pattern.recursive
       });
-      // 调试：记录找到的格式
-      if (pattern.type === 'bold') {
-        console.log(`[PDF导出] 发现粗体文本 [${match.index}-${regex.lastIndex}]:`, match[1]);
-      } else if (pattern.type === 'latex-inline') {
-        console.log(`[PDF导出] 发现LaTeX inline [${match.index}-${regex.lastIndex}]:`, match[1]);
-      }
     }
   });
 
@@ -268,8 +261,6 @@ export function parseInlineMarkdown(text) {
     );
     if (!overlaps) {
       filteredMatches.push(match);
-    } else if (match.type === 'bold') {
-      console.warn(`[PDF导出] ⚠ 粗体文本被过滤（重叠）[${match.start}-${match.end}]:`, match.rawText);
     }
   });
 
@@ -280,16 +271,26 @@ export function parseInlineMarkdown(text) {
     if (match.start > lastEnd) {
       segments.push({
         type: 'normal',
-        text: cleanText(text.substring(lastEnd, match.start))  // 清理普通文本
+        text: cleanText(text.substring(lastEnd, match.start))
       });
     }
 
-    // 添加格式化文本
-    segments.push({
-      type: match.type,
-      text: match.text,  // 已在上面清理过
-      url: match.url
-    });
+    // 处理匹配项
+    if (match.recursive && match.type !== 'latex-inline') {
+      // 递归解析内部内容（粗体/斜体内可能包含LaTeX）
+      const innerSegments = parseInlineMarkdown(match.text);
+      segments.push({
+        type: match.type,
+        children: innerSegments
+      });
+    } else {
+      // 非递归类型（LaTeX、代码、链接）
+      segments.push({
+        type: match.type,
+        text: match.type === 'latex-inline' ? match.text : cleanText(match.text),
+        url: match.url
+      });
+    }
 
     lastEnd = match.end;
   });
@@ -298,7 +299,7 @@ export function parseInlineMarkdown(text) {
   if (lastEnd < text.length) {
     segments.push({
       type: 'normal',
-      text: cleanText(text.substring(lastEnd))  // 清理剩余文本
+      text: cleanText(text.substring(lastEnd))
     });
   }
 
@@ -306,23 +307,9 @@ export function parseInlineMarkdown(text) {
   if (segments.length === 0) {
     segments.push({
       type: 'normal',
-      text: cleanText(text)  // 清理整个文本
+      text: cleanText(text)
     });
   }
-
-  // 清理未闭合的Markdown标记（如单独的 ** 或 * ）
-  segments.forEach(segment => {
-    if (segment.type === 'normal' && segment.text) {
-      // 移除未闭合的粗体标记
-      segment.text = segment.text.replace(/\*\*(?!\*)/g, '');  // 移除单独的 **
-      segment.text = segment.text.replace(/(?<!\*)\*\*/g, '');  // 移除单独的 **
-      // 移除未闭合的斜体标记
-      segment.text = segment.text.replace(/(?<!\*)\*(?!\*)/g, '');  // 移除单独的 *
-      // 移除未闭合的下划线标记
-      segment.text = segment.text.replace(/(?<!_)__(?!_)/g, '');  // 移除单独的 __
-      segment.text = segment.text.replace(/(?<!_)_(?!_)/g, '');  // 移除单独的 _
-    }
-  });
 
   return segments;
 }

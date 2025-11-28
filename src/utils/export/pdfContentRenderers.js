@@ -2,6 +2,15 @@
 
 import { cleanText, parseInlineMarkdown, parseCodeLineBold, applyCJKPunctuationRules } from './pdfTextHelpers'
 import { LaTeXRenderer } from './pdfLatexRenderer'
+
+// 纸张格式配置 (单位: mm)
+export const PAGE_FORMATS = {
+  a3: { width: 297, height: 420, name: 'A3' },
+  a4: { width: 210, height: 297, name: 'A4' },
+  letter: { width: 215.9, height: 279.4, name: 'Letter' },
+  supernote: { width: 163, height: 217, name: 'Supernote (10.7")' }
+};
+
 export const PDF_STYLES = {
   // 字体大小
   FONT_SIZE_TITLE: 20,
@@ -35,10 +44,21 @@ export const PDF_STYLES = {
   MESSAGE_SPACING: 10,
   FOOTER_HEIGHT: 15, // 页脚高度
 
-  // 页面
-  PAGE_WIDTH: 210, // A4 宽度(mm)
-  PAGE_HEIGHT: 297, // A4 高度(mm)
+  // 页面 (默认 A4)
+  PAGE_WIDTH: 210,
+  PAGE_HEIGHT: 297,
 };
+
+/**
+ * 根据纸张格式更新 PDF_STYLES 的页面尺寸
+ * @param {string} format - 纸张格式 ('a3', 'a4', 'letter', 'supernote')
+ */
+export function updatePageFormat(format = 'a4') {
+  const pageFormat = PAGE_FORMATS[format] || PAGE_FORMATS.a4;
+  PDF_STYLES.PAGE_WIDTH = pageFormat.width;
+  PDF_STYLES.PAGE_HEIGHT = pageFormat.height;
+  return pageFormat;
+}
 
 /**
  * 内容渲染器类
@@ -309,10 +329,24 @@ export class ContentRenderer {
     if (!this.latexRenderer) {
       this.latexRenderer = new LaTeXRenderer(this.pdf, {
         fontSize: PDF_STYLES.FONT_SIZE_BODY,
-        color: PDF_STYLES.COLOR_TEXT
+        color: PDF_STYLES.COLOR_TEXT,
+        fontName: this.chineseFontName  // 传入支持Unicode的字体
       });
     }
     return this.latexRenderer;
+  }
+
+  /**
+   * 检测文本是否包含LaTeX公式
+   */
+  containsLatex(text) {
+    const latexPatterns = [
+      /\$[^$]+\$/,           // 行内公式 $...$
+      /\\\([^)]+\\\)/,       // 行内公式 \(...\)
+      /\\\[[^\]]+\\\]/,      // 显示公式 \[...\]
+      /\\(mathcal|mathbb|frac|sqrt|sum|int|lim|alpha|beta|gamma|delta|theta|lambda|mu|omega)/  // LaTeX命令
+    ];
+    return latexPatterns.some(pattern => pattern.test(text));
   }
 
   /**
@@ -689,7 +723,8 @@ export class ContentRenderer {
     // 按行处理文本
     const lines = cleanedText.split('\n');
 
-    for (const line of lines) {
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
       this.checkPageBreak(PDF_STYLES.FONT_SIZE_BODY);
 
       // 处理不同类型的行
@@ -705,14 +740,44 @@ export class ContentRenderer {
       } else if (line.match(/^>\s/)) {
         // 引用
         this.renderMarkdownQuote(line, maxWidth);
+      } else if (line.match(/^\|.*\|/)) {
+        // 表格行 - 收集连续的表格行
+        const tableLines = [line];
+        while (i + 1 < lines.length && lines[i + 1].match(/^\|.*\|/)) {
+          i++;
+          tableLines.push(lines[i]);
+        }
+        this.renderTable(tableLines);
+      } else if ((line.match(/^[-*+]\s/) || line.match(/^\d+\.\s/)) && this.containsLatex(line)) {
+        // 包含LaTeX的列表项：去掉前缀并添加缩进渲染
+        this.renderLatexListItem(line, maxWidth);
       } else if (line.match(/^[-*+]\s/) || line.match(/^\d+\.\s/)) {
-        // 列表
+        // 普通列表
         this.renderMarkdownList(line, maxWidth);
       } else {
         // 普通文本（可能包含行内格式和LaTeX）
         this.renderMarkdownInlineFormats(line, maxWidth);
       }
     }
+  }
+
+  /**
+   * 渲染包含LaTeX的列表项
+   */
+  renderLatexListItem(line, maxWidth) {
+    // 去掉开头的列表标记
+    const cleanedLine = line.replace(/^[-*+]\s+/, '').replace(/^\d+\.\s+/, '');
+    const indentX = PDF_STYLES.MARGIN_LEFT + 8;
+
+    // 保存当前margin，临时修改
+    const tempMargin = PDF_STYLES.MARGIN_LEFT;
+    PDF_STYLES.MARGIN_LEFT = indentX;
+
+    // 使用行内格式化文本渲染（会自动处理LaTeX）
+    this.renderMarkdownInlineFormats(cleanedLine, maxWidth - 8);
+
+    // 恢复margin
+    PDF_STYLES.MARGIN_LEFT = tempMargin;
   }
 
   /**
@@ -783,7 +848,7 @@ export class ContentRenderer {
   }
 
   /**
-   * 渲染markdown引用
+   * 渲染markdown引用（支持内部格式）
    */
   renderMarkdownQuote(line, maxWidth) {
     const text = line.replace(/^>\s*/, '');
@@ -796,36 +861,158 @@ export class ContentRenderer {
 
     const startY = this.currentY - 2;
 
-    // 渲染文本
+    // 使用行内格式化渲染（支持LaTeX）
     this.pdf.setFontSize(PDF_STYLES.FONT_SIZE_BODY);
     this.pdf.setTextColor(100, 100, 100);
 
-    try {
-      const lines = this.pdf.splitTextToSize(text, quoteWidth);
-      lines.forEach(l => {
-        this.checkPageBreak(PDF_STYLES.FONT_SIZE_BODY);
-        const cleanLine = cleanText(l);
-        if (cleanLine && cleanLine.trim().length > 0) {
-          this.pdf.text(cleanLine, quoteX, this.currentY);
-        }
-        this.currentY += PDF_STYLES.LINE_HEIGHT;
-      });
+    const tempMargin = PDF_STYLES.MARGIN_LEFT;
+    PDF_STYLES.MARGIN_LEFT = quoteX;
+    this.renderMarkdownInlineFormats(text, quoteWidth);
+    PDF_STYLES.MARGIN_LEFT = tempMargin;
 
-      // 绘制引用线
-      this.pdf.line(
-        PDF_STYLES.MARGIN_LEFT + 2,
-        startY,
-        PDF_STYLES.MARGIN_LEFT + 2,
-        this.currentY - 2
-      );
-    } catch (error) {
-      console.error('[PDF导出] 引用渲染失败:', error);
-      this.pdf.text(text, quoteX, this.currentY);
-      this.currentY += PDF_STYLES.LINE_HEIGHT;
-    }
+    // 绘制引用线
+    this.pdf.line(
+      tempMargin + 2,
+      startY,
+      tempMargin + 2,
+      this.currentY - 2
+    );
 
     // 恢复颜色
     this.pdf.setTextColor(...PDF_STYLES.COLOR_TEXT);
+  }
+
+  /**
+   * 渲染Markdown表格
+   */
+  renderTable(tableLines) {
+    if (!tableLines || tableLines.length < 2) return;
+
+    const maxWidth = PDF_STYLES.PAGE_WIDTH - PDF_STYLES.MARGIN_LEFT - PDF_STYLES.MARGIN_RIGHT;
+
+    // 解析表格行
+    const rows = [];
+    let isHeader = true;
+
+    tableLines.forEach((line, idx) => {
+      // 跳过分隔行 - 检查单元格内容是否只包含-和:
+      const checkCells = line.split('|').filter((c, i, arr) => i > 0 && i < arr.length - 1);
+      const isSeparator = checkCells.length > 0 && checkCells.every(cell => /^[\s\-:]+$/.test(cell));
+      if (isSeparator) {
+        return;
+      }
+
+      const cells = line
+        .split('|')
+        .map(cell => cell.trim())
+        .filter((cell, i, arr) => i > 0 && i < arr.length - 1);
+
+      if (cells.length > 0) {
+        rows.push({ cells, isHeader: isHeader && idx === 0 });
+        if (idx === 0) isHeader = false;
+      }
+    });
+
+    if (rows.length === 0) return;
+
+    const colCount = Math.max(...rows.map(r => r.cells.length));
+    const cellWidth = maxWidth / colCount;
+    const cellPadding = 3;
+    const rowHeight = PDF_STYLES.LINE_HEIGHT * 1.8;  // 增加行高
+
+    this.pdf.setDrawColor(200, 200, 200);
+    this.pdf.setLineWidth(0.3);
+
+    rows.forEach((row, rowIdx) => {
+      this.checkPageBreak(rowHeight * 2);
+      const rowStartY = this.currentY;
+
+      row.cells.forEach((cell, colIdx) => {
+        const cellX = PDF_STYLES.MARGIN_LEFT + colIdx * cellWidth;
+
+        // 表头背景
+        if (row.isHeader) {
+          this.pdf.setFillColor(245, 245, 245);
+          this.pdf.rect(cellX, rowStartY, cellWidth, rowHeight, 'F');
+        }
+
+        // 绘制单元格边框
+        this.pdf.rect(cellX, rowStartY, cellWidth, rowHeight, 'S');
+
+        // 处理单元格内容（LaTeX和Markdown）
+        const processedText = this.processCellContent(cell);
+
+        this.pdf.setFontSize(PDF_STYLES.FONT_SIZE_BODY);
+        if (row.isHeader) {
+          this.safeSetFont(this.chineseFontName, 'bold');
+          this.pdf.setTextColor(0, 0, 0);
+        } else {
+          this.safeSetFont(this.chineseFontName, 'normal');
+          this.pdf.setTextColor(50, 50, 50);
+        }
+
+        // 截断过长文本
+        const maxTextWidth = cellWidth - cellPadding * 2;
+        const truncatedText = this.truncateText(processedText, maxTextWidth);
+
+        // 文本垂直居中：单元格中心 + 字体基线偏移
+        const textY = rowStartY + rowHeight / 2 + PDF_STYLES.FONT_SIZE_BODY * 0.15;
+        this.pdf.text(truncatedText, cellX + cellPadding, textY);
+      });
+
+      this.currentY = rowStartY + rowHeight;
+    });
+
+    this.safeSetFont(this.chineseFontName, 'normal');
+    this.pdf.setTextColor(...PDF_STYLES.COLOR_TEXT);
+    this.currentY += PDF_STYLES.SECTION_SPACING;
+  }
+
+  /**
+   * 处理表格单元格内容
+   */
+  processCellContent(cellText) {
+    if (!cellText) return '';
+
+    let result = cellText;
+
+    // 处理行内LaTeX
+    result = result.replace(/\$([^$]+)\$/g, (match, latex) => {
+      try {
+        const renderer = this.getLatexRenderer();
+        return renderer.simplifyLaTeX(latex);
+      } catch (e) {
+        return latex;
+      }
+    });
+
+    // 处理粗体
+    result = result.replace(/\*\*([^*]+)\*\*/g, '$1');
+    result = result.replace(/__([^_]+)__/g, '$1');
+
+    // 处理斜体
+    result = result.replace(/\*([^*]+)\*/g, '$1');
+    result = result.replace(/_([^_]+)_/g, '$1');
+
+    // 处理行内代码
+    result = result.replace(/`([^`]+)`/g, '$1');
+
+    return cleanText(result);
+  }
+
+  /**
+   * 截断过长文本
+   */
+  truncateText(text, maxWidth) {
+    if (!text) return '';
+    const textWidth = this.safeGetTextWidth(text);
+    if (textWidth <= maxWidth) return text;
+
+    let truncated = text;
+    while (truncated.length > 0 && this.safeGetTextWidth(truncated + '...') > maxWidth) {
+      truncated = truncated.slice(0, -1);
+    }
+    return truncated + '...';
   }
 
   /**
@@ -894,14 +1081,59 @@ export class ContentRenderer {
   }
 
   /**
+   * 展平嵌套的segments结构
+   */
+  flattenSegments(segments, parentType = null) {
+    const result = [];
+
+    segments.forEach(segment => {
+      if (segment.children) {
+        // 递归处理子节点，传递父类型
+        const childSegments = this.flattenSegments(segment.children, segment.type);
+        result.push(...childSegments);
+      } else {
+        // 叶子节点
+        if (parentType) {
+          result.push({
+            ...segment,
+            type: this.mergeSegmentTypes(parentType, segment.type)
+          });
+        } else {
+          result.push(segment);
+        }
+      }
+    });
+
+    return result;
+  }
+
+  /**
+   * 合并父子类型
+   */
+  mergeSegmentTypes(parentType, childType) {
+    if (childType === 'normal') {
+      return parentType;
+    }
+
+    if ((parentType === 'bold' && childType === 'italic') ||
+        (parentType === 'italic' && childType === 'bold')) {
+      return 'bold-italic';
+    }
+
+    return childType;
+  }
+
+  /**
    * 渲染行内格式的文本片段（包括LaTeX源码）
    */
   renderInlineSegments(segments, maxWidth) {
+    // 先展平嵌套结构
+    const flatSegments = this.flattenSegments(segments);
+    
     let currentX = PDF_STYLES.MARGIN_LEFT;
-    let currentLineText = '';
     let currentLineSegments = [];
 
-    segments.forEach((segment, idx) => {
+    flatSegments.forEach((segment, idx) => {
       // 对于LaTeX，需要先转换为Unicode来计算实际渲染宽度
       let text;
       let textWidth;
