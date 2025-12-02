@@ -3,6 +3,40 @@
 import { cleanText, parseInlineMarkdown, parseCodeLineBold, applyCJKPunctuationRules } from './pdfTextHelpers'
 import { LaTeXRenderer } from './pdfLatexRenderer'
 
+// ============ 渲染常量 ============
+const RENDER_CONSTANTS = {
+  // 行高缩放比例
+  LINE_HEIGHT_TITLE: 1.5,
+  LINE_HEIGHT_SENDER: 1.2,
+  LINE_HEIGHT_HEADING: 1.2,
+  LINE_HEIGHT_TABLE_ROW: 1.8,
+  
+  // 间距缩放比例
+  BODY_END_SPACING: 0.3,
+  HEADING_AFTER_SPACING: 0.5,
+  HR_SPACING_ABOVE: 0.8,
+  HR_SPACING_BELOW: 4,
+  LATEX_DISPLAY_SPACING: 0.05,
+  TOC_ENTRY_SPACING: 1.5,
+  
+  // 列表缩进
+  LIST_INDENT_PER_LEVEL: 8,   // 每级列表缩进
+  LIST_BULLET_OFFSET: 2,      // 项目符号偏移
+  
+  // 代码块
+  CODE_LINE_NUMBER_WIDTH: 8,
+  CODE_PADDING: 3,
+  CODE_BORDER_RADIUS: 1.5,
+  
+  // 表格
+  TABLE_CELL_PADDING: 3,
+  TABLE_HEADER_BG: [245, 245, 245],
+  
+  // 引用
+  QUOTE_INDENT: 6,
+  QUOTE_LINE_WIDTH: 0.5,
+};
+
 // 纸张格式配置 (单位: mm)
 export const PAGE_FORMATS = {
   a3: { width: 297, height: 420, name: 'A3' },
@@ -762,22 +796,18 @@ export class ContentRenderer {
   }
 
   /**
-   * 渲染包含LaTeX的列表项
+   * 渲染包含LaTeX的列表项（不修改全局状态）
    */
   renderLatexListItem(line, maxWidth) {
+    const { LIST_INDENT_PER_LEVEL } = RENDER_CONSTANTS;
+    
     // 去掉开头的列表标记
     const cleanedLine = line.replace(/^[-*+]\s+/, '').replace(/^\d+\.\s+/, '');
-    const indentX = PDF_STYLES.MARGIN_LEFT + 8;
+    const indentX = PDF_STYLES.MARGIN_LEFT + LIST_INDENT_PER_LEVEL;
+    const adjustedWidth = maxWidth - LIST_INDENT_PER_LEVEL;
 
-    // 保存当前margin，临时修改
-    const tempMargin = PDF_STYLES.MARGIN_LEFT;
-    PDF_STYLES.MARGIN_LEFT = indentX;
-
-    // 使用行内格式化文本渲染（会自动处理LaTeX）
-    this.renderMarkdownInlineFormats(cleanedLine, maxWidth - 8);
-
-    // 恢复margin
-    PDF_STYLES.MARGIN_LEFT = tempMargin;
+    // 使用行内格式化文本渲染（传递偏移量而非修改全局状态）
+    this.renderMarkdownInlineFormatsWithOffset(cleanedLine, adjustedWidth, indentX);
   }
 
   /**
@@ -848,33 +878,32 @@ export class ContentRenderer {
   }
 
   /**
-   * 渲染markdown引用（支持内部格式）
+   * 渲染markdown引用（支持内部格式，不修改全局状态）
    */
   renderMarkdownQuote(line, maxWidth) {
+    const { QUOTE_INDENT, QUOTE_LINE_WIDTH } = RENDER_CONSTANTS;
+    
     const text = line.replace(/^>\s*/, '');
-    const quoteWidth = maxWidth - 8;
-    const quoteX = PDF_STYLES.MARGIN_LEFT + 6;
+    const quoteWidth = maxWidth - QUOTE_INDENT - 2;
+    const quoteX = PDF_STYLES.MARGIN_LEFT + QUOTE_INDENT;
 
     // 绘制左侧竖线
     this.pdf.setDrawColor(150, 150, 150);
-    this.pdf.setLineWidth(0.5);
+    this.pdf.setLineWidth(QUOTE_LINE_WIDTH);
 
     const startY = this.currentY - 2;
 
-    // 使用行内格式化渲染（支持LaTeX）
+    // 使用行内格式化渲染（传递偏移量而非修改全局状态）
     this.pdf.setFontSize(PDF_STYLES.FONT_SIZE_BODY);
     this.pdf.setTextColor(100, 100, 100);
 
-    const tempMargin = PDF_STYLES.MARGIN_LEFT;
-    PDF_STYLES.MARGIN_LEFT = quoteX;
-    this.renderMarkdownInlineFormats(text, quoteWidth);
-    PDF_STYLES.MARGIN_LEFT = tempMargin;
+    this.renderMarkdownInlineFormatsWithOffset(text, quoteWidth, quoteX);
 
     // 绘制引用线
     this.pdf.line(
-      tempMargin + 2,
+      PDF_STYLES.MARGIN_LEFT + 2,
       startY,
-      tempMargin + 2,
+      PDF_STYLES.MARGIN_LEFT + 2,
       this.currentY - 2
     );
 
@@ -883,16 +912,17 @@ export class ContentRenderer {
   }
 
   /**
-   * 渲染Markdown表格
+   * 渲染Markdown表格（支持跨页续表头）
    */
   renderTable(tableLines) {
     if (!tableLines || tableLines.length < 2) return;
 
+    const { TABLE_CELL_PADDING, TABLE_HEADER_BG, LINE_HEIGHT_TABLE_ROW } = RENDER_CONSTANTS;
     const maxWidth = PDF_STYLES.PAGE_WIDTH - PDF_STYLES.MARGIN_LEFT - PDF_STYLES.MARGIN_RIGHT;
 
     // 解析表格行
     const rows = [];
-    let isHeader = true;
+    let headerRow = null;
 
     tableLines.forEach((line, idx) => {
       // 跳过分隔行 - 检查单元格内容是否只包含-和:
@@ -908,8 +938,14 @@ export class ContentRenderer {
         .filter((cell, i, arr) => i > 0 && i < arr.length - 1);
 
       if (cells.length > 0) {
-        rows.push({ cells, isHeader: isHeader && idx === 0 });
-        if (idx === 0) isHeader = false;
+        const isHeaderRow = (idx === 0);
+        const rowData = { cells, isHeader: isHeaderRow };
+        rows.push(rowData);
+        
+        // 保存表头行以便跨页时重绘
+        if (isHeaderRow) {
+          headerRow = rowData;
+        }
       }
     });
 
@@ -917,26 +953,26 @@ export class ContentRenderer {
 
     const colCount = Math.max(...rows.map(r => r.cells.length));
     const cellWidth = maxWidth / colCount;
-    const cellPadding = 3;
-    const rowHeight = PDF_STYLES.LINE_HEIGHT * 1.8;  // 增加行高
+    const rowHeight = PDF_STYLES.LINE_HEIGHT * LINE_HEIGHT_TABLE_ROW;
 
     this.pdf.setDrawColor(200, 200, 200);
     this.pdf.setLineWidth(0.3);
 
-    rows.forEach((row, rowIdx) => {
-      this.checkPageBreak(rowHeight * 2);
-      const rowStartY = this.currentY;
-
+    /**
+     * 渲染单行的辅助函数
+     */
+    const renderTableRow = (row, rowStartY) => {
       row.cells.forEach((cell, colIdx) => {
         const cellX = PDF_STYLES.MARGIN_LEFT + colIdx * cellWidth;
 
         // 表头背景
         if (row.isHeader) {
-          this.pdf.setFillColor(245, 245, 245);
+          this.pdf.setFillColor(...TABLE_HEADER_BG);
           this.pdf.rect(cellX, rowStartY, cellWidth, rowHeight, 'F');
         }
 
         // 绘制单元格边框
+        this.pdf.setDrawColor(200, 200, 200);
         this.pdf.rect(cellX, rowStartY, cellWidth, rowHeight, 'S');
 
         // 处理单元格内容（LaTeX和Markdown）
@@ -952,14 +988,41 @@ export class ContentRenderer {
         }
 
         // 截断过长文本
-        const maxTextWidth = cellWidth - cellPadding * 2;
+        const maxTextWidth = cellWidth - TABLE_CELL_PADDING * 2;
         const truncatedText = this.truncateText(processedText, maxTextWidth);
 
         // 文本垂直居中：单元格中心 + 字体基线偏移
         const textY = rowStartY + rowHeight / 2 + PDF_STYLES.FONT_SIZE_BODY * 0.15;
-        this.pdf.text(truncatedText, cellX + cellPadding, textY);
+        this.pdf.text(truncatedText, cellX + TABLE_CELL_PADDING, textY);
       });
+    };
 
+    // 渲染所有行
+    rows.forEach((row, rowIdx) => {
+      // 检查是否需要换页
+      const needsPageBreak = this.currentY + rowHeight > PDF_STYLES.PAGE_HEIGHT - PDF_STYLES.MARGIN_BOTTOM;
+      
+      if (needsPageBreak && rowIdx > 0) {
+        // 换页
+        this.pdf.addPage();
+        this.currentY = PDF_STYLES.MARGIN_TOP;
+        
+        // 在新页顶部重绘表头（续表）
+        if (headerRow) {
+          // 添加“续表”标记
+          this.pdf.setFontSize(PDF_STYLES.FONT_SIZE_TIMESTAMP);
+          this.pdf.setTextColor(150, 150, 150);
+          this.pdf.text('(续表)', PDF_STYLES.MARGIN_LEFT, this.currentY);
+          this.currentY += PDF_STYLES.LINE_HEIGHT * 0.8;
+          
+          // 重绘表头
+          renderTableRow(headerRow, this.currentY);
+          this.currentY += rowHeight;
+        }
+      }
+      
+      const rowStartY = this.currentY;
+      renderTableRow(row, rowStartY);
       this.currentY = rowStartY + rowHeight;
     });
 
@@ -1016,47 +1079,56 @@ export class ContentRenderer {
   }
 
   /**
-   * 渲染markdown列表（包括LaTeX源码）
+   * 渲染markdown列表（包括LaTeX源码，支持嵌套列表）
+   * @param {string} line - 列表行文本
+   * @param {number} maxWidth - 最大宽度
+   * @param {number} indentLevel - 缩进级别（默认0）
    */
-  renderMarkdownList(line, maxWidth) {
+  renderMarkdownList(line, maxWidth, indentLevel = 0) {
+    const { LIST_INDENT_PER_LEVEL, LIST_BULLET_OFFSET } = RENDER_CONSTANTS;
+    
     let bullet = '';
     let text = '';
 
-    // 检测列表类型
-    const unorderedMatch = line.match(/^([-*+])\s+(.+)$/);
-    const orderedMatch = line.match(/^(\d+)\.\s+(.+)$/);
+    // 检测列表类型（支持前导空格缩进）
+    const unorderedMatch = line.match(/^(\s*)([-*+])\s+(.+)$/);
+    const orderedMatch = line.match(/^(\s*)(\d+)\.\s+(.+)$/);
 
     if (unorderedMatch) {
-      bullet = '•'; // 使用圆点作为项目符号
-      text = unorderedMatch[2];
+      // 根据前导空格计算缩进级别（2空格 = 1级）
+      const leadingSpaces = unorderedMatch[1].length;
+      indentLevel = Math.floor(leadingSpaces / 2);
+      
+      // 根据级别选择不同的项目符号
+      const bullets = ['•', '◦', '▪', '▫'];  // 实心圆、空心圆、实心方、空心方
+      bullet = bullets[indentLevel % bullets.length];
+      text = unorderedMatch[3];
     } else if (orderedMatch) {
-      bullet = orderedMatch[1] + '.';
-      text = orderedMatch[2];
+      const leadingSpaces = orderedMatch[1].length;
+      indentLevel = Math.floor(leadingSpaces / 2);
+      
+      bullet = orderedMatch[2] + '.';
+      text = orderedMatch[3];
     } else {
       this.renderPlainText(line, maxWidth);
       return;
     }
 
+    // 计算缩进后的左边距（不修改全局状态）
+    const indentX = PDF_STYLES.MARGIN_LEFT + (indentLevel * LIST_INDENT_PER_LEVEL);
     const bulletWidth = this.safeGetTextWidth(bullet + '  ');
-    const textWidth = maxWidth - bulletWidth;
-    const textX = PDF_STYLES.MARGIN_LEFT + bulletWidth;
+    const textX = indentX + bulletWidth;
+    const textWidth = maxWidth - (indentLevel * LIST_INDENT_PER_LEVEL) - bulletWidth;
 
     // 渲染项目符号
     this.pdf.setFontSize(PDF_STYLES.FONT_SIZE_BODY);
-    this.pdf.text(bullet, PDF_STYLES.MARGIN_LEFT + 2, this.currentY);
+    this.pdf.text(bullet, indentX + LIST_BULLET_OFFSET, this.currentY);
 
-    // 解析并渲染带格式的文本
+    // 解析并渲染带格式的文本（使用局部变量而非修改全局状态）
     try {
-      // 解析行内markdown格式（粗体、斜体、LaTeX等）
       const segments = parseInlineMarkdown(text);
-
-      // 使用renderInlineSegments渲染，但需要调整左边距
-      const originalMarginLeft = PDF_STYLES.MARGIN_LEFT;
-      PDF_STYLES.MARGIN_LEFT = textX; // 临时调整左边距以对齐列表文本
-
-      this.renderInlineSegments(segments, textWidth);
-
-      PDF_STYLES.MARGIN_LEFT = originalMarginLeft; // 恢复原始边距
+      // 传递起始位置而不是修改全局MARGIN_LEFT
+      this.renderInlineSegmentsWithOffset(segments, textWidth, textX);
     } catch (error) {
       console.error('[PDF导出] 列表渲染失败:', error);
       this.pdf.text(text, textX, this.currentY);
@@ -1068,6 +1140,16 @@ export class ContentRenderer {
    * 渲染包含行内格式的markdown文本（包括LaTeX源码）
    */
   renderMarkdownInlineFormats(line, maxWidth) {
+    this.renderMarkdownInlineFormatsWithOffset(line, maxWidth, PDF_STYLES.MARGIN_LEFT);
+  }
+  
+  /**
+   * 渲染包含行内格式的markdown文本（带偏移，不修改全局状态）
+   * @param {string} line - 文本行
+   * @param {number} maxWidth - 最大宽度
+   * @param {number} startX - 起始X坐标
+   */
+  renderMarkdownInlineFormatsWithOffset(line, maxWidth, startX) {
     if (!line || line.trim().length === 0) {
       this.currentY += PDF_STYLES.LINE_HEIGHT;
       return;
@@ -1076,8 +1158,8 @@ export class ContentRenderer {
     // 解析行内格式（包括LaTeX）
     const segments = parseInlineMarkdown(line);
 
-    // 按行渲染segments（包括LaTeX）
-    this.renderInlineSegments(segments, maxWidth);
+    // 按行渲染segments（包括LaTeX），传递偏移量
+    this.renderInlineSegmentsWithOffset(segments, maxWidth, startX);
   }
 
   /**
@@ -1127,10 +1209,20 @@ export class ContentRenderer {
    * 渲染行内格式的文本片段（包括LaTeX源码）
    */
   renderInlineSegments(segments, maxWidth) {
+    this.renderInlineSegmentsWithOffset(segments, maxWidth, PDF_STYLES.MARGIN_LEFT);
+  }
+  
+  /**
+   * 渲染行内格式的文本片段（带偏移，不修改全局状态）
+   * @param {Array} segments - 文本片段数组
+   * @param {number} maxWidth - 最大宽度
+   * @param {number} startX - 起始X坐标
+   */
+  renderInlineSegmentsWithOffset(segments, maxWidth, startX) {
     // 先展平嵌套结构
     const flatSegments = this.flattenSegments(segments);
     
-    let currentX = PDF_STYLES.MARGIN_LEFT;
+    let currentX = startX;
     let currentLineSegments = [];
 
     flatSegments.forEach((segment, idx) => {

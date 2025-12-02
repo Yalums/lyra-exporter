@@ -4,6 +4,26 @@
 
 import { cleanText } from './pdfTextHelpers';
 
+// ============ 渲染常量 ============
+const LATEX_RENDER_CONSTANTS = {
+  // 字体缩放比例
+  FRACTION_FONT_SCALE: 0.75,      // 分数内字体缩放
+  SUPERSCRIPT_FONT_SCALE: 0.7,    // 上标字体缩放
+  SUBSCRIPT_FONT_SCALE: 0.7,      // 下标字体缩放
+  DISPLAY_FONT_SCALE: 1.2,        // 块级公式放大
+  
+  // 位置偏移比例（相对于fontSize）
+  FRACTION_NUM_OFFSET: 0.17,      // 分子上移
+  FRACTION_DEN_OFFSET: 0.5,       // 分母下移
+  SUPERSCRIPT_OFFSET: 0.3,        // 上标上移
+  SUBSCRIPT_OFFSET: 0.3,          // 下标下移
+  
+  // 其他
+  FRACTION_PADDING: 4,            // 分数左右padding
+  SQRT_PADDING: 8,                // 根号padding
+  CACHE_MAX_SIZE: 500,            // 宽度缓存最大条目数
+};
+
 /**
  * LaTeX到Unicode的映射表
  */
@@ -100,7 +120,13 @@ const SUPERSCRIPT_MAP = {
   '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
   '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹',
   '+': '⁺', '-': '⁻', '=': '⁼', '(': '⁽', ')': '⁾',
-  'n': 'ⁿ', 'i': 'ⁱ'
+  'n': 'ⁿ', 'i': 'ⁱ',
+  // 常用上标字母（转置、共轭、Hermitian等）
+  'T': 'ᵀ', 'H': 'ᴴ', '*': '﹡', 't': 'ᵗ',
+  'a': 'ᵃ', 'b': 'ᵇ', 'c': 'ᶜ', 'd': 'ᵈ', 'e': 'ᵉ',
+  'f': 'ᶠ', 'g': 'ᵍ', 'h': 'ʰ', 'j': 'ʲ', 'k': 'ᵏ',
+  'l': 'ˡ', 'm': 'ᵐ', 'o': 'ᵒ', 'p': 'ᵖ', 'r': 'ʳ',
+  's': 'ˢ', 'u': 'ᵘ', 'v': 'ᵛ', 'w': 'ʷ', 'x': 'ˣ', 'y': 'ʸ', 'z': 'ᶻ'
 };
 
 // 上标字符的ASCII回退（当Unicode不被支持时）
@@ -108,7 +134,12 @@ const SUPERSCRIPT_SAFE = {
   '0': '^0', '1': '¹', '2': '²', '3': '³', '4': '^4',
   '5': '^5', '6': '^6', '7': '^7', '8': '^8', '9': '^9',
   '+': '^+', '-': '^-', '=': '^=', '(': '^(', ')': '^)',
-  'n': '^n', 'i': '^i', 'T': '^T', 'H': '^H', '*': '^*'
+  'n': '^n', 'i': '^i', 'T': '^T', 'H': '^H', '*': '^*',
+  't': '^t', 'a': '^a', 'b': '^b', 'c': '^c', 'd': '^d',
+  'e': '^e', 'f': '^f', 'g': '^g', 'h': '^h', 'j': '^j',
+  'k': '^k', 'l': '^l', 'm': '^m', 'o': '^o', 'p': '^p',
+  'r': '^r', 's': '^s', 'u': '^u', 'v': '^v', 'w': '^w',
+  'x': '^x', 'y': '^y', 'z': '^z'
 };
 
 // 下标数字和字母映射
@@ -169,6 +200,7 @@ export class LaTeXRenderer {
 
     // 宽度计算缓存 - 避免重复计算
     this.widthCache = new Map();
+    this.cacheAccessOrder = [];  // LRU跟踪
   }
 
   /**
@@ -188,18 +220,34 @@ export class LaTeXRenderer {
   }
 
   /**
-   * 获取文本宽度（带缓存）
+   * 获取文本宽度（带缓存，LRU策略）
    */
   getCachedTextWidth(text, fontSize) {
     const cacheKey = `${text}|${fontSize}|${this.config.fontName}`;
 
     if (this.widthCache.has(cacheKey)) {
+      // 更新LRU顺序
+      const idx = this.cacheAccessOrder.indexOf(cacheKey);
+      if (idx > -1) {
+        this.cacheAccessOrder.splice(idx, 1);
+      }
+      this.cacheAccessOrder.push(cacheKey);
       return this.widthCache.get(cacheKey);
     }
 
     this.setRenderFont(fontSize);
     const width = this.pdf.getTextWidth(text);
+    
+    // 缓存大小限制：超过最大值时淘汰最旧条目
+    if (this.widthCache.size >= LATEX_RENDER_CONSTANTS.CACHE_MAX_SIZE) {
+      const oldestKey = this.cacheAccessOrder.shift();
+      if (oldestKey) {
+        this.widthCache.delete(oldestKey);
+      }
+    }
+    
     this.widthCache.set(cacheKey, width);
+    this.cacheAccessOrder.push(cacheKey);
 
     return width;
   }
@@ -209,6 +257,7 @@ export class LaTeXRenderer {
    */
   clearWidthCache() {
     this.widthCache.clear();
+    this.cacheAccessOrder = [];
   }
 
   /**
@@ -263,6 +312,7 @@ export class LaTeXRenderer {
   renderDisplayLaTeX(latex, x, y, maxWidth) {
     // 块级公式居中显示
     const centerX = x + maxWidth / 2;
+    const { DISPLAY_FONT_SCALE } = LATEX_RENDER_CONSTANTS;
     
     // 检查是否包含复杂结构
     if (this.hasComplexStructure(latex)) {
@@ -271,7 +321,7 @@ export class LaTeXRenderer {
     
     // 简单公式
     const simplified = this.simplifyLaTeX(latex);
-    const fontSize = this.config.fontSize * 1.2; // 块级公式稍大
+    const fontSize = this.config.fontSize * DISPLAY_FONT_SCALE;
     
     this.pdf.setFontSize(fontSize);
     this.pdf.setTextColor(...this.config.color);
@@ -306,6 +356,9 @@ export class LaTeXRenderer {
 
     // 移除多余的空格
     result = result.replace(/\s+/g, ' ').trim();
+    
+    // 处理LaTeX环境（matrix, cases, align等）
+    result = this.simplifyEnvironments(result);
     
     // 处理 \left 和 \right 命令（简化为普通括号）
     result = result.replace(/\\left\(/g, '(');
@@ -670,17 +723,19 @@ export class LaTeXRenderer {
    * 渲染分数
    */
   renderFraction(numerator, denominator, x, y, fontSize) {
+    const { FRACTION_FONT_SCALE, FRACTION_NUM_OFFSET, FRACTION_DEN_OFFSET, FRACTION_PADDING } = LATEX_RENDER_CONSTANTS;
+    
     // 设置较小的字体用于分数
-    const fracFontSize = fontSize * 0.75;
+    const fracFontSize = fontSize * FRACTION_FONT_SCALE;
     this.pdf.setFontSize(fracFontSize);
 
     const numWidth = this.pdf.getTextWidth(numerator);
     const denWidth = this.pdf.getTextWidth(denominator);
-    const fracWidth = Math.max(numWidth, denWidth) + 4;
+    const fracWidth = Math.max(numWidth, denWidth) + FRACTION_PADDING;
 
-    // 进一步减小间距：分子和分母紧贴分数线
-    const numOffset = fracFontSize * 0.17;  // 分子上移（距离分数线）
-    const denOffset = fracFontSize * 0.5;  // 分母下移（距离分数线）
+    // 分子和分母紧贴分数线
+    const numOffset = fracFontSize * FRACTION_NUM_OFFSET;
+    const denOffset = fracFontSize * FRACTION_DEN_OFFSET;
 
     // 渲染分子（在分数线上方，居中对齐）
     const numX = x + (fracWidth - numWidth) / 2;
@@ -705,9 +760,11 @@ export class LaTeXRenderer {
    * 渲染平方根
    */
   renderSquareRoot(content, x, y, fontSize) {
+    const { SQRT_PADDING, DISPLAY_FONT_SCALE } = LATEX_RENDER_CONSTANTS;
+    
     const contentWidth = this.pdf.getTextWidth(content);
-    const sqrtWidth = contentWidth + 8;
-    const sqrtHeight = fontSize * 1.2;
+    const sqrtWidth = contentWidth + SQRT_PADDING;
+    const sqrtHeight = fontSize * DISPLAY_FONT_SCALE;
     
     // 绘制根号符号
     this.pdf.setLineWidth(0.3);
@@ -729,16 +786,18 @@ export class LaTeXRenderer {
    * 渲染上标
    */
   renderSuperscript(base, exponent, x, y, fontSize) {
+    const { SUPERSCRIPT_FONT_SCALE, SUPERSCRIPT_OFFSET } = LATEX_RENDER_CONSTANTS;
+    
     // 渲染基数
     this.pdf.setFontSize(fontSize);
     this.pdf.text(base, x, y);
     const baseWidth = this.pdf.getTextWidth(base);
     
     // 渲染上标（使用更小的字体和向上偏移）
-    const supFontSize = fontSize * 0.7;
+    const supFontSize = fontSize * SUPERSCRIPT_FONT_SCALE;
     this.pdf.setFontSize(supFontSize);
     const supText = this.simplifyLaTeX(exponent);
-    this.pdf.text(supText, x + baseWidth, y - fontSize * 0.3);
+    this.pdf.text(supText, x + baseWidth, y - fontSize * SUPERSCRIPT_OFFSET);
     const supWidth = this.pdf.getTextWidth(supText);
     
     // 恢复字体大小
@@ -751,22 +810,162 @@ export class LaTeXRenderer {
    * 渲染下标
    */
   renderSubscript(base, subscript, x, y, fontSize) {
+    const { SUBSCRIPT_FONT_SCALE, SUBSCRIPT_OFFSET } = LATEX_RENDER_CONSTANTS;
+    
     // 渲染基数
     this.pdf.setFontSize(fontSize);
     this.pdf.text(base, x, y);
     const baseWidth = this.pdf.getTextWidth(base);
     
     // 渲染下标（使用更小的字体和向下偏移）
-    const subFontSize = fontSize * 0.7;
+    const subFontSize = fontSize * SUBSCRIPT_FONT_SCALE;
     this.pdf.setFontSize(subFontSize);
     const subText = this.simplifyLaTeX(subscript);
-    this.pdf.text(subText, x + baseWidth, y + fontSize * 0.3);
+    this.pdf.text(subText, x + baseWidth, y + fontSize * SUBSCRIPT_OFFSET);
     const subWidth = this.pdf.getTextWidth(subText);
     
     // 恢复字体大小
     this.pdf.setFontSize(fontSize);
     
     return baseWidth + subWidth;
+  }
+
+  /**
+   * 简化LaTeX环境（matrix, cases, align等）
+   * @param {string} latex - 包含环境的LaTeX源码
+   * @returns {string} - 转换后的文本
+   */
+  simplifyEnvironments(latex) {
+    let result = latex;
+    
+    // 处理矩阵环境: \begin{matrix/pmatrix/bmatrix/vmatrix/Vmatrix/Bmatrix}...\end{...}
+    const matrixTypes = ['matrix', 'pmatrix', 'bmatrix', 'vmatrix', 'Vmatrix', 'Bmatrix'];
+    const matrixBrackets = {
+      'matrix': ['', ''],
+      'pmatrix': ['(', ')'],
+      'bmatrix': ['[', ']'],
+      'vmatrix': ['|', '|'],
+      'Vmatrix': ['‖', '‖'],
+      'Bmatrix': ['{', '}']
+    };
+    
+    for (const mtype of matrixTypes) {
+      const regex = new RegExp(`\\\\begin\\{${mtype}\\}([\\s\\S]*?)\\\\end\\{${mtype}\\}`, 'g');
+      result = result.replace(regex, (match, content) => {
+        const [leftBracket, rightBracket] = matrixBrackets[mtype];
+        return leftBracket + this.simplifyMatrixContent(content) + rightBracket;
+      });
+    }
+    
+    // 处理cases环境: \begin{cases}...\end{cases}
+    result = result.replace(/\\begin\{cases\}([\s\S]*?)\\end\{cases\}/g, (match, content) => {
+      return '{ ' + this.simplifyCasesContent(content) + ' }';
+    });
+    
+    // 处理align/aligned环境: \begin{align}...\end{align}
+    result = result.replace(/\\begin\{align\*?\}([\s\S]*?)\\end\{align\*?\}/g, (match, content) => {
+      return this.simplifyAlignContent(content);
+    });
+    result = result.replace(/\\begin\{aligned\}([\s\S]*?)\\end\{aligned\}/g, (match, content) => {
+      return this.simplifyAlignContent(content);
+    });
+    
+    // 处理equation环境
+    result = result.replace(/\\begin\{equation\*?\}([\s\S]*?)\\end\{equation\*?\}/g, '$1');
+    
+    // 处理array环境
+    result = result.replace(/\\begin\{array\}\{[^}]*\}([\s\S]*?)\\end\{array\}/g, (match, content) => {
+      return this.simplifyMatrixContent(content);
+    });
+    
+    return result;
+  }
+  
+  /**
+   * 简化矩阵内容
+   */
+  simplifyMatrixContent(content) {
+    // 分割行（以 \\\ 分隔）
+    const rows = content.split(/\\\\/).map(row => row.trim()).filter(row => row);
+    
+    // 处理每行：分割列（以 & 分隔），简化每个单元格
+    const simplifiedRows = rows.map(row => {
+      const cells = row.split('&').map(cell => {
+        // 递归简化单元格内容（但不要再调用simplifyEnvironments避免无限递归）
+        return this.simplifyLaTeXBasic(cell.trim());
+      });
+      return cells.join(' , ');
+    });
+    
+    // 用分号分隔行
+    return simplifiedRows.join(' ; ');
+  }
+  
+  /**
+   * 简化cases内容
+   */
+  simplifyCasesContent(content) {
+    // 分割行
+    const rows = content.split(/\\\\/).map(row => row.trim()).filter(row => row);
+    
+    const simplifiedRows = rows.map(row => {
+      // 每行可能有 & 分隔表达式和条件
+      const parts = row.split('&').map(part => this.simplifyLaTeXBasic(part.trim()));
+      if (parts.length >= 2) {
+        return `${parts[0]}, if ${parts[1]}`;
+      }
+      return parts[0];
+    });
+    
+    return simplifiedRows.join(' | ');
+  }
+  
+  /**
+   * 简化align内容
+   */
+  simplifyAlignContent(content) {
+    // 分割行
+    const rows = content.split(/\\\\/).map(row => row.trim()).filter(row => row);
+    
+    const simplifiedRows = rows.map(row => {
+      // 移除对齐符 &
+      return this.simplifyLaTeXBasic(row.replace(/&/g, ' '));
+    });
+    
+    return simplifiedRows.join(' ; ');
+  }
+  
+  /**
+   * 基础LaTeX简化（不包含环境处理，避免递归）
+   */
+  simplifyLaTeXBasic(latex) {
+    if (!latex) return '';
+    
+    let result = latex;
+    
+    // 处理常见命令
+    result = result.replace(/\\mathbb\{([A-Z])\}/g, (_, letter) => MATHBB_MAP[letter] || letter);
+    result = result.replace(/\\mathcal\{([A-Z])\}/g, (_, letter) => MATHCAL_MAP[letter] || letter);
+    result = result.replace(/\\text\{([^}]*)\}/g, '$1');
+    result = result.replace(/\\frac\{([^}]*)\}\{([^}]*)\}/g, '($1)/($2)');
+    result = result.replace(/\\sqrt\{([^}]*)\}/g, '√($1)');
+    
+    // 处理上下标
+    result = this.processSupSubScripts(result);
+    
+    // 替换LaTeX命令为Unicode
+    const sortedCommands = Object.keys(LATEX_UNICODE_MAP).sort((a, b) => b.length - a.length);
+    sortedCommands.forEach(command => {
+      const pattern = new RegExp(`\\\\${command}(?![a-zA-Z])`, 'g');
+      result = result.replace(pattern, LATEX_UNICODE_MAP[command]);
+    });
+    
+    // 清理
+    result = result.replace(/\\([a-zA-Z]+)/g, '$1');
+    result = result.replace(/\\(.)/g, '$1');
+    result = result.replace(/[{}]/g, '');
+    
+    return result.trim();
   }
 }
 

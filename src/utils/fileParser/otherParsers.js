@@ -226,6 +226,26 @@ const extractGeminiMultiBranchData = (jsonData, fileName) => {
         humanMessage._version = humanVersion.version;
         humanMessage._version_type = humanVersion.type || 'normal';
 
+        // 处理图片
+        if (humanVersion.images && humanVersion.images.length > 0) {
+          metaInfo.has_embedded_images = true;
+          humanVersion.images.forEach((imgData, imgIndex) => {
+            metaInfo.totalImagesProcessed++;
+            const imageInfo = processGeminiImage(imgData, turnIndex, imgIndex, platform);
+            if (imageInfo) {
+              humanMessage.images.push(imageInfo);
+            }
+          });
+
+          // 添加图片标记
+          if (humanMessage.images.length > 0) {
+            const imageMarkdown = humanMessage.images
+              .map((img, idx) => `[图片${idx + 1}]`)
+              .join(' ');
+            humanMessage.display_text = `${imageMarkdown}\n\n${humanMessage.display_text}`.trim();
+          }
+        }
+
         chatHistory.push(humanMessage);
       });
     }
@@ -257,6 +277,26 @@ const extractGeminiMultiBranchData = (jsonData, fileName) => {
         // 处理 canvas 内容
         if (assistantVersion.canvas && assistantVersion.canvas.length > 0) {
           assistantMessage.canvas = assistantVersion.canvas;
+        }
+
+        // 处理图片
+        if (assistantVersion.images && assistantVersion.images.length > 0) {
+          metaInfo.has_embedded_images = true;
+          assistantVersion.images.forEach((imgData, imgIndex) => {
+            metaInfo.totalImagesProcessed++;
+            const imageInfo = processGeminiImage(imgData, turnIndex, imgIndex, platform);
+            if (imageInfo) {
+              assistantMessage.images.push(imageInfo);
+            }
+          });
+
+          // 添加图片标记
+          if (assistantMessage.images.length > 0) {
+            const imageMarkdown = assistantMessage.images
+              .map((img, idx) => `[图片${idx + 1}]`)
+              .join(' ');
+            assistantMessage.display_text = `${imageMarkdown}\n\n${assistantMessage.display_text}`.trim();
+          }
         }
 
         chatHistory.push(assistantMessage);
