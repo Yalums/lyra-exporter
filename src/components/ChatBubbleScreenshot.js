@@ -68,6 +68,26 @@ const ChatBubbleScreenshot = ({
             <div className="timeline-body">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
+                components={{
+                  p: ({ children }) => <span>{children}</span>,
+                  h1: ({ children }) => <strong>{children}</strong>,
+                  h2: ({ children }) => <strong>{children}</strong>,
+                  h3: ({ children }) => <strong>{children}</strong>,
+                  h4: ({ children }) => <strong>{children}</strong>,
+                  h5: ({ children }) => <strong>{children}</strong>,
+                  h6: ({ children }) => <strong>{children}</strong>,
+                  strong: ({ children }) => <strong>{children}</strong>,
+                  em: ({ children }) => <em>{children}</em>,
+                  code: ({ inline, children }) => inline ? 
+                    <code className="inline-code">{children}</code> : 
+                    <code>{children}</code>,
+                  pre: ({ children }) => <span>{children}</span>,
+                  blockquote: ({ children }) => <span>" {children} "</span>,
+                  a: ({ children }) => <span>{children}</span>,
+                  ul: ({ children }) => <span>{children}</span>,
+                  ol: ({ children }) => <span>{children}</span>,
+                  li: ({ children }) => <span>• {children}</span>
+                }}
               >
                 {message.display_text || message.text || ''}
               </ReactMarkdown>

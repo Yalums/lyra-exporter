@@ -107,6 +107,23 @@ export const screenshotExportManager = {
   },
 
   /**
+   * 等待所有图片和SVG加载完成
+   */
+  async waitForImages(container) {
+    const images = container.querySelectorAll('img, svg');
+    const promises = Array.from(images).map((img) => {
+      if (img.complete) return Promise.resolve();
+      return new Promise((resolve) => {
+        img.onload = resolve;
+        img.onerror = resolve; // 即使加载失败也继续
+        // 超时保护
+        setTimeout(resolve, 3000);
+      });
+    });
+    await Promise.all(promises);
+  },
+
+  /**
    * 测量气泡高度
    */
   async measureBubbleHeights(messages, theme, platform, format, width, exportOptions) {
@@ -118,10 +135,13 @@ export const screenshotExportManager = {
 
       root.render(
         <div
-          ref={(ref) => {
+          ref={async (ref) => {
             if (ref) {
-              // 等待渲染完成
-              setTimeout(() => {
+              // 等待渲染完成和图片加载
+              setTimeout(async () => {
+                // 等待所有SVG图标加载
+                await this.waitForImages(ref);
+                
                 const bubbles = ref.querySelectorAll('.screenshot-bubble');
                 bubbles.forEach((bubble) => {
                   heights.push(bubble.offsetHeight + 20); // 添加间距
@@ -132,7 +152,7 @@ export const screenshotExportManager = {
                 document.body.removeChild(container);
 
                 resolve(heights);
-              }, 100);
+              }, 500); // 增加到500ms
             }
           }}
         >
@@ -197,9 +217,12 @@ export const screenshotExportManager = {
           style={{ width: `${width}px` }}
           ref={async (ref) => {
             if (ref) {
-              // 等待渲染完成
+              // 等待渲染完成和图片加载
               setTimeout(async () => {
                 try {
+                  // 等待所有SVG图标加载完成
+                  await this.waitForImages(ref);
+                  
                   // 截图
                   const canvas = await html2canvas(ref, {
                     scale,
@@ -224,7 +247,7 @@ export const screenshotExportManager = {
 
                   reject(error);
                 }
-              }, 200);
+              }, 800); // 增加到800ms，给SVG加载更多时间
             }
           }}
         >

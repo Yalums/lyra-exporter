@@ -290,15 +290,22 @@ export const filterCitations = (citations) => {
 // 处理附件
 export const processAttachments = (attachments) => {
   if (!Array.isArray(attachments)) return [];
-  return attachments.map(att => ({
-    id: att.id || '',
-    file_name: att.name || att.file_name || '未知文件',
-    file_size: att.size || att.file_size || 0,
-    file_type: att.mimeType || att.mime_type || att.file_type || '',
-    extracted_content: att.extractedContent || att.extracted_content || '',
-    link: att.link || att.url || att.download_url || att.href || '',
-    has_link: !!(att.link || att.url || att.download_url || att.href)
-  }));
+  return attachments.map(att => {
+    const fileType = att.mimeType || att.mime_type || att.file_type || '';
+    const isImage = fileType.startsWith('image/');
+
+    return {
+      id: att.id || '',
+      file_name: att.name || att.file_name || '未知文件',
+      file_size: att.size || att.file_size || 0,
+      file_type: fileType,
+      extracted_content: att.extractedContent || att.extracted_content || '',
+      link: att.link || att.url || att.download_url || att.href || '',
+      has_link: !!(att.link || att.url || att.download_url || att.href),
+      // 标记图片附件为嵌入图片，这样它们会显示在内容区域而不是附件标签页
+      is_embedded_image: isImage
+    };
+  });
 };
 
 // 提取thinking标签和content标签的内容
@@ -711,6 +718,17 @@ export const extractBranchInfo = (messages) => {
 
 // ==================== 图片显示 ====================
 export const getImageDisplayData = (imageInfo) => {
+  // 支持新格式：从 lyra-exporter-fetch 导出的图片
+  if (imageInfo.is_embedded_image && imageInfo.link) {
+    return {
+      src: imageInfo.link,  // data URL 格式
+      alt: imageInfo.file_name,
+      title: `${imageInfo.file_name} (${FileUtils.formatFileSize(imageInfo.file_size || 0)})`,
+      isBase64: true
+    };
+  }
+
+  // 原有格式：Claude/Gemini 等
   if (imageInfo.display_mode === 'base64' && imageInfo.embedded_image) {
     return {
       src: imageInfo.embedded_image.data,
@@ -719,6 +737,7 @@ export const getImageDisplayData = (imageInfo) => {
       isBase64: true
     };
   }
+
   return {
     src: imageInfo.preview_url || imageInfo.thumbnail_url || imageInfo.file_url,
     alt: imageInfo.file_name,

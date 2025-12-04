@@ -564,7 +564,7 @@ export async function handleExport({
         return lastMsg.timestamp || null;
       };
 
-      // 导出PDF
+      // 导出PDF（强制不包含思考过程）
       return pdfManager.exportToPDF(
         filteredMessages,
         {
@@ -574,7 +574,7 @@ export async function handleExport({
           updated_at: getLastUpdatedTime(filteredMessages)
         },
         {
-          includeThinking: exportOptions.includeThinking,
+          includeThinking: false, // PDF导出强制不包含思考过程
           includeArtifacts: exportOptions.includeArtifacts,
           includeTimestamps: exportOptions.includeTimestamps,
           includeTools: exportOptions.includeTools,

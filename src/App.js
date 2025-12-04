@@ -499,7 +499,7 @@ function App() {
   const [exportOptions, setExportOptions] = useState(() => {
     const savedExportConfig = StorageUtils.getLocalStorage('export-config', {});
     return {
-      scope: 'current',
+      scope: 'currentBranch',
       exportFormat: 'markdown', // 新增：导出格式（markdown 或 screenshot）
       excludeDeleted: true,
       includeCompleted: false,

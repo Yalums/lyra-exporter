@@ -10,6 +10,37 @@ import {
   extractBranchInfo
 } from './helpers.js';
 
+// 从 base64 数据检测图片 MIME 类型
+const detectMimeType = (base64Data, defaultType = 'image/png') => {
+  if (!base64Data) return defaultType;
+  const firstBytes = base64Data.substring(0, 20);
+  if (firstBytes.startsWith('iVBORw0KGgo')) return 'image/png';
+  if (firstBytes.startsWith('/9j/')) return 'image/jpeg';
+  if (firstBytes.startsWith('R0lGOD')) return 'image/gif';
+  if (firstBytes.startsWith('UklGR')) return 'image/webp';
+  return defaultType;
+};
+
+// 处理 Lyra 导出的图片数据
+const processLyraImage = (img, idx, prefix, metaInfo) => {
+  if (img.type !== 'image' || !img.data) return null;
+  let mimeType = img.format || 'image/png';
+  if (mimeType === 'application/octet-stream' || !mimeType.startsWith('image/')) {
+    mimeType = detectMimeType(img.data);
+  }
+  const fileExt = mimeType.split('/')[1] || 'png';
+  return {
+    id: `lyra_${prefix}_${idx}`,
+    file_name: `${prefix}_${idx}.${fileExt}`,
+    file_size: img.size || 0,
+    file_type: mimeType,
+    extracted_content: '',
+    link: `data:${mimeType};base64,${img.data}`,
+    has_link: true,
+    is_embedded_image: true
+  };
+};
+
 // ==================== ChatGPT 解析器 ====================
 /**
  * 解析 ChatGPT 对话导出格式
@@ -19,6 +50,7 @@ import {
  */
 export const extractChatGPTData = (jsonData, fileName = '') => {
   try {
+    const mapping = jsonData.mapping || {};
     const title = jsonData.title || fileName.replace(/\.(jsonl|json)$/i, '') || 'ChatGPT 对话';
     const createdAt = jsonData.create_time ? DateTimeUtils.formatDateTime(new Date(jsonData.create_time * 1000).toISOString()) : DateTimeUtils.formatDateTime(new Date().toISOString());
 
@@ -44,8 +76,6 @@ export const extractChatGPTData = (jsonData, fileName = '') => {
     const nodeIdToMessage = new Map();
     let lastUserMessage = null;
 
-    const mapping = jsonData.mapping || {};
-
     // 用于缓存当前助手消息的思考内容和工具调用
     let pendingThinking = '';
     let pendingTools = [];
@@ -57,6 +87,9 @@ export const extractChatGPTData = (jsonData, fileName = '') => {
     // 用于缓存由工具产生的附件。这些附件应在下一条助手最终输出消息上附加。
     // 部分工具（如 python_user_visible、web.run 等）会在 tool 消息的 metadata.attachments 中提供文件列表。
     let pendingAttachments = [];
+    
+    // 用于缓存助手生成的图片（关联到用户消息的 assistant_generated）
+    let pendingAssistantGeneratedImages = [];
 
     /**
      * 寻找某节点祖先链上最近的已生成消息，用于确定 parent_uuid
@@ -177,6 +210,25 @@ export const extractChatGPTData = (jsonData, fileName = '') => {
             .finalize(true);
 
           messageData._node_id = nodeId;
+
+          // 处理 Lyra 导出的图片数据
+          if (node.lyra_images) {
+            if (Array.isArray(node.lyra_images.user)) {
+              messageData.attachments = messageData.attachments.filter(att => !att.is_embedded_image);
+              node.lyra_images.user.forEach((img, idx) => {
+                const attachment = processLyraImage(img, idx, 'user_image');
+                if (attachment) {
+                  messageData.attachments.push(attachment);
+                  metaInfo.has_embedded_images = true;
+                  metaInfo.images_processed = (metaInfo.images_processed || 0) + 1;
+                }
+              });
+            }
+            if (Array.isArray(node.lyra_images.assistant_generated)) {
+              pendingAssistantGeneratedImages = node.lyra_images.assistant_generated;
+            }
+          }
+
           chatHistory.push(messageData);
           nodeIdToMessage.set(nodeId, messageData);
           lastUserMessage = messageData;
@@ -276,6 +328,32 @@ export const extractChatGPTData = (jsonData, fileName = '') => {
             if (pendingAttachments.length > 0) {
               messageData.attachments.push(...pendingAttachments);
               pendingAttachments = [];
+            }
+            
+            // 处理之前缓存的助手生成图片
+            if (pendingAssistantGeneratedImages.length > 0) {
+              pendingAssistantGeneratedImages.forEach((img, idx) => {
+                const attachment = processLyraImage(img, idx, 'generated');
+                if (attachment) {
+                  messageData.attachments.push(attachment);
+                  metaInfo.has_embedded_images = true;
+                  metaInfo.images_processed = (metaInfo.images_processed || 0) + 1;
+                }
+              });
+              pendingAssistantGeneratedImages = [];
+            }
+
+            // 处理 Lyra 导出的助手图片数据
+            if (node.lyra_images && Array.isArray(node.lyra_images.assistant)) {
+              messageData.attachments = messageData.attachments.filter(att => !att.is_embedded_image);
+              node.lyra_images.assistant.forEach((img, idx) => {
+                const attachment = processLyraImage(img, idx, 'assistant_image');
+                if (attachment) {
+                  messageData.attachments.push(attachment);
+                  metaInfo.has_embedded_images = true;
+                  metaInfo.images_processed = (metaInfo.images_processed || 0) + 1;
+                }
+              });
             }
 
             chatHistory.push(messageData);

@@ -2,6 +2,35 @@
 // PDF文本处理辅助函数 - 纯函数模块，处理文本清理、解析和格式化
 
 /**
+ * 清理代码块文本（轻量级清理，保留代码特殊字符）
+ * @param {string} text - 原始代码文本
+ * @returns {string} - 清理后的代码文本
+ */
+export function cleanCodeText(text) {
+  if (!text || typeof text !== 'string') {
+    return '';
+  }
+
+  try {
+    // 1. Unicode 标准化（NFC 模式）
+    let cleaned = text.normalize('NFC');
+
+    // 2. 仅移除控制字符（保留换行符和制表符）
+    cleaned = cleaned.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, '');
+
+    // 3. 移除零宽字符
+    cleaned = cleaned.replace(/[\u200B-\u200F\u2060\uFEFF]/g, '');
+
+    // 注意：代码块内容不进行引号、星号等替换，保持原样
+    return cleaned;
+  } catch (error) {
+    console.error('[PDF导出] 代码文本清理失败:', error);
+    // 如果清理失败，返回简化处理的文本
+    return text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+  }
+}
+
+/**
  * 清理和标准化文本，防止编码问题
  * @param {string} text - 原始文本
  * @returns {string} - 清理后的文本

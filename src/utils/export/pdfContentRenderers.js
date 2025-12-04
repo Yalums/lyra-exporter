@@ -1,6 +1,6 @@
 // PDF内容渲染器 - 负责所有内容的渲染工作
 
-import { cleanText, parseInlineMarkdown, parseCodeLineBold, applyCJKPunctuationRules } from './pdfTextHelpers'
+import { cleanText, cleanCodeText, parseInlineMarkdown, parseCodeLineBold, applyCJKPunctuationRules } from './pdfTextHelpers'
 import { LaTeXRenderer } from './pdfLatexRenderer'
 
 // ============ 渲染常量 ============
@@ -513,7 +513,7 @@ export class ContentRenderer {
     const codeWidth = maxWidth - lineNumberWidth - 8;
     const padding = 3;
 
-    const cleanCode = cleanText(code);
+    const cleanCode = cleanCodeText(code);  // 使用轻量级清理，保留代码特殊字符
     const cleanLanguage = cleanText(language);
 
     // 渲染语言标签
@@ -547,7 +547,7 @@ export class ContentRenderer {
         wrappedLines.push({ text: '', lineNumber: wrappedLines.length + 1 });
         return;
       }
-      const cleanLine = cleanText(line);
+      const cleanLine = cleanCodeText(line);  // 使用轻量级清理
       if (!cleanLine) {
         wrappedLines.push({ text: '', lineNumber: wrappedLines.length + 1 });
         return;
@@ -635,7 +635,7 @@ export class ContentRenderer {
       }
 
       // 渲染代码文本（支持 **粗体** 和 ### 标题）
-      const safeLine = cleanText(text);
+      const safeLine = cleanCodeText(text);  // 使用轻量级清理
       if (safeLine !== null && safeLine !== undefined) {
         // 解析粗体和标题标记
         const segments = parseCodeLineBold(safeLine);
@@ -912,12 +912,12 @@ export class ContentRenderer {
   }
 
   /**
-   * 渲染Markdown表格（支持跨页续表头）
+   * 渲染Markdown表格（支持跨页续表头、多行单元格、自动换行）
    */
   renderTable(tableLines) {
     if (!tableLines || tableLines.length < 2) return;
 
-    const { TABLE_CELL_PADDING, TABLE_HEADER_BG, LINE_HEIGHT_TABLE_ROW } = RENDER_CONSTANTS;
+    const { TABLE_CELL_PADDING, TABLE_HEADER_BG } = RENDER_CONSTANTS;
     const maxWidth = PDF_STYLES.PAGE_WIDTH - PDF_STYLES.MARGIN_LEFT - PDF_STYLES.MARGIN_RIGHT;
 
     // 解析表格行
@@ -941,7 +941,7 @@ export class ContentRenderer {
         const isHeaderRow = (idx === 0);
         const rowData = { cells, isHeader: isHeaderRow };
         rows.push(rowData);
-        
+
         // 保存表头行以便跨页时重绘
         if (isHeaderRow) {
           headerRow = rowData;
@@ -953,17 +953,62 @@ export class ContentRenderer {
 
     const colCount = Math.max(...rows.map(r => r.cells.length));
     const cellWidth = maxWidth / colCount;
-    const rowHeight = PDF_STYLES.LINE_HEIGHT * LINE_HEIGHT_TABLE_ROW;
+    const maxTextWidth = cellWidth - TABLE_CELL_PADDING * 2;
+    const baseRowHeight = PDF_STYLES.LINE_HEIGHT * 1.8;
 
     this.pdf.setDrawColor(200, 200, 200);
     this.pdf.setLineWidth(0.3);
 
     /**
-     * 渲染单行的辅助函数
+     * 计算单元格需要的行数（考虑 <br> 换行和自动换行）
      */
-    const renderTableRow = (row, rowStartY) => {
+    const calculateCellLines = (cellText) => {
+      const processedText = this.processCellContent(cellText);
+      if (!processedText) return [];
+
+      // 按换行符分割
+      const manualLines = processedText.split('\n');
+      const allWrappedLines = [];
+
+      // 对每行进行自动换行处理
+      this.pdf.setFontSize(PDF_STYLES.FONT_SIZE_BODY);
+      manualLines.forEach(line => {
+        if (!line.trim()) {
+          allWrappedLines.push('');
+          return;
+        }
+        try {
+          const wrapped = this.pdf.splitTextToSize(line, maxTextWidth);
+          allWrappedLines.push(...wrapped);
+        } catch (e) {
+          allWrappedLines.push(line);
+        }
+      });
+
+      return allWrappedLines;
+    };
+
+    /**
+     * 计算行高度（基于该行中所有单元格的最大行数）
+     */
+    const calculateRowHeight = (row) => {
+      let maxLines = 1;
+      row.processedCells = row.cells.map(cell => {
+        const lines = calculateCellLines(cell);
+        maxLines = Math.max(maxLines, lines.length);
+        return lines;
+      });
+      // 每行高度 = 行数 * 行高 + 上下内边距
+      return Math.max(baseRowHeight, maxLines * PDF_STYLES.LINE_HEIGHT + TABLE_CELL_PADDING * 2);
+    };
+
+    /**
+     * 渲染单行的辅助函数（支持多行单元格）
+     */
+    const renderTableRow = (row, rowStartY, rowHeight) => {
       row.cells.forEach((cell, colIdx) => {
         const cellX = PDF_STYLES.MARGIN_LEFT + colIdx * cellWidth;
+        const cellLines = row.processedCells ? row.processedCells[colIdx] : calculateCellLines(cell);
 
         // 表头背景
         if (row.isHeader) {
@@ -975,9 +1020,7 @@ export class ContentRenderer {
         this.pdf.setDrawColor(200, 200, 200);
         this.pdf.rect(cellX, rowStartY, cellWidth, rowHeight, 'S');
 
-        // 处理单元格内容（LaTeX和Markdown）
-        const processedText = this.processCellContent(cell);
-
+        // 设置字体样式
         this.pdf.setFontSize(PDF_STYLES.FONT_SIZE_BODY);
         if (row.isHeader) {
           this.safeSetFont(this.chineseFontName, 'bold');
@@ -987,42 +1030,59 @@ export class ContentRenderer {
           this.pdf.setTextColor(50, 50, 50);
         }
 
-        // 截断过长文本
-        const maxTextWidth = cellWidth - TABLE_CELL_PADDING * 2;
-        const truncatedText = this.truncateText(processedText, maxTextWidth);
+        // 渲染多行文本
+        if (cellLines.length > 0) {
+          // 计算垂直起始位置（居中对齐）
+          const totalTextHeight = cellLines.length * PDF_STYLES.LINE_HEIGHT;
+          const startTextY = rowStartY + (rowHeight - totalTextHeight) / 2 + PDF_STYLES.FONT_SIZE_BODY * 0.35;
 
-        // 文本垂直居中：单元格中心 + 字体基线偏移
-        const textY = rowStartY + rowHeight / 2 + PDF_STYLES.FONT_SIZE_BODY * 0.15;
-        this.pdf.text(truncatedText, cellX + TABLE_CELL_PADDING, textY);
+          cellLines.forEach((line, lineIdx) => {
+            const textY = startTextY + lineIdx * PDF_STYLES.LINE_HEIGHT;
+            const cleanLine = cleanText(line);
+            if (cleanLine) {
+              this.pdf.text(cleanLine, cellX + TABLE_CELL_PADDING, textY);
+            }
+          });
+        }
       });
     };
 
+    // 预先计算所有行的高度
+    rows.forEach(row => {
+      row.height = calculateRowHeight(row);
+    });
+
+    // 计算表头高度（如果有表头）
+    const headerRowHeight = headerRow ? headerRow.height : 0;
+
     // 渲染所有行
     rows.forEach((row, rowIdx) => {
+      const rowHeight = row.height;
+
       // 检查是否需要换页
       const needsPageBreak = this.currentY + rowHeight > PDF_STYLES.PAGE_HEIGHT - PDF_STYLES.MARGIN_BOTTOM;
-      
+
       if (needsPageBreak && rowIdx > 0) {
         // 换页
         this.pdf.addPage();
         this.currentY = PDF_STYLES.MARGIN_TOP;
-        
+
         // 在新页顶部重绘表头（续表）
         if (headerRow) {
-          // 添加“续表”标记
+          // 添加"续表"标记
           this.pdf.setFontSize(PDF_STYLES.FONT_SIZE_TIMESTAMP);
           this.pdf.setTextColor(150, 150, 150);
           this.pdf.text('(续表)', PDF_STYLES.MARGIN_LEFT, this.currentY);
           this.currentY += PDF_STYLES.LINE_HEIGHT * 0.8;
-          
+
           // 重绘表头
-          renderTableRow(headerRow, this.currentY);
-          this.currentY += rowHeight;
+          renderTableRow(headerRow, this.currentY, headerRowHeight);
+          this.currentY += headerRowHeight;
         }
       }
-      
+
       const rowStartY = this.currentY;
-      renderTableRow(row, rowStartY);
+      renderTableRow(row, rowStartY, rowHeight);
       this.currentY = rowStartY + rowHeight;
     });
 
@@ -1033,11 +1093,17 @@ export class ContentRenderer {
 
   /**
    * 处理表格单元格内容
+   * @param {string} cellText - 单元格文本
+   * @param {boolean} keepLineBreaks - 是否保留换行符（用于多行渲染）
    */
-  processCellContent(cellText) {
+  processCellContent(cellText, keepLineBreaks = false) {
     if (!cellText) return '';
 
     let result = cellText;
+
+    // 处理 <br> 标签转换为换行符
+    result = result.replace(/<br\s*\/?>/gi, '\n');  // <br>, <br/>, <br />
+    result = result.replace(/<\/br>/gi, '\n');      // </br>
 
     // 处理行内LaTeX
     result = result.replace(/\$([^$]+)\$/g, (match, latex) => {

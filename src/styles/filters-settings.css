@@ -307,6 +307,7 @@
   padding: 14px 0;
   border-bottom: 1px solid var(--border-color);
   gap: 16px;
+  background: transparent;
 }
 
 .setting-item:last-child {
@@ -324,7 +325,7 @@
   gap: 4px;
 }
 
-.setting-label > span:first-child {
+.setting-label span:first-child {
   font-size: 15px;
   font-weight: 500;
   color: var(--text-primary);
@@ -402,6 +403,8 @@
   width: 100%;
   cursor: pointer;
   gap: 12px;
+  background: transparent;
+  color: inherit;
 }
 
 .setting-checkbox input[type="checkbox"] {
@@ -410,10 +413,19 @@
   margin: 2px 0 0 0;
   cursor: pointer;
   accent-color: var(--accent-color);
+  flex-shrink: 0;
 }
 
 .setting-checkbox .setting-label {
   flex: 1;
+}
+
+.setting-checkbox .setting-label span:first-child {
+  color: var(--text-primary) !important;
+}
+
+.setting-checkbox .setting-label .setting-description {
+  color: var(--text-secondary) !important;
 }
 
 .theme-toggle-btn {
@@ -449,6 +461,38 @@
 }
 
 /* ============ 深色主题特殊样式 ============ */
+/* 确保深色主题下文字颜色正确显示（Edge浏览器兼容性） */
+[data-theme="dark"] .settings-modal * {
+  color-scheme: dark;
+}
+
+[data-theme="dark"] .settings-modal .setting-label span:first-child,
+[data-theme="dark"] .settings-modal .setting-checkbox .setting-label span:first-child {
+  color: #f5f5f5 !important;
+}
+
+[data-theme="dark"] .settings-modal .setting-description,
+[data-theme="dark"] .settings-modal .setting-checkbox .setting-description {
+  color: #d1d5db !important;
+}
+
+[data-theme="dark"] .settings-modal .settings-section h3 {
+  color: #d1d5db !important;
+}
+
+[data-theme="dark"] .settings-modal .preview-label {
+  color: #9ca3af !important;
+}
+
+[data-theme="dark"] .settings-modal .theme-text {
+  color: #f5f5f5 !important;
+}
+
+[data-theme="dark"] .settings-modal .setting-item,
+[data-theme="dark"] .settings-modal .setting-checkbox {
+  background: transparent !important;
+}
+
 [data-theme="dark"] .setting-select,
 [data-theme="dark"] .setting-input {
   background: rgba(255, 255, 255, 0.08);

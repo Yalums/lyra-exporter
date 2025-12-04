@@ -94,7 +94,7 @@ const ExportPanel = ({
           {/* PDF 页面格式选择 - 仅在选中 PDF 时显示 */}
           {exportOptions.exportFormat === 'pdf' && (
             <div className="option-group">
-              <h3>{t('app.export.pageFormat.title')}</h3>
+              <h3>PDF</h3>
               <label className="radio-option">
                 <input
                   type="radio"
@@ -149,26 +149,6 @@ const ExportPanel = ({
               <input
                 type="radio"
                 name="scope"
-                value="current"
-                checked={exportOptions.scope === 'current'}
-                onChange={(e) => setExportOptions({...exportOptions, scope: e.target.value})}
-                disabled={viewMode !== 'timeline'}
-              />
-              <div className="option-label">
-                <span>{t('app.export.scope.current')}</span>
-                {viewMode === 'timeline' ? (
-                  <span className="option-description">
-                    {t('app.export.scope.currentDesc')}
-                  </span>
-                ) : (
-                  <span className="hint">{t('app.export.scope.hint.enterTimeline')}</span>
-                )}
-              </div>
-            </label>
-            <label className="radio-option">
-              <input
-                type="radio"
-                name="scope"
                 value="currentBranch"
                 checked={exportOptions.scope === 'currentBranch'}
                 onChange={(e) => setExportOptions({...exportOptions, scope: e.target.value})}
@@ -184,6 +164,26 @@ const ExportPanel = ({
                       {t('app.export.scope.currentBranchDesc')}
                     </span>
                   )
+                ) : (
+                  <span className="hint">{t('app.export.scope.hint.enterTimeline')}</span>
+                )}
+              </div>
+            </label>
+            <label className="radio-option">
+              <input
+                type="radio"
+                name="scope"
+                value="current"
+                checked={exportOptions.scope === 'current'}
+                onChange={(e) => setExportOptions({...exportOptions, scope: e.target.value})}
+                disabled={viewMode !== 'timeline'}
+              />
+              <div className="option-label">
+                <span>{t('app.export.scope.current')}</span>
+                {viewMode === 'timeline' ? (
+                  <span className="option-description">
+                    {t('app.export.scope.currentDesc')}
+                  </span>
                 ) : (
                   <span className="hint">{t('app.export.scope.hint.enterTimeline')}</span>
                 )}

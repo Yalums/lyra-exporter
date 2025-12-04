@@ -83,7 +83,7 @@ export class PDFExportManager {
     this.messageAnchors = []; // 重置消息锚点
 
     this.config = {
-      includeThinking: config.includeThinking ?? true,
+      includeThinking: config.includeThinking ?? false,
       includeArtifacts: config.includeArtifacts ?? true,
       includeTimestamps: config.includeTimestamps ?? false,
       includeTools: config.includeTools ?? true,
