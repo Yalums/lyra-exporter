@@ -6,6 +6,7 @@ import geminiIcon from '../assets/icons/Gemini.svg';
 import notebooklmIcon from '../assets/icons/NotebookLM.svg';
 import chatgptIcon from '../assets/icons/ChatGPT.svg';
 import sillyTavernIcon from '../assets/icons/SillyTavern.png';
+import grokIcon from '../assets/icons/Grok.svg';
 
 // 平台图标映射
 const PLATFORM_ICONS = {
@@ -13,11 +14,12 @@ const PLATFORM_ICONS = {
   gemini: geminiIcon,
   notebooklm: notebooklmIcon,
   jsonl_chat: sillyTavernIcon,
-  chatgpt: chatgptIcon
+  chatgpt: chatgptIcon,
+  grok: grokIcon
 };
 
 // 需要白色背景的图标
-const NEEDS_WHITE_BG = ['chatgpt', 'gemini'];
+const NEEDS_WHITE_BG = ['chatgpt', 'gemini', 'grok'];
 
 const PlatformIcon = ({ platform, format, size = 16, style = {} }) => {
   // 根据format和platform确定使用哪个图标
@@ -35,6 +37,9 @@ const PlatformIcon = ({ platform, format, size = 16, style = {} }) => {
     }
     if (format === 'chatgpt' || platform === 'chatgpt') {
       return 'chatgpt';
+    }
+    if (format === 'grok' || platform === 'grok') {
+      return 'grok';
     }
     return 'claude'; // 默认为claude
   };

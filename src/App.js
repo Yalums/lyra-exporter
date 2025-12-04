@@ -70,6 +70,8 @@ export const ValidationUtils = {
       'https://claude.easychat.top',
       'https://pro.easychat.top',
       'https://chatgpt.com',
+      'https://grok.com',
+      'https://x.com',
       'https://gemini.google.com',
       'https://aistudio.google.com',
       'http://localhost:3789',

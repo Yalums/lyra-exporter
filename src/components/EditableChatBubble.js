@@ -27,6 +27,7 @@ const EditableChatBubble = ({
 
     if (format === 'jsonl_chat') return 'assistant platform-jsonl_chat';
     if (format === 'chatgpt') return 'assistant platform-chatgpt';
+    if (format === 'grok') return 'assistant platform-grok';
     if (format === 'gemini_notebooklm') {
       const platformLower = platform?.toLowerCase() || '';
       if (platformLower.includes('notebooklm')) return 'assistant platform-notebooklm';
@@ -36,6 +37,7 @@ const EditableChatBubble = ({
     const platformLower = platform?.toLowerCase() || 'claude';
     if (platformLower.includes('jsonl')) return 'assistant platform-jsonl_chat';
     if (platformLower.includes('chatgpt')) return 'assistant platform-chatgpt';
+    if (platformLower.includes('grok')) return 'assistant platform-grok';
     if (platformLower.includes('gemini')) return 'assistant platform-gemini';
     if (platformLower.includes('ai studio') || platformLower.includes('aistudio')) return 'assistant platform-aistudio';
     if (platformLower.includes('notebooklm')) return 'assistant platform-notebooklm';

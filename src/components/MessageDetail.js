@@ -115,7 +115,7 @@ const MessageDetail = ({
       }
     } else {
       // 助手消息：思考过程
-      if (format === 'claude' || format === 'claude_full_export' || format === 'jsonl_chat' || format === 'chatgpt' || !format) {
+      if (format === 'claude' || format === 'claude_full_export' || format === 'jsonl_chat' || format === 'chatgpt' || format === 'grok' || !format) {
         if (currentMessage.thinking) {
           baseTabs.push({ id: 'thinking', label: t('messageDetail.tabs.thinking') });
         }
@@ -661,7 +661,7 @@ const MessageDetail = ({
         );
 
       case 'thinking':
-        if (format !== 'claude' && format !== 'claude_full_export' && format !== 'chatgpt' && format !== 'jsonl_chat' && format) {
+        if (format !== 'claude' && format !== 'claude_full_export' && format !== 'chatgpt' && format !== 'jsonl_chat' && format !== 'grok' && format) {
           return <div className="placeholder">{t('messageDetail.placeholder.formatNotSupported.thinking')}</div>;
         }
         return (

@@ -1376,6 +1376,7 @@ const ConversationTimeline = ({
   // 优先根据format判断，因为format更准确
   if (format === 'jsonl_chat') return 'assistant platform-jsonl_chat';
   if (format === 'chatgpt') return 'assistant platform-chatgpt';
+  if (format === 'grok') return 'assistant platform-grok';
   if (format === 'gemini_notebooklm') {
     const platformLower = platform?.toLowerCase() || '';
     if (platformLower.includes('notebooklm')) return 'assistant platform-notebooklm';
@@ -1386,6 +1387,7 @@ const ConversationTimeline = ({
   const platformLower = platform?.toLowerCase() || 'claude';
   if (platformLower.includes('jsonl')) return 'assistant platform-jsonl_chat';
   if (platformLower.includes('chatgpt')) return 'assistant platform-chatgpt';
+  if (platformLower.includes('grok')) return 'assistant platform-grok';
   if (platformLower.includes('gemini')) return 'assistant platform-gemini';
   if (platformLower.includes('ai studio') || platformLower.includes('aistudio')) return 'assistant platform-aistudio';
   if (platformLower.includes('notebooklm')) return 'assistant platform-notebooklm';
@@ -1651,7 +1653,7 @@ const ConversationTimeline = ({
                           <div className="sender-info">
                             <div className="sender-name">
                               {msg.sender_label}
-                              {hasCustomSort && showAllBranches && (
+                              {(showAllBranches || branchAnalysis.branchPoints.size === 0) && (
                                 <span className="sort-position"> (#{index + 1})</span>
                               )}
                             </div>
@@ -1693,7 +1695,7 @@ const ConversationTimeline = ({
                       </div>
                       
                       <div className="timeline-body">
-                        <ReactMarkdown 
+                        <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
                           components={{
                             p: ({ children }) => <span>{children}</span>,
@@ -1705,8 +1707,8 @@ const ConversationTimeline = ({
                             h6: ({ children }) => <strong>{children}</strong>,
                             strong: ({ children }) => <strong>{children}</strong>,
                             em: ({ children }) => <em>{children}</em>,
-                            code: ({ inline, children }) => inline ? 
-                              <code className="inline-code">{children}</code> : 
+                            code: ({ inline, children }) => inline ?
+                              <code className="inline-code">{children}</code> :
                               <code>{children}</code>,
                             pre: ({ children }) => <span>{children}</span>,
                             blockquote: ({ children }) => <span>" {children} "</span>,

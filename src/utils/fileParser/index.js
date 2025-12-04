@@ -4,6 +4,7 @@
 // 导入所有解析器
 import { extractClaudeData, detectClaudeBranches } from './claudeParser.js';
 import { extractChatGPTData, detectChatGPTBranches } from './chatgptParser.js';
+import { extractGrokData, detectGrokBranches } from './grokParser.js';
 import { extractGeminiData, extractJSONLData, detectOtherBranches } from './otherParsers.js';
 
 // 导入工具函数
@@ -35,6 +36,17 @@ export const detectFileFormat = (jsonData) => {
     return 'gemini_notebooklm';
   }
 
+  // Grok格式 - 检测 responses 数组和 platform: 'grok'
+  if (jsonData?.platform === 'grok' && Array.isArray(jsonData.responses)) {
+    return 'grok';
+  }
+
+  // Grok格式 - 备用检测（conversationId + responses）
+  if (jsonData?.conversationId && Array.isArray(jsonData.responses) &&
+      jsonData.responses.length > 0 && jsonData.responses[0]?.responseId) {
+    return 'grok';
+  }
+
   // Claude单个对话格式
   if (Array.isArray(jsonData.chat_messages)) {
     return 'claude';
@@ -59,13 +71,15 @@ export const extractChatData = (jsonData, fileName = '') => {
   const format = detectFileFormat(jsonData);
 
   if (format === 'unknown') {
-    throw new Error('[Parser] 无法识别文件格式。支持的格式：Claude, ChatGPT, Gemini, NotebookLM, JSONL');
+    throw new Error('[Parser] 无法识别文件格式。支持的格式：Claude, ChatGPT, Grok, Gemini, NotebookLM, JSONL');
   }
 
   try {
     switch (format) {
       case 'claude':
         return extractClaudeData(jsonData);
+      case 'grok':
+        return extractGrokData(jsonData);
       case 'gemini_notebooklm':
         return extractGeminiData(jsonData, fileName);
       case 'jsonl_chat':
@@ -91,6 +105,8 @@ export const detectBranches = (processedData) => {
       return detectClaudeBranches(processedData);
     case 'chatgpt':
       return detectChatGPTBranches(processedData);
+    case 'grok':
+      return detectGrokBranches(processedData);
     case 'jsonl_chat':
     case 'gemini_notebooklm':
       return detectOtherBranches(processedData);

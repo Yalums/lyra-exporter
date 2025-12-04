@@ -877,6 +877,12 @@
   color: #ffffff;
   border-color: #ffffff;
 }
+
+.timeline-avatar.assistant.platform-grok  {
+  background: #ffffff;
+  color: #000000;
+  border-color: #e0e0e0;
+}
 .sender-info {
   display: flex;
   flex-direction: column;
@@ -912,6 +918,11 @@
   line-height: 1.6;
   margin-bottom: 12px;
   font-size: 0.95rem;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  max-width: 100%;
 }
 
 .timeline-footer {
