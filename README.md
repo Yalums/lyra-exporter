@@ -262,3 +262,88 @@ npm start
 2. Click the "Save as JSON" button on the respective platform's webpage
 3. Run Lyra Exporter and select JSON files exported from Claude, Gemini, or other platforms
 4. Start managing and organizing into Markdown documents
+
+---
+
+## Publishing to GitHub Pages
+
+This repository is configured to automatically deploy to GitHub Pages when changes are pushed to the `main` branch. The deployment workflow is already set up in `.github/workflows/deploy.yml`.
+
+### How the Deployment Works
+
+The workflow automatically:
+1. Checks out the code
+2. Sets up Node.js environment
+3. Installs dependencies with `npm ci`
+4. Builds the project with `npm run build`
+5. Uploads the `./build` directory to GitHub Pages
+6. Deploys to your GitHub Pages site
+
+### Using a Different Build Directory
+
+If your project uses a different build directory (e.g., `dist` instead of `build`), update the workflow file:
+
+1. Open `.github/workflows/deploy.yml`
+2. Find the "Upload artifact" step
+3. Change the `path` value from `'./build'` to your directory (e.g., `'./dist'`)
+
+```yaml
+- name: Upload artifact
+  uses: actions/upload-pages-artifact@v3
+  with:
+    path: './dist'  # Change this to your build directory
+```
+
+### Enabling Branch Protection
+
+To protect your `main` branch and ensure code quality:
+
+1. Go to your repository **Settings → Branches**
+2. Click **Add branch protection rule**
+3. Enter `main` as the branch name pattern
+4. Enable recommended protections:
+   - ✅ Require a pull request before merging
+   - ✅ Require status checks to pass before merging
+   - ✅ Require branches to be up to date before merging
+   - ✅ Require conversation resolution before merging
+5. Click **Create** to save the rule
+
+### Configuring a Custom Domain
+
+To use a custom domain with GitHub Pages:
+
+1. **Add CNAME file** (optional, can also be done via GitHub Settings):
+   - Create a file named `CNAME` in the `public` directory (so it's included in the build)
+   - Add your custom domain on a single line: `example.com` or `www.example.com`
+
+2. **Configure in GitHub**:
+   - Go to repository **Settings → Pages**
+   - Under "Custom domain", enter your domain
+   - Click **Save**
+
+3. **Configure DNS with your domain provider**:
+   - For apex domain (`example.com`):
+     - Add `A` records pointing to GitHub Pages IPs:
+       - `185.199.108.153`
+       - `185.199.109.153`
+       - `185.199.110.153`
+       - `185.199.111.153`
+   - For subdomain (`www.example.com`):
+     - Add `CNAME` record pointing to `<username>.github.io`
+
+4. **Enable HTTPS**:
+   - In repository **Settings → Pages**, check **Enforce HTTPS**
+   - GitHub will automatically provision a TLS certificate
+
+For more details on custom domains, see [GitHub Pages documentation](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site).
+
+### Security Considerations
+
+Before deploying to production:
+
+- ✅ Review [docs/Security.md](./docs/Security.md) for comprehensive security guidelines
+- ✅ Ensure no secrets are committed to the repository
+- ✅ Use GitHub Actions Secrets for any API keys or sensitive data
+- ✅ Run `npm audit` to check for dependency vulnerabilities
+- ✅ Enable HTTPS enforcement in GitHub Pages settings
+- ✅ Configure appropriate Content Security Policy headers if needed
