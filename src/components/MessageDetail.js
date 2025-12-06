@@ -105,7 +105,14 @@ const MessageDetail = ({
     
     if (currentMessage.sender === 'human') {
       // 用户消息：附件（排除嵌入的图片）
-      const regularAttachments = currentMessage.attachments?.filter(att => !att.is_embedded_image) || [];
+      // 只显示非图片的真实附件（文档、PDF等）
+      // 兼容性处理：自动排除图片类型的附件
+      const regularAttachments = currentMessage.attachments?.filter(att => {
+        if (att.is_embedded_image) return false;
+        // 兼容旧数据：排除图片类型
+        if (att.file_type && att.file_type.startsWith('image/')) return false;
+        return true;
+      }) || [];
       if (regularAttachments.length > 0) {
         baseTabs.push({ id: 'attachments', label: t('messageDetail.tabs.attachments') });
       }
@@ -632,9 +639,21 @@ const MessageDetail = ({
     switch (currentActiveTab) {
       case 'content':
         // 从 attachments 中筛选出嵌入的图片
-        const embeddedImages = currentMessage.attachments?.filter(att => att.is_embedded_image) || [];
-        // 修复：检查数组长度而不是 truthy 值，因为空数组 [] 也是 truthy
-        const displayImages = (currentMessage.images?.length > 0) ? currentMessage.images : (embeddedImages.length > 0 ? embeddedImages : null);
+        // 兼容性处理：自动检测图片类型的附件
+        const embeddedImages = currentMessage.attachments?.filter(att => {
+          if (att.is_embedded_image) return true;
+          // 兼容旧数据：检查 MIME 类型
+          if (att.file_type && att.file_type.startsWith('image/')) return true;
+          return false;
+        }) || [];
+        // 合并两种图片来源：优先使用 images 数组，然后添加 embeddedImages
+        let displayImages = null;
+        if (currentMessage.images?.length > 0 || embeddedImages.length > 0) {
+          displayImages = [
+            ...(currentMessage.images || []),
+            ...embeddedImages
+          ];
+        }
 
         return (
           <div className="message-content">
@@ -699,7 +718,13 @@ const MessageDetail = ({
 
       case 'attachments':
         // 排除嵌入的图片，只显示真正的附件
-        const regularAttachments = currentMessage.attachments?.filter(att => !att.is_embedded_image) || [];
+        // 兼容性处理：自动排除图片类型的附件
+        const regularAttachments = currentMessage.attachments?.filter(att => {
+          if (att.is_embedded_image) return false;
+          // 兼容旧数据：排除图片类型
+          if (att.file_type && att.file_type.startsWith('image/')) return false;
+          return true;
+        }) || [];
         return (
           <div className="attachments-content">
             {renderAttachments(regularAttachments)}

@@ -19,8 +19,10 @@
       "batchExport": {
         "badge": "⚡ Batch Processing",
         "title": "Batch Export Latest Branches",
-        "description": "Select multiple JSON files to automatically export the latest conversation branch from each as Markdown, packaged into a ZIP file",
+        "description": "Select multiple JSON files to automatically export the latest conversation branch from each as Markdown, packaged into a ZIP file.\nOr import an entire folder to parse all conversation JSON files within.",
         "button": "Start Batch Export",
+        "folderButton": "Import Folder",
+        "folderDescription": "Parse all conversation JSON files in the folder",
         "processing": "Processing...",
         "progress": "Processing {{current}}/{{total}} files",
         "complete": "Export Complete!",

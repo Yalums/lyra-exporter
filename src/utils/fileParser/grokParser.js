@@ -128,11 +128,16 @@ export const extractGrokData = (jsonData) => {
     // 处理文件附件
     if (msg.fileAttachments && Array.isArray(msg.fileAttachments)) {
       msg.fileAttachments.forEach(file => {
+        const mimeType = file.mimeType || '';
+        const isImage = mimeType.startsWith('image/');
+
+        // 图片类型的文件标记为 is_embedded_image
         messageData.attachments.push({
           file_name: file.fileName || '未知文件',
           file_size: file.size || 0,
-          file_type: file.mimeType || '',
-          url: file.url || ''
+          file_type: mimeType,
+          url: file.url || '',
+          is_embedded_image: isImage
         });
       });
     }

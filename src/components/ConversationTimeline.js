@@ -1731,20 +1731,39 @@ const ConversationTimeline = ({
                             <span>{t('timeline.tags.hasThinking')}</span>
                           </div>
                         )}
-                        {/* 图片 */}
-                        {msg.images && msg.images.length > 0 && (
-                          <div className="timeline-tag">
-                            <span>🖼️</span>
-                            <span>{msg.images.length}{t('timeline.tags.images')}</span>
-                          </div>
-                        )}
-                        {/* 附件 - 主要用于人类消息 */}
-                        {msg.attachments && msg.attachments.length > 0 && (
-                          <div className="timeline-tag">
-                            <span>📎</span>
-                            <span>{msg.attachments.length}{t('timeline.tags.attachments')}</span>
-                          </div>
-                        )}
+                        {/* 图片 - 合并 images 数组和 attachments 中的嵌入图片 */}
+                        {(() => {
+                          // 兼容性处理：对于 Grok 格式，自动检测图片类型的附件
+                          const embeddedImages = msg.attachments?.filter(att => {
+                            if (att.is_embedded_image) return true;
+                            // Grok 兼容：检查 MIME 类型
+                            if (format === 'grok' && att.file_type && att.file_type.startsWith('image/')) return true;
+                            return false;
+                          }) || [];
+                          const totalImages = (msg.images?.length || 0) + embeddedImages.length;
+                          return totalImages > 0 && (
+                            <div className="timeline-tag">
+                              <span>🖼️</span>
+                              <span>{totalImages}{t('timeline.tags.images')}</span>
+                            </div>
+                          );
+                        })()}
+                        {/* 附件 - 排除嵌入的图片，只显示真实附件 */}
+                        {(() => {
+                          // 兼容性处理：对于 Grok 格式，自动排除图片类型的附件
+                          const regularAttachments = msg.attachments?.filter(att => {
+                            if (att.is_embedded_image) return false;
+                            // Grok 兼容：排除图片类型
+                            if (format === 'grok' && att.file_type && att.file_type.startsWith('image/')) return false;
+                            return true;
+                          }) || [];
+                          return regularAttachments.length > 0 && (
+                            <div className="timeline-tag">
+                              <span>📎</span>
+                              <span>{regularAttachments.length}{t('timeline.tags.attachments')}</span>
+                            </div>
+                          );
+                        })()}
                         {/* Artifacts - 仅助手消息显示 */}
                         {msg.sender !== 'human' && msg.artifacts && msg.artifacts.length > 0 && (
                           <div className="timeline-tag">

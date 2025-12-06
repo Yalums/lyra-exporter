@@ -216,7 +216,7 @@ const FeatureCard = ({ titleKey, descriptionKey }) => {
 };
 
 // 主欢迎页面组件 - 国际化版本
-const WelcomePage = ({ handleLoadClick }) => {
+const WelcomePage = ({ handleLoadClick, handleFolderClick }) => {
   const { t, isReady } = useI18n();
   const [currentTheme, setCurrentTheme] = useState(ThemeUtils.getCurrentTheme());
 
@@ -418,6 +418,16 @@ const WelcomePage = ({ handleLoadClick }) => {
               <Package className="h-5 w-5 mr-2" />
               {batchExporting ? t('welcomePage.actionCards.batchExport.processing') : t('welcomePage.actionCards.batchExport.button')}
             </button>
+
+            {handleFolderClick && (
+              <button
+                onClick={handleFolderClick}
+                className="action-button special mt-2"
+              >
+                <FolderTree className="h-5 w-5 mr-2" />
+                {t('welcomePage.actionCards.batchExport.folderButton')} ({t('welcomePage.actionCards.batchExport.folderDescription')})
+              </button>
+            )}
 
             {/* 导出进度 */}
             {batchExporting && !exportResult && (

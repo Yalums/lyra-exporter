@@ -19,8 +19,10 @@
       "batchExport": {
         "badge": "⚡ 批量处理",
         "title": "批量导出最新分支",
-        "description": "选择多个JSON文件，自动将每个文件的最新对话分支导出为Markdown，并打包成ZIP文件",
+        "description": "选择多个JSON文件，自动将每个文件的最新对话分支导出为Markdown，并打包成ZIP文件。\n或者导入整个文件夹，解析其中所有对话JSON文件。",
         "button": "开始批量导出",
+        "folderButton": "导入文件夹",
+        "folderDescription": "解析整个文件夹内的对话JSON",
         "processing": "处理中...",
         "progress": "正在处理 {{current}}/{{total}} 个文件",
         "complete": "导出完成！",

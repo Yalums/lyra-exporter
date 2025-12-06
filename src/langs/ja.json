@@ -19,8 +19,10 @@
       "batchExport": {
         "badge": "⚡ バッチ処理",
         "title": "最新ブランチを一括エクスポート",
-        "description": "複数のJSONファイルを選択し、各ファイルの最新の会話ブランチを自動的にMarkdownとしてエクスポートし、ZIPファイルにパッケージ化",
+        "description": "複数のJSONファイルを選択し、各ファイルの最新の会話ブランチを自動的にMarkdownとしてエクスポートし、ZIPファイルにパッケージ化。\nまたは、フォルダ全体をインポートして、その中のすべての会話JSONファイルを解析します。",
         "button": "一括エクスポート開始",
+        "folderButton": "フォルダをインポート",
+        "folderDescription": "フォルダ内のすべての会話JSONを解析",
         "processing": "処理中...",
         "progress": "{{current}}/{{total}}ファイルを処理中",
         "complete": "エクスポート完了！",

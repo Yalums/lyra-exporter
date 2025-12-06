@@ -5,7 +5,7 @@
 import { extractClaudeData, detectClaudeBranches } from './claudeParser.js';
 import { extractChatGPTData, detectChatGPTBranches } from './chatgptParser.js';
 import { extractGrokData, detectGrokBranches } from './grokParser.js';
-import { extractGeminiData, extractJSONLData, detectOtherBranches } from './otherParsers.js';
+import { extractGeminiData, extractJSONLData, extractMergedJSONLData, mergeJSONLFiles, detectOtherBranches } from './otherParsers.js';
 
 // 导入工具函数
 import {
@@ -126,6 +126,10 @@ export {
   // 解析函数
   parseJSONL,
   parseTimestamp,
+
+  // JSONL 多文件合并
+  extractMergedJSONLData,
+  mergeJSONLFiles,
 
   // 图片显示
   getImageDisplayData,

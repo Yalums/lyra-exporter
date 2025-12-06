@@ -16,7 +16,7 @@ import { CardGrid } from './components/UnifiedCard';
 // 工具函数导入
 import { ThemeUtils } from './utils/themeManager';
 import { PostMessageHandler, StatsCalculator, DataProcessor } from './utils/data';
-import { extractChatData, detectBranches, parseJSONL } from './utils/fileParser';
+import { extractChatData, detectBranches, parseJSONL, extractMergedJSONLData } from './utils/fileParser';
 import {
   generateFileCardUuid,
   generateConversationCardUuid,
@@ -301,10 +301,17 @@ const useFileManager = () => {
     setError(null);
     try {
       const file = files[currentFileIndex];
-      const jsonData = await parseFile(file);
-      let data = extractChatData(jsonData, file.name);
-      data = detectBranches(data);
-      setProcessedData(data);
+
+      // 检查是否有预处理的合并数据
+      if (file._mergedProcessedData) {
+        console.log('[Lyra] 使用预处理的合并数据');
+        setProcessedData(file._mergedProcessedData);
+      } else {
+        const jsonData = await parseFile(file);
+        let data = extractChatData(jsonData, file.name);
+        data = detectBranches(data);
+        setProcessedData(data);
+      }
     } catch (err) {
       console.error('处理文件出错:', err);
       setError(err.message);
@@ -380,6 +387,220 @@ const useFileManager = () => {
     setError(null);
   }, [files, checkCompatibility, parseFile]);
 
+  // 按对话分组（基于 integrity, main_chat, 或 chat_id_hash）
+  const groupByConversation = useCallback((filesData) => {
+    const groups = new Map();
+
+    // 建立多种映射，用于分支文件查找主文件
+    const fileNameToIntegrity = new Map();      // 文件名 -> integrity
+    const integrityToGroup = new Map();         // integrity -> groupKey
+    const chatIdHashToGroup = new Map();        // chat_id_hash -> groupKey
+    const mainChatToGroup = new Map();          // main_chat 值 -> groupKey
+
+    console.log('[Lyra] 开始分组，共', filesData.length, '个文件');
+
+    // 第一遍：收集所有主文件的信息
+    filesData.forEach(fd => {
+      const metadata = fd.data[0]?.chat_metadata;
+      const integrity = metadata?.integrity;
+      const mainChat = metadata?.main_chat;
+      const chatIdHash = metadata?.chat_id_hash;
+
+      console.log('[Lyra] 文件:', fd.fileName, {
+        integrity: integrity?.substring(0, 16) + '...',
+        mainChat,
+        chatIdHash
+      });
+
+      // 如果没有 main_chat，说明是主文件
+      if (!mainChat) {
+        // 使用文件名（不含扩展名）作为键
+        const baseName = fd.fileName.replace(/\.(jsonl|json)$/i, '');
+
+        // 为主文件创建分组键（优先使用 integrity）
+        const groupKey = integrity || chatIdHash?.toString() || fd.fileName;
+
+        if (integrity) {
+          fileNameToIntegrity.set(baseName, integrity);
+          fileNameToIntegrity.set(fd.fileName, integrity);
+          integrityToGroup.set(integrity, groupKey);
+        }
+
+        if (chatIdHash) {
+          chatIdHashToGroup.set(chatIdHash, groupKey);
+        }
+
+        // 记录文件名到分组的映射（用于 main_chat 查找）
+        mainChatToGroup.set(baseName, groupKey);
+        mainChatToGroup.set(fd.fileName, groupKey);
+      }
+    });
+
+    console.log('[Lyra] 主文件映射:', {
+      fileNameToIntegrity: Array.from(fileNameToIntegrity.keys()),
+      mainChatToGroup: Array.from(mainChatToGroup.keys())
+    });
+
+    // 第二遍：分组
+    filesData.forEach(fd => {
+      const metadata = fd.data[0]?.chat_metadata;
+      const integrity = metadata?.integrity;
+      const mainChat = metadata?.main_chat;
+      const chatIdHash = metadata?.chat_id_hash;
+
+      let groupKey = null;
+      let matchMethod = '';
+
+      if (mainChat) {
+        // 分支文件：尝试多种方式查找主文件
+
+        // 方法1：直接通过 main_chat 查找
+        if (mainChatToGroup.has(mainChat)) {
+          groupKey = mainChatToGroup.get(mainChat);
+          matchMethod = 'main_chat直接匹配';
+        }
+        // 方法2：main_chat + .jsonl 扩展名
+        else if (mainChatToGroup.has(mainChat + '.jsonl')) {
+          groupKey = mainChatToGroup.get(mainChat + '.jsonl');
+          matchMethod = 'main_chat+.jsonl';
+        }
+        // 方法3：通过 integrity 查找（分支文件可能有相同的 integrity）
+        else if (integrity && integrityToGroup.has(integrity)) {
+          groupKey = integrityToGroup.get(integrity);
+          matchMethod = 'integrity匹配';
+        }
+        // 方法4：通过 chat_id_hash 查找
+        else if (chatIdHash && chatIdHashToGroup.has(chatIdHash)) {
+          groupKey = chatIdHashToGroup.get(chatIdHash);
+          matchMethod = 'chat_id_hash匹配';
+        }
+        // 方法5：如果都找不到，使用 main_chat 本身作为分组键
+        else {
+          groupKey = mainChat;
+          matchMethod = 'main_chat作为新组';
+          // 同时注册这个分组，以便后续分支文件可以找到
+          mainChatToGroup.set(mainChat, groupKey);
+          if (integrity) integrityToGroup.set(integrity, groupKey);
+          if (chatIdHash) chatIdHashToGroup.set(chatIdHash, groupKey);
+        }
+      } else {
+        // 主文件
+        if (integrity && integrityToGroup.has(integrity)) {
+          groupKey = integrityToGroup.get(integrity);
+          matchMethod = '主文件-integrity';
+        } else if (chatIdHash && chatIdHashToGroup.has(chatIdHash)) {
+          groupKey = chatIdHashToGroup.get(chatIdHash);
+          matchMethod = '主文件-chat_id_hash';
+        } else {
+          groupKey = integrity || chatIdHash?.toString() || fd.fileName;
+          matchMethod = '主文件-新组';
+        }
+      }
+
+      console.log('[Lyra] 分组:', fd.fileName, '->', groupKey?.substring?.(0, 20) || groupKey, `(${matchMethod})`);
+
+      if (!groups.has(groupKey)) {
+        groups.set(groupKey, []);
+      }
+      groups.get(groupKey).push(fd);
+    });
+
+    const result = Array.from(groups.values());
+    console.log('[Lyra] 分组结果:', result.map(g => ({
+      count: g.length,
+      files: g.map(f => f.fileName)
+    })));
+
+    return result;
+  }, []);
+
+  // 加载并合并 JSONL 文件夹
+  const loadMergedJSONLFiles = useCallback(async (fileList) => {
+    const jsonlFiles = fileList.filter(f =>
+      f.name.endsWith('.jsonl') || f.name.endsWith('.json')
+    );
+
+    if (jsonlFiles.length === 0) {
+      setError('未找到 JSONL/JSON 文件');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // 读取所有文件内容
+      const filesData = await Promise.all(
+        jsonlFiles.map(async (file) => ({
+          file,
+          fileName: file.name,
+          data: await parseFile(file)
+        }))
+      );
+
+      // 按对话分组
+      const grouped = groupByConversation(filesData);
+
+      // 处理每组文件
+      for (const group of grouped) {
+        if (group.length === 1) {
+          // 单文件：使用普通加载
+          await loadFiles([group[0].file]);
+        } else {
+          // 多文件：使用合并加载
+          try {
+            const mergedData = extractMergedJSONLData(group);
+            const processedMergedData = detectBranches(mergedData);
+
+            // 创建一个虚拟文件对象来表示合并后的数据
+            const mergedFileName = `[合并] ${mergedData.meta_info?.title || '对话'}`;
+            const virtualFile = new File(
+              [JSON.stringify(mergedData.raw_data)],
+              mergedFileName,
+              { type: 'application/json' }
+            );
+
+            // 添加元数据
+            const newMeta = {
+              [mergedFileName]: {
+                format: mergedData.format,
+                platform: mergedData.platform || mergedData.format,
+                messageCount: mergedData.chat_history?.length || 0,
+                conversationCount: 1,
+                title: mergedData.meta_info?.title || mergedFileName,
+                model: mergedData.meta_info?.model || '',
+                created_at: mergedData.meta_info?.created_at,
+                updated_at: mergedData.meta_info?.updated_at,
+                isMerged: true,
+                mergeInfo: mergedData.meta_info?.merge_info
+              }
+            };
+
+            setFileMetadata(prev => ({ ...prev, ...newMeta }));
+
+            // 存储预处理的数据，避免重复解析
+            virtualFile._mergedProcessedData = processedMergedData;
+
+            setFiles(prev => [...prev, virtualFile]);
+          } catch (err) {
+            console.error('合并文件失败:', err);
+            // 如果合并失败，回退到单独加载
+            for (const fd of group) {
+              await loadFiles([fd.file]);
+            }
+          }
+        }
+      }
+
+      setError(null);
+    } catch (err) {
+      console.error('加载文件夹失败:', err);
+      setError(`加载文件夹失败: ${err.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [parseFile, groupByConversation, loadFiles]);
+
   const confirmReplaceFiles = useCallback(() => {
     setFiles(pendingFiles);
     setCurrentFileIndex(0);
@@ -435,12 +656,13 @@ const useFileManager = () => {
 
   const actions = useMemo(() => ({
     loadFiles,
+    loadMergedJSONLFiles,
     removeFile,
     switchFile,
     reorderFiles,
     confirmReplaceFiles,
     cancelReplaceFiles
-  }), [loadFiles, removeFile, switchFile, reorderFiles, confirmReplaceFiles, cancelReplaceFiles]);
+  }), [loadFiles, loadMergedJSONLFiles, removeFile, switchFile, reorderFiles, confirmReplaceFiles, cancelReplaceFiles]);
 
   return {
     files,
@@ -520,6 +742,7 @@ function App() {
   const [searchResults, setSearchResults] = useState({ results: [], filteredMessages: [] });
   
   const fileInputRef = useRef(null);
+  const folderInputRef = useRef(null);
   const contentAreaRef = useRef(null);
   
   // 管理器实例引用
@@ -677,6 +900,12 @@ function App() {
   const handleFileLoad = (e) => {
     const fileList = Array.from(e.target.files);
     fileActions.loadFiles(fileList);
+  };
+
+  // 文件夹加载处理
+  const handleFolderLoad = (e) => {
+    const fileList = Array.from(e.target.files);
+    fileActions.loadMergedJSONLFiles(fileList);
   };
 
   const handleNavigateToMessage = useCallback((navigationData) => {
@@ -1095,9 +1324,21 @@ function App() {
         onChange={handleFileLoad}
         style={{ display: 'none' }}
       />
+      <input
+        ref={folderInputRef}
+        type="file"
+        webkitdirectory=""
+        directory=""
+        multiple
+        onChange={handleFolderLoad}
+        style={{ display: 'none' }}
+      />
 
       {files.length === 0 ? (
-        <WelcomePage handleLoadClick={() => fileInputRef.current?.click()} />
+        <WelcomePage
+          handleLoadClick={() => fileInputRef.current?.click()}
+          handleFolderClick={() => folderInputRef.current?.click()}
+        />
       ) : (
         <>
           {/* 顶部导航栏 */}

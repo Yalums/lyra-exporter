@@ -313,6 +313,318 @@ const extractGeminiMultiBranchData = (jsonData, fileName) => {
   };
 };
 
+// ==================== JSONL 多文件合并工具 ====================
+
+// 简单哈希函数，用于生成消息指纹
+const simpleHash = (str) => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return hash.toString(36);
+};
+
+// 生成消息指纹，用于识别相同消息
+const generateMessageFingerprint = (entry) => {
+  const content = entry.mes || (entry.swipes?.[0] || "");
+  const timestamp = entry.send_date || "";
+  const sender = entry.name || "";
+  const isUser = entry.is_user || false;
+  return `${sender}|${isUser}|${timestamp}|${simpleHash(content)}`;
+};
+
+// 查找分支点：返回最后一条相同消息的索引
+const findBranchPoint = (mainMessages, branchMessages) => {
+  let branchPointIndex = -1;
+
+  const minLen = Math.min(mainMessages.length, branchMessages.length);
+  for (let i = 0; i < minLen; i++) {
+    const mainFp = generateMessageFingerprint(mainMessages[i]);
+    const branchFp = generateMessageFingerprint(branchMessages[i]);
+
+    if (mainFp === branchFp) {
+      branchPointIndex = i;
+    } else {
+      break; // 找到第一个不同的消息，前一个就是分支点
+    }
+  }
+
+  return branchPointIndex;
+};
+
+// 创建合并后的 JSONL 消息对象
+const createMergedJSONLMessage = (msgIndex, uuid, parentUuid, name, senderLabel, timestamp, isUser, messageText, branchId, branchLevel, swipeInfo = null) => {
+  const messageData = new MessageBuilder(
+    msgIndex,
+    uuid,
+    parentUuid,
+    isUser ? "human" : "assistant",
+    senderLabel,
+    timestamp
+  ).setContent(messageText).build();
+
+  messageData.branch_id = branchId;
+  messageData.branch_level = branchLevel;
+  messageData.swipe_info = swipeInfo;
+
+  // 如果有swipe信息，添加到display_text前面作为标记
+  if (swipeInfo) {
+    const branchLabel = swipeInfo.isSelected ?
+      `**[${swipeInfo.swipeIndex + 1}/${swipeInfo.totalSwipes}] 🚩**` :
+      `**[${swipeInfo.swipeIndex + 1}/${swipeInfo.totalSwipes}]**`;
+    messageData.display_text = `${branchLabel}\n\n${messageData.display_text}`;
+  }
+
+  return messageData;
+};
+
+/**
+ * 合并多个 JSONL 文件为树状分支结构
+ * @param {Array} filesData - [{data: [], fileName: string}, ...]
+ * @returns {Object} 合并后的数据结构，包含 chatHistory 和 metadata
+ */
+export const mergeJSONLFiles = (filesData) => {
+  if (!filesData || filesData.length === 0) {
+    return { chatHistory: [], metadata: { totalFiles: 0 } };
+  }
+
+  // 如果只有一个文件，直接返回
+  if (filesData.length === 1) {
+    return { singleFile: true, data: filesData[0].data, fileName: filesData[0].fileName };
+  }
+
+  // 1. 识别主文件（没有 main_chat 字段的）
+  let mainFileData = filesData.find(f => !f.data[0]?.chat_metadata?.main_chat);
+  let allBranchFiles = filesData.filter(f => f.data[0]?.chat_metadata?.main_chat);
+
+  // 如果没有明确的主文件，使用第一个文件作为主文件
+  if (!mainFileData) {
+    mainFileData = filesData[0];
+    allBranchFiles = filesData.slice(1);
+  }
+
+  const hasMetadata = mainFileData.data[0]?.chat_metadata !== undefined;
+  const mainMessages = hasMetadata ? mainFileData.data.slice(1) : mainFileData.data;
+  const charName = mainFileData.data[0]?.character_name;
+
+  const chatHistory = [];
+  let msgIndex = 0;
+
+  // 2. 处理主干消息
+  const mainMsgIndexMap = {}; // 原始索引 -> chatHistory 中的索引
+  mainMessages.forEach((entry, idx) => {
+    if (entry.is_system) return;
+
+    const name = entry.name || "Unknown";
+    const isUser = entry.is_user || false;
+    const timestamp = entry.send_date || "";
+    const senderLabel = isUser ? "User" : name;
+    const messageText = entry.mes || (entry.swipes?.[0] || "");
+
+    // 处理 swipes
+    const swipes = entry.swipes || [];
+    const hasMultipleSwipes = !isUser && swipes.length > 1;
+
+    if (hasMultipleSwipes) {
+      const selectedSwipeId = entry.swipe_id !== undefined ? entry.swipe_id : 0;
+      swipes.forEach((swipeText, swipeIndex) => {
+        const uuid = `jsonl_main_${idx}_${swipeIndex}`;
+        const parentUuid = idx > 0 ? `jsonl_main_${idx - 1}_0` : "";
+
+        const msg = createMergedJSONLMessage(
+          msgIndex++,
+          uuid,
+          parentUuid,
+          name,
+          senderLabel,
+          timestamp,
+          isUser,
+          swipeText,
+          'main',
+          0,
+          {
+            totalSwipes: swipes.length,
+            isSelected: swipeIndex === selectedSwipeId,
+            swipeIndex: swipeIndex
+          }
+        );
+        chatHistory.push(msg);
+      });
+    } else {
+      const uuid = `jsonl_main_${idx}_0`;
+      const parentUuid = idx > 0 ? `jsonl_main_${idx - 1}_0` : "";
+
+      const msg = createMergedJSONLMessage(
+        msgIndex++,
+        uuid,
+        parentUuid,
+        name,
+        senderLabel,
+        timestamp,
+        isUser,
+        messageText,
+        'main',
+        0,
+        null
+      );
+      chatHistory.push(msg);
+    }
+
+    mainMsgIndexMap[idx] = chatHistory.length - 1;
+  });
+
+  // 3. 处理每个分支文件
+  allBranchFiles.forEach((branchFile, branchIdx) => {
+    const branchId = `branch_${branchIdx + 1}`;
+    // 每个分支文件单独检测是否有元数据行
+    const branchHasMetadata = branchFile.data[0]?.chat_metadata !== undefined;
+    const branchMessages = branchHasMetadata ? branchFile.data.slice(1) : branchFile.data;
+
+    // 过滤掉系统消息
+    const filteredBranchMessages = branchMessages.filter(e => !e.is_system);
+    const filteredMainMessages = mainMessages.filter(e => !e.is_system);
+
+    // 找到分支点
+    const branchPointIdx = findBranchPoint(filteredMainMessages, filteredBranchMessages);
+
+    // 标记分支点
+    if (branchPointIdx >= 0) {
+      // 找到主干中对应的消息并标记为分支点
+      const branchPointUuid = `jsonl_main_${branchPointIdx}_0`;
+      const branchPointMsg = chatHistory.find(m => m.uuid === branchPointUuid);
+      if (branchPointMsg) {
+        branchPointMsg.is_branch_point = true;
+        branchPointMsg.branch_children = branchPointMsg.branch_children || [];
+        branchPointMsg.branch_children.push(branchId);
+      }
+    }
+
+    // 添加分支独有的消息
+    const branchOnlyMessages = filteredBranchMessages.slice(branchPointIdx + 1);
+    branchOnlyMessages.forEach((entry, idx) => {
+      const name = entry.name || "Unknown";
+      const isUser = entry.is_user || false;
+      const timestamp = entry.send_date || "";
+      const senderLabel = isUser ? "User" : name;
+      const messageText = entry.mes || (entry.swipes?.[0] || "");
+
+      // 处理 swipes
+      const swipes = entry.swipes || [];
+      const hasMultipleSwipes = !isUser && swipes.length > 1;
+
+      if (hasMultipleSwipes) {
+        const selectedSwipeId = entry.swipe_id !== undefined ? entry.swipe_id : 0;
+        swipes.forEach((swipeText, swipeIndex) => {
+          const uuid = `jsonl_${branchId}_${idx}_${swipeIndex}`;
+          // 第一条分支消息指向分支点，后续消息指向前一条分支消息
+          const parentUuid = idx === 0
+            ? (branchPointIdx >= 0 ? `jsonl_main_${branchPointIdx}_0` : "")
+            : `jsonl_${branchId}_${idx - 1}_0`;
+
+          const msg = createMergedJSONLMessage(
+            msgIndex++,
+            uuid,
+            parentUuid,
+            name,
+            senderLabel,
+            timestamp,
+            isUser,
+            swipeText,
+            branchId,
+            1,
+            {
+              totalSwipes: swipes.length,
+              isSelected: swipeIndex === selectedSwipeId,
+              swipeIndex: swipeIndex
+            }
+          );
+          chatHistory.push(msg);
+        });
+      } else {
+        const uuid = `jsonl_${branchId}_${idx}_0`;
+        const parentUuid = idx === 0
+          ? (branchPointIdx >= 0 ? `jsonl_main_${branchPointIdx}_0` : "")
+          : `jsonl_${branchId}_${idx - 1}_0`;
+
+        const msg = createMergedJSONLMessage(
+          msgIndex++,
+          uuid,
+          parentUuid,
+          name,
+          senderLabel,
+          timestamp,
+          isUser,
+          messageText,
+          branchId,
+          1,
+          null
+        );
+        chatHistory.push(msg);
+      }
+    });
+  });
+
+  return {
+    chatHistory,
+    metadata: {
+      totalFiles: filesData.length,
+      fileNames: filesData.map(f => f.fileName),
+      mainFile: mainFileData.fileName,
+      branchFiles: allBranchFiles.map(f => f.fileName),
+      characterName: charName,
+      hasMetadata
+    }
+  };
+};
+
+/**
+ * 提取合并后的 JSONL 数据
+ * @param {Array} filesData - [{data: [], fileName: string}, ...]
+ * @returns {Object} 标准的 processedData 格式
+ */
+export const extractMergedJSONLData = (filesData) => {
+  const mergeResult = mergeJSONLFiles(filesData);
+
+  // 如果只有一个文件，使用原有的解析逻辑
+  if (mergeResult.singleFile) {
+    return extractJSONLData(mergeResult.data, mergeResult.fileName);
+  }
+
+  const { chatHistory, metadata } = mergeResult;
+  const now = DateTimeUtils.formatDateTime(new Date().toISOString());
+
+  const metaInfo = {
+    title: metadata.characterName
+      ? `与${metadata.characterName}的对话 (合并${metadata.totalFiles}个文件)`
+      : `合并对话 (${metadata.totalFiles}个文件)`,
+    created_at: now,
+    updated_at: now,
+    project_uuid: "",
+    uuid: `jsonl_merged_${Date.now()}`,
+    model: metadata.characterName || "Chat Bot",
+    platform: 'jsonl_chat',
+    has_embedded_images: false,
+    images_processed: 0,
+    merge_info: {
+      source_files: metadata.fileNames,
+      main_file: metadata.mainFile,
+      branch_files: metadata.branchFiles,
+      total_files: metadata.totalFiles
+    }
+  };
+
+  return {
+    meta_info: metaInfo,
+    chat_history: chatHistory,
+    raw_data: filesData.map(f => f.data),
+    format: 'jsonl_chat',
+    has_swipes: chatHistory.some(m => m.swipe_info),
+    is_merged: true
+  };
+};
+
 // ==================== JSONL 解析器 ====================
 export const extractJSONLData = (jsonData, fileName) => {
   // 检查第一行是否为元数据
