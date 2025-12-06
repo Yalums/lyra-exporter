@@ -73,12 +73,16 @@ Sanitize all user input to prevent injection attacks.
 ### Node.js Example:
 
 ```javascript
-const DOMPurify = require('isomorphic-dompurify');
+// Using sanitize-html (recommended for Node.js server-side)
+const sanitizeHtml = require('sanitize-html');
 
 function sanitizeHtmlInput(input) {
-  return DOMPurify.sanitize(input, {
-    ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a'],
-    ALLOWED_ATTR: ['href']
+  return sanitizeHtml(input, {
+    allowedTags: ['b', 'i', 'em', 'strong', 'a', 'p', 'br'],
+    allowedAttributes: {
+      'a': ['href']
+    },
+    allowedSchemes: ['http', 'https', 'mailto']
   });
 }
 
@@ -272,19 +276,32 @@ const axios = require('axios');
 async function verifyRecaptcha(token, remoteIP) {
   const secretKey = process.env.RECAPTCHA_SECRET_KEY;
   
-  const response = await axios.post(
-    'https://www.google.com/recaptcha/api/siteverify',
-    null,
-    {
-      params: {
-        secret: secretKey,
-        response: token,
-        remoteip: remoteIP
+  try {
+    const response = await axios.post(
+      'https://www.google.com/recaptcha/api/siteverify',
+      null,
+      {
+        params: {
+          secret: secretKey,
+          response: token,
+          remoteip: remoteIP
+        },
+        timeout: 5000 // 5 second timeout
       }
+    );
+    
+    // Validate response structure
+    if (!response.data || typeof response.data.success !== 'boolean') {
+      throw new Error('Invalid reCAPTCHA response format');
     }
-  );
-  
-  return response.data;
+    
+    return response.data;
+  } catch (error) {
+    // Log error for monitoring
+    console.error('reCAPTCHA verification error:', error.message);
+    // Return a failed verification result
+    return { success: false, error: error.message };
+  }
 }
 
 app.post('/api/submit-form', async (req, res) => {
@@ -562,9 +579,12 @@ SQL injection occurs when user input is concatenated into SQL queries.
 
 ```javascript
 // VULNERABLE - Never do this!
+// This example shows TWO critical vulnerabilities:
+// 1. SQL injection (concatenating user input)
+// 2. Plaintext password comparison (passwords should be hashed)
 app.post('/login', (req, res) => {
   const query = `SELECT * FROM users WHERE email = '${req.body.email}' 
-                 AND password = '${req.body.password}'`;
+                 AND password_hash = '${req.body.password}'`;
   db.query(query, (err, results) => {
     // Attacker could inject: ' OR '1'='1
   });
@@ -574,18 +594,38 @@ app.post('/login', (req, res) => {
 ### Secure Code with Parameterized Queries:
 
 ```javascript
-// SECURE - Use parameterized queries
+// SECURE - Use parameterized queries + password hashing
+const bcrypt = require('bcrypt');
+
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
   
-  // Using parameterized query (mysql2)
-  const [rows] = await db.execute(
-    'SELECT * FROM users WHERE email = ? AND password = ?',
-    [email, password]
-  );
-  
-  if (rows.length > 0) {
-    // User found
+  try {
+    // Using parameterized query (mysql2) - protects against SQL injection
+    const [rows] = await db.execute(
+      'SELECT id, email, password_hash FROM users WHERE email = ?',
+      [email]
+    );
+    
+    if (rows.length === 0) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    
+    const user = rows[0];
+    
+    // Compare hashed password - protects against plaintext password exposure
+    const isValidPassword = await bcrypt.compare(password, user.password_hash);
+    
+    if (isValidPassword) {
+      // User authenticated successfully
+      // Create session, generate token, etc.
+      res.json({ success: true, userId: user.id });
+    } else {
+      res.status(401).json({ error: 'Invalid credentials' });
+    }
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 ```
@@ -594,20 +634,34 @@ app.post('/login', async (req, res) => {
 
 ```javascript
 const { User } = require('./models');
+const bcrypt = require('bcrypt');
 
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
   
-  // Sequelize automatically escapes parameters
-  const user = await User.findOne({
-    where: {
-      email: email,
-      password: password // Use hashed passwords in real apps!
+  try {
+    // Sequelize automatically escapes parameters - protects against SQL injection
+    const user = await User.findOne({
+      where: { email: email },
+      attributes: ['id', 'email', 'password_hash']
+    });
+    
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
-  });
-  
-  if (user) {
-    // User authenticated
+    
+    // Verify hashed password
+    const isValidPassword = await bcrypt.compare(password, user.password_hash);
+    
+    if (isValidPassword) {
+      // User authenticated successfully
+      res.json({ success: true, userId: user.id });
+    } else {
+      res.status(401).json({ error: 'Invalid credentials' });
+    }
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 ```
