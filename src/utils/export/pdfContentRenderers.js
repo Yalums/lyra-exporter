@@ -834,7 +834,7 @@ export class ContentRenderer {
   }
 
   /**
-   * 渲染markdown标题
+   * 渲染markdown标题（支持内部行内格式如粗体、LaTeX等）
    */
   renderMarkdownHeading(line, maxWidth) {
     const match = line.match(/^(#{1,6})\s+(.+)$/);
@@ -850,31 +850,115 @@ export class ContentRenderer {
     const fontSize = PDF_STYLES.FONT_SIZE_BODY + (7 - level) * 2;
     const oldFontSize = this.pdf.internal.getFontSize();
 
+    // 保存当前字体大小设置，用于标题渲染
     this.pdf.setFontSize(fontSize);
-    // 使用粗体字体（如果可用）
-    this.safeSetFont(this.chineseFontName, 'bold');
 
-    try {
-      const lines = this.pdf.splitTextToSize(text, maxWidth);
-      lines.forEach(l => {
-        this.checkPageBreak(fontSize);
-        const cleanLine = cleanText(l);
-        if (cleanLine && cleanLine.trim().length > 0) {
-          this.pdf.text(cleanLine, PDF_STYLES.MARGIN_LEFT, this.currentY);
-        }
-        this.currentY += PDF_STYLES.LINE_HEIGHT * 1.2;
-      });
-    } catch (error) {
-      console.error('[PDF导出] 标题渲染失败:', error);
-      this.pdf.text(text, PDF_STYLES.MARGIN_LEFT, this.currentY);
-      this.currentY += PDF_STYLES.LINE_HEIGHT * 1.2;
-    }
+    // 解析标题内部的行内格式（粗体、斜体、LaTeX等）
+    const segments = parseInlineMarkdown(text);
+
+    // 渲染标题内容（使用标题专用的渲染方法）
+    this.renderHeadingSegments(segments, maxWidth, fontSize);
 
     // 恢复字体
     this.pdf.setFontSize(oldFontSize);
     this.safeSetFont(this.chineseFontName, 'normal');
 
     this.currentY += PDF_STYLES.LINE_HEIGHT * 0.5; // 标题后额外间距
+  }
+
+  /**
+   * 渲染标题内的格式化片段
+   * 标题默认使用粗体，内部的 **粗体** 标记会被移除（因为整体已经是粗体）
+   */
+  renderHeadingSegments(segments, maxWidth, fontSize) {
+    // 展平嵌套结构
+    const flatSegments = this.flattenSegments(segments);
+
+    let currentX = PDF_STYLES.MARGIN_LEFT;
+    let currentLineSegments = [];
+
+    flatSegments.forEach((segment) => {
+      // 对于LaTeX，需要先转换为Unicode来计算实际渲染宽度
+      let text;
+      let textWidth;
+
+      if (segment.type === 'latex-inline') {
+        const renderer = this.getLatexRenderer();
+        text = renderer.simplifyLaTeX(segment.text);
+        this.pdf.setFontSize(fontSize);
+        this.safeSetFont(this.chineseFontName, 'bold');
+        textWidth = this.safeGetTextWidth(text);
+      } else {
+        text = cleanText(segment.text || '');
+        if (!text) return;
+        this.pdf.setFontSize(fontSize);
+        this.safeSetFont(this.chineseFontName, 'bold');
+        textWidth = this.safeGetTextWidth(text);
+      }
+
+      const availableWidth = PDF_STYLES.PAGE_WIDTH - PDF_STYLES.MARGIN_RIGHT - currentX;
+
+      // 检查是否需要换行
+      if (currentX + textWidth > PDF_STYLES.PAGE_WIDTH - PDF_STYLES.MARGIN_RIGHT && currentLineSegments.length > 0) {
+        this.checkPageBreak(fontSize);
+        this.renderHeadingLine(currentLineSegments, fontSize);
+        this.currentY += PDF_STYLES.LINE_HEIGHT * 1.2;
+        currentX = PDF_STYLES.MARGIN_LEFT;
+        currentLineSegments = [];
+      }
+
+      // 添加到当前行
+      const segmentData = {
+        ...segment,
+        x: currentX
+      };
+      if (segment.type !== 'latex-inline') {
+        segmentData.text = text;
+      }
+      currentLineSegments.push(segmentData);
+      currentX += textWidth;
+    });
+
+    // 渲染最后一行
+    if (currentLineSegments.length > 0) {
+      this.checkPageBreak(fontSize);
+      this.renderHeadingLine(currentLineSegments, fontSize);
+      this.currentY += PDF_STYLES.LINE_HEIGHT * 1.2;
+    }
+  }
+
+  /**
+   * 渲染标题的一行内容
+   */
+  renderHeadingLine(segments, fontSize) {
+    segments.forEach(segment => {
+      this.pdf.setFontSize(fontSize);
+      // 标题默认使用粗体
+      this.safeSetFont(this.chineseFontName, 'bold');
+      this.pdf.setTextColor(...PDF_STYLES.COLOR_TEXT);
+
+      if (segment.type === 'latex-inline') {
+        try {
+          const renderer = this.getLatexRenderer();
+          // 对于标题内的LaTeX，使用简化后的Unicode文本直接渲染
+          const simplifiedText = renderer.simplifyLaTeX(segment.text);
+          this.pdf.text(simplifiedText, segment.x, this.currentY);
+        } catch (error) {
+          console.warn('[PDF导出] 标题内LaTeX渲染失败:', error);
+          this.pdf.text(segment.text, segment.x, this.currentY);
+        }
+      } else if (segment.type === 'code') {
+        // 行内代码：使用不同背景
+        const textWidth = this.safeGetTextWidth(segment.text);
+        const padding = 1;
+        this.pdf.setFillColor(235, 235, 235);
+        this.pdf.rect(segment.x - padding, this.currentY - fontSize * 0.7, textWidth + padding * 2, fontSize * 0.9, 'F');
+        this.pdf.text(segment.text, segment.x, this.currentY);
+      } else {
+        // 普通文本、粗体、斜体等 - 标题内统一使用粗体渲染
+        this.pdf.text(segment.text, segment.x, this.currentY);
+      }
+    });
   }
 
   /**

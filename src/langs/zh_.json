@@ -23,7 +23,7 @@
       "batchExport": {
         "badge": "⚡ 批次處理",
         "title": "批次匯出最新分支",
-        "description": "選擇多個JSON檔案，自動將每個檔案的最新對話分支匯出為Markdown，並打包成ZIP檔案",
+        "description": "選擇多個JSON檔案，將每個檔案的最新對話分支匯出為Markdown，並打包成ZIP檔案",
         "button": "開始批次匯出",
         "processing": "處理中...",
         "progress": "正在處理 {{current}}/{{total}} 個檔案",

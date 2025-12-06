@@ -407,27 +407,29 @@ const WelcomePage = ({ handleLoadClick, handleFolderClick }) => {
               <Package className="h-8 w-8" />
             </div>
             <h3 className="action-title">{t('welcomePage.actionCards.batchExport.title')}</h3>
-            <p className="action-description">
+            <p className="action-description whitespace-pre-line">
               {t('welcomePage.actionCards.batchExport.description')}
             </p>
-            <button
-              onClick={handleBatchExport}
-              className="action-button special"
-              disabled={batchExporting}
-            >
-              <Package className="h-5 w-5 mr-2" />
-              {batchExporting ? t('welcomePage.actionCards.batchExport.processing') : t('welcomePage.actionCards.batchExport.button')}
-            </button>
-
-            {handleFolderClick && (
+            <div className="flex gap-6">
               <button
-                onClick={handleFolderClick}
-                className="action-button special mt-2"
+                onClick={handleBatchExport}
+                className="action-button special flex-1"
+                disabled={batchExporting}
               >
-                <FolderTree className="h-5 w-5 mr-2" />
-                {t('welcomePage.actionCards.batchExport.folderButton')} ({t('welcomePage.actionCards.batchExport.folderDescription')})
+                <Package className="h-5 w-5 mr-2" />
+                {batchExporting ? t('welcomePage.actionCards.batchExport.processing') : t('welcomePage.actionCards.batchExport.button')}
               </button>
-            )}
+
+              {handleFolderClick && (
+                <button
+                  onClick={handleFolderClick}
+                  className="action-button special flex-1"
+                >
+                  <FolderTree className="h-5 w-5 mr-2" />
+                  {t('welcomePage.actionCards.batchExport.folderButton')}
+                </button>
+              )}
+            </div>
 
             {/* 导出进度 */}
             {batchExporting && !exportResult && (
