@@ -626,5 +626,60 @@
       "hasArtifacts": "Artifacts",
       "messages": "개 메시지",
       "file": "파일"
+    },
+    "semanticSearch": {
+      "title": "시맨틱 검색",
+      "header": "🔮 시맨틱 검색",
+      "settings": "설정",
+      "close": "닫기",
+      "embeddingModel": {
+        "title": "벡터화 모델",
+        "apiUrl": "API URL",
+        "apiUrlPlaceholder": "http://localhost:1234",
+        "modelName": "모델 이름",
+        "modelNamePlaceholder": "qwen3-embedding",
+        "infoLmstudio": "💡 로컬 Embedding 서비스가 시작되고 모델이 로드되었는지 확인하세요."
+      },
+      "llmConfig": {
+        "title": "AI 응답 (선택사항)",
+        "provider": "AI 서비스",
+        "none": "검색만 (AI 사용 안 함)",
+        "openai": "OpenAI",
+        "claude": "Claude",
+        "apiKey": "API Key",
+        "apiKeyPlaceholder": "API 키를 입력하세요",
+        "apiEndpoint": "API 엔드포인트",
+        "apiEndpointPlaceholder": "",
+        "model": "모델",
+        "modelPlaceholder": "모델 이름 입력 (예: gpt-4o-mini)"
+      },
+      "status": {
+        "initializing": "초기화 중...",
+        "waitingFiles": "⏳ 파일 안정화 대기 중...",
+        "rebuildIndex": "🔄 인덱스 재구축",
+        "ready": "✅ 준비 완료",
+        "indexSize": "{{count}}개 메시지",
+        "embeddingInfo": "벡터화 · {{count}}개 메시지",
+        "filesChanging": "파일 변경 중, 안정화 대기 중...",
+        "filesChanged": "파일이 변경되었습니다. 인덱스를 재구축하세요"
+      },
+      "chat": {
+        "placeholder": "대화 기록에 대해 무엇이든 질문하세요...",
+        "placeholderWaiting": "파일 로딩 중, 질문을 입력하면 안정화 후 자동 검색합니다...",
+        "placeholderIndexing": "질문을 입력하면 인덱싱 완료 후 자동 검색합니다...",
+        "placeholderNotReady": "질문을 입력하고 Enter를 누르면 자동으로 인덱싱을 시작합니다...",
+        "send": "전송",
+        "search": "검색",
+        "greeting": "👋 안녕하세요! 대화 기록 검색을 도와드리겠습니다.",
+        "noResults": "관련 대화 기록을 찾을 수 없습니다. 다른 키워드를 시도해보세요.",
+        "resultsIntro": "질문과 관련된 대화 기록입니다:",
+        "searchError": "검색 오류: {{error}}",
+        "waitingIndex": "⏳ 인덱스 구축 중, 완료 후 자동 검색합니다...",
+        "waitingFiles": "⏳ 파일 안정화 대기 중, 안정화 후 자동으로 인덱스를 구축하고 검색합니다..."
+      },
+      "results": {
+        "score": "{{score}}%",
+        "preview": "미리보기"
+      }
     }
 }

@@ -630,5 +630,60 @@
       "hasArtifacts": "Artifacts",
       "messages": "條訊息",
       "file": "檔案"
+    },
+    "semanticSearch": {
+      "title": "語義搜尋",
+      "header": "🔮 語義搜尋",
+      "settings": "設定",
+      "close": "關閉",
+      "embeddingModel": {
+        "title": "向量化模型",
+        "apiUrl": "API 位址",
+        "apiUrlPlaceholder": "http://localhost:1234",
+        "modelName": "模型名稱",
+        "modelNamePlaceholder": "qwen3-embedding",
+        "infoLmstudio": "💡 請確保本地 Embedding 服務已啟動並載入模型。"
+      },
+      "llmConfig": {
+        "title": "AI 回答（可選）",
+        "provider": "AI 服務",
+        "none": "僅搜尋（不使用 AI）",
+        "openai": "OpenAI",
+        "claude": "Claude",
+        "apiKey": "API Key",
+        "apiKeyPlaceholder": "輸入你的 API Key",
+        "apiEndpoint": "API 接入點",
+        "apiEndpointPlaceholder": "",
+        "model": "模型",
+        "modelPlaceholder": "輸入模型名稱（如 gpt-4o-mini）"
+      },
+      "status": {
+        "initializing": "初始化中...",
+        "waitingFiles": "⏳ 等待檔案穩定...",
+        "rebuildIndex": "🔄 重新建構索引",
+        "ready": "✅ 就緒",
+        "indexSize": "{{count}} 條訊息",
+        "embeddingInfo": "向量化 · {{count}} 條訊息",
+        "filesChanging": "檔案變化中，等待穩定...",
+        "filesChanged": "檔案已變化，請重新建構索引"
+      },
+      "chat": {
+        "placeholder": "問我任何關於你歷史對話的問題...",
+        "placeholderWaiting": "檔案載入中，輸入問題，穩定後將自動搜尋...",
+        "placeholderIndexing": "輸入問題，索引完成後將自動搜尋...",
+        "placeholderNotReady": "輸入問題並按回車，將自動啟動索引...",
+        "send": "傳送",
+        "search": "搜尋",
+        "greeting": "👋 你好！我可以幫你在歷史對話中搜尋內容。",
+        "noResults": "沒有找到相關的對話記錄。請嘗試其他關鍵詞。",
+        "resultsIntro": "以下是與你問題相關的對話記錄：",
+        "searchError": "搜尋出錯: {{error}}",
+        "waitingIndex": "⏳ 正在建構索引，完成後將自動搜尋...",
+        "waitingFiles": "⏳ 等待檔案穩定中，穩定後將自動建構索引並搜尋..."
+      },
+      "results": {
+        "score": "{{score}}%",
+        "preview": "預覽"
+      }
     }
 }

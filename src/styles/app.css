@@ -18,6 +18,19 @@
   }
 }
 
+/* 移动端：自然文档流 */
+@media (max-width: 1023px) {
+  .app-redesigned {
+    height: auto;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    overflow: visible;
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
 /* 导航栏 */
 .navbar-redesigned {
   background: var(--bg-overlay);
@@ -30,6 +43,13 @@
   position: sticky;
   top: 0;
   z-index: 1000;
+}
+
+/* 移动端导航栏安全区域 */
+@media (max-width: 1023px) {
+  .navbar-redesigned {
+    padding-top: max(12px, env(safe-area-inset-top));
+  }
 }
 
 .navbar-left {
@@ -182,6 +202,15 @@
   height: calc(100vh - 65px);
 }
 
+/* 移动端：自然高度 */
+@media (max-width: 1023px) {
+  .main-container {
+    height: auto;
+    min-height: calc(100vh - 65px);
+    overflow: visible;
+  }
+}
+
 .content-area {
   flex: 1;
   overflow-y: auto;
@@ -189,6 +218,14 @@
   padding: 20px;
   position: relative;
   z-index: 1;
+}
+
+/* 移动端：内容决定高度 */
+@media (max-width: 1023px) {
+  .content-area {
+    overflow: visible;
+    height: auto;
+  }
 }
 
 .view-content {

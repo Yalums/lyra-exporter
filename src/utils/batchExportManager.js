@@ -1,7 +1,7 @@
 // utils/batchExportManager.js
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
-import { extractChatData } from './fileParser';
+import { extractChatData, parseJSONL } from './fileParser';
 import { MarkdownGenerator } from './exportManager';
 import { DateTimeUtils } from './fileParser';
 
@@ -234,6 +234,7 @@ export class BatchExportManager {
     const timestamp = DateTimeUtils.formatDateTime(new Date()).replace(/[:/\s]/g, '-');
     const successfulExports = [];
     const failedExports = [];
+    const usedFileNames = new Set(); // 跟踪已使用的文件名，避免重复
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -246,7 +247,10 @@ export class BatchExportManager {
 
         // 读取文件内容
         const content = await this.readFileAsText(file);
-        const jsonData = JSON.parse(content);
+
+        // 智能解析文件（JSON或JSONL）
+        const isJSONL = file.name.endsWith('.jsonl') || (content.includes('\n{') && !content.trim().startsWith('['));
+        const jsonData = isJSONL ? parseJSONL(content) : JSON.parse(content);
 
         // 检测是否为 claude_full_export 格式（包含多个对话）
         const isFullExport = jsonData?.exportedAt && Array.isArray(jsonData.conversations);
@@ -306,7 +310,15 @@ export class BatchExportManager {
               // 生成文件名 - 使用对话名称
               const convTitle = conversation.name || `conversation_${convIndex + 1}`;
               const sanitizedTitle = this.sanitizeFileName(convTitle);
-              const mdFileName = `${sanitizedTitle}.md`;
+
+              // 避免文件名重复，如果重复则添加序号
+              let mdFileName = `${sanitizedTitle}.md`;
+              let counter = 1;
+              while (usedFileNames.has(mdFileName)) {
+                mdFileName = `${sanitizedTitle}_${counter}.md`;
+                counter++;
+              }
+              usedFileNames.add(mdFileName);
 
               // 添加到 ZIP
               zip.file(mdFileName, markdown);
@@ -355,11 +367,19 @@ export class BatchExportManager {
 
           const markdown = generator.generate(latestBranchData);
 
-          // 生成文件名
-          const originalName = file.name.replace(/\.json$/i, '');
+          // 生成文件名（支持.json和.jsonl）
+          const originalName = file.name.replace(/\.(json|jsonl)$/i, '');
           const title = processedData.meta_info?.title || originalName;
           const sanitizedTitle = this.sanitizeFileName(title);
-          const mdFileName = `${sanitizedTitle}.md`;
+
+          // 避免文件名重复，如果重复则添加序号
+          let mdFileName = `${sanitizedTitle}.md`;
+          let counter = 1;
+          while (usedFileNames.has(mdFileName)) {
+            mdFileName = `${sanitizedTitle}_${counter}.md`;
+            counter++;
+          }
+          usedFileNames.add(mdFileName);
 
           // 添加到 ZIP
           zip.file(mdFileName, markdown);

@@ -34,9 +34,8 @@
 
   .content-area {
     padding: 12px;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-    height: calc(100vh - 65px);
+    overflow: visible;
+    height: auto;
   }
 
   /* 统计面板响应式 */

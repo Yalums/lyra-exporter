@@ -634,5 +634,60 @@
       "pdfOnlySupportsCurrent": "PDFエクスポートは現在の会話または現在のブランチのみサポートします",
       "noMatchingMessages": "フィルター条件に一致するメッセージがありません"
     }
+  },
+  "semanticSearch": {
+    "title": "セマンティック検索",
+    "header": "🔮 セマンティック検索",
+    "settings": "設定",
+    "close": "閉じる",
+    "embeddingModel": {
+      "title": "ベクトル化モデル",
+      "apiUrl": "API URL",
+      "apiUrlPlaceholder": "http://localhost:1234",
+      "modelName": "モデル名",
+      "modelNamePlaceholder": "qwen3-embedding",
+      "infoLmstudio": "💡 ローカル Embedding サービスが起動してモデルがロードされていることを確認してください。"
+    },
+    "llmConfig": {
+      "title": "AI応答（オプション）",
+      "provider": "AIサービス",
+      "none": "検索のみ（AIを使用しない）",
+      "openai": "OpenAI",
+      "claude": "Claude",
+      "apiKey": "API Key",
+      "apiKeyPlaceholder": "APIキーを入力",
+      "apiEndpoint": "APIエンドポイント",
+      "apiEndpointPlaceholder": "",
+      "model": "モデル",
+      "modelPlaceholder": "モデル名を入力（例：gpt-4o-mini）"
+    },
+    "status": {
+      "initializing": "初期化中...",
+      "waitingFiles": "⏳ ファイルの安定を待っています...",
+      "rebuildIndex": "🔄 インデックスを再構築",
+      "ready": "✅ 準備完了",
+      "indexSize": "{{count}}個のメッセージ",
+      "embeddingInfo": "ベクトル化 · {{count}}個のメッセージ",
+      "filesChanging": "ファイルが変更中、安定を待っています...",
+      "filesChanged": "ファイルが変更されました。インデックスを再構築してください"
+    },
+    "chat": {
+      "placeholder": "会話履歴について何でも質問してください...",
+      "placeholderWaiting": "ファイル読み込み中、質問を入力すると安定後に自動検索します...",
+      "placeholderIndexing": "質問を入力すると、インデックス完了後に自動検索します...",
+      "placeholderNotReady": "質問を入力してEnterを押すと、自動的にインデックスを開始します...",
+      "send": "送信",
+      "search": "検索",
+      "greeting": "👋 こんにちは！会話履歴の検索をお手伝いします。",
+      "noResults": "関連する会話記録が見つかりませんでした。他のキーワードをお試しください。",
+      "resultsIntro": "質問に関連する会話記録は以下の通りです：",
+      "searchError": "検索エラー: {{error}}",
+      "waitingIndex": "⏳ インデックス構築中、完了後に自動検索します...",
+      "waitingFiles": "⏳ ファイルの安定を待っています。安定後に自動的にインデックスを構築して検索します..."
+    },
+    "results": {
+      "score": "{{score}}%",
+      "preview": "プレビュー"
+    }
   }
 }

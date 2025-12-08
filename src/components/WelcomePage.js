@@ -217,7 +217,7 @@ const FeatureCard = ({ titleKey, descriptionKey }) => {
 
 // 主欢迎页面组件 - 国际化版本
 const WelcomePage = ({ handleLoadClick, handleFolderClick }) => {
-  const { t, isReady } = useI18n();
+  const { t, isReady, currentLanguage } = useI18n();
   const [currentTheme, setCurrentTheme] = useState(ThemeUtils.getCurrentTheme());
 
   // 批量导出相关状态
@@ -241,7 +241,7 @@ const WelcomePage = ({ handleLoadClick, handleFolderClick }) => {
     // 创建文件输入元素
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.json';
+    input.accept = '.json,.jsonl';
     input.multiple = true;
 
     input.onchange = async (e) => {
@@ -326,7 +326,7 @@ const WelcomePage = ({ handleLoadClick, handleFolderClick }) => {
       <div className="welcome-control-panel">
         <div className="control-panel">
           {/* 主题切换按钮 */}
-          <button 
+          <button
             onClick={handleThemeToggle}
             className="control-button"
             title={currentTheme === 'dark' ? '切换到浅色模式' : '切换到深色模式'}
@@ -337,13 +337,15 @@ const WelcomePage = ({ handleLoadClick, handleFolderClick }) => {
               <Moon className="h-5 w-5" />
             )}
           </button>
-          
-          {/* 语言切换器 */}
-          <LanguageSwitcher 
-            variant="compact"
-            showText={false}
-            onLanguageChange={handleLanguageChange}
-          />
+
+          {/* 语言切换器 - 简体中文时隐藏 */}
+          {currentLanguage !== 'zh' && (
+            <LanguageSwitcher
+              variant="compact"
+              showText={false}
+              onLanguageChange={handleLanguageChange}
+            />
+          )}
         </div>
       </div>
       
@@ -411,15 +413,6 @@ const WelcomePage = ({ handleLoadClick, handleFolderClick }) => {
               {t('welcomePage.actionCards.batchExport.description')}
             </p>
             <div className="flex gap-6">
-              <button
-                onClick={handleBatchExport}
-                className="action-button special flex-1"
-                disabled={batchExporting}
-              >
-                <Package className="h-5 w-5 mr-2" />
-                {batchExporting ? t('welcomePage.actionCards.batchExport.processing') : t('welcomePage.actionCards.batchExport.button')}
-              </button>
-
               {handleFolderClick && (
                 <button
                   onClick={handleFolderClick}
@@ -429,6 +422,15 @@ const WelcomePage = ({ handleLoadClick, handleFolderClick }) => {
                   {t('welcomePage.actionCards.batchExport.folderButton')}
                 </button>
               )}
+
+              <button
+                onClick={handleBatchExport}
+                className="action-button special flex-1"
+                disabled={batchExporting}
+              >
+                <Package className="h-5 w-5 mr-2" />
+                {batchExporting ? t('welcomePage.actionCards.batchExport.processing') : t('welcomePage.actionCards.batchExport.button')}
+              </button>
             </div>
 
             {/* 导出进度 */}
@@ -664,7 +666,8 @@ const WelcomePage = ({ handleLoadClick, handleFolderClick }) => {
           /* 功能卡片背景 */
           .welcome-page .bg-blue-50,
           .welcome-page .bg-purple-50,
-          .welcome-page .bg-green-50 {
+          .welcome-page .bg-green-50,
+          .welcome-page .bg-yellow-50 {
             background-color: var(--bg-tertiary) !important;
             border-color: var(--border-primary) !important;
           }
@@ -786,7 +789,10 @@ const WelcomePage = ({ handleLoadClick, handleFolderClick }) => {
           .welcome-page .border-gray-200,
           .welcome-page .border-blue-100,
           .welcome-page .border-purple-100,
-          .welcome-page .border-green-100 {
+          .welcome-page .border-green-100,
+          .welcome-page .border-blue-200,
+          .welcome-page .border-green-200,
+          .welcome-page .border-yellow-200 {
             border-color: var(--border-primary) !important;
           }
           
@@ -797,13 +803,21 @@ const WelcomePage = ({ handleLoadClick, handleFolderClick }) => {
           /* 图标颜色 */
           .welcome-page .text-blue-600,
           .welcome-page .text-purple-600,
-          .welcome-page .text-green-600 {
+          .welcome-page .text-green-600,
+          .welcome-page .text-yellow-600 {
             color: var(--accent-primary) !important;
           }
-          
+
           .welcome-page .text-blue-700,
           .welcome-page .text-purple-700,
-          .welcome-page .text-green-700 {
+          .welcome-page .text-green-700,
+          .welcome-page .text-yellow-700 {
+            color: var(--text-secondary) !important;
+          }
+
+          .welcome-page .text-blue-800,
+          .welcome-page .text-green-800,
+          .welcome-page .text-yellow-800 {
             color: var(--text-primary) !important;
           }
           

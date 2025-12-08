@@ -665,5 +665,60 @@
       "hasArtifacts": "Artifacts",
       "messages": "messages",
       "file": "File"
+    },
+    "semanticSearch": {
+      "title": "Semantic Search",
+      "header": "🔮 Semantic Search",
+      "settings": "Settings",
+      "close": "Close",
+      "embeddingModel": {
+        "title": "Embedding Model",
+        "apiUrl": "API URL",
+        "apiUrlPlaceholder": "http://localhost:1234",
+        "modelName": "Model Name",
+        "modelNamePlaceholder": "qwen3-embedding",
+        "infoLmstudio": "💡 Please ensure local Embedding service is running with model loaded."
+      },
+      "llmConfig": {
+        "title": "AI Response (Optional)",
+        "provider": "AI Service",
+        "none": "Search Only (No AI)",
+        "openai": "OpenAI",
+        "claude": "Claude",
+        "apiKey": "API Key",
+        "apiKeyPlaceholder": "Enter your API key",
+        "apiEndpoint": "API Endpoint",
+        "apiEndpointPlaceholder": "",
+        "model": "Model",
+        "modelPlaceholder": "Enter model name (e.g., gpt-4o-mini)"
+      },
+      "status": {
+        "initializing": "Initializing...",
+        "waitingFiles": "⏳ Waiting for files to stabilize...",
+        "rebuildIndex": "🔄 Rebuild Index",
+        "ready": "✅ Ready",
+        "indexSize": "{{count}} messages",
+        "embeddingInfo": "Embedding · {{count}} messages",
+        "filesChanging": "Files changing, waiting for stability...",
+        "filesChanged": "Files changed, please rebuild index"
+      },
+      "chat": {
+        "placeholder": "Ask me anything about your conversation history...",
+        "placeholderWaiting": "Files loading, enter your question, will auto-search when stable...",
+        "placeholderIndexing": "Enter your question, will auto-search after indexing...",
+        "placeholderNotReady": "Enter your question and press Enter, will auto-start indexing...",
+        "send": "Send",
+        "search": "Search",
+        "greeting": "👋 Hello! I can help you search through your conversation history.",
+        "noResults": "No relevant conversation records found. Please try other keywords.",
+        "resultsIntro": "Here are conversation records related to your question:",
+        "searchError": "Search error: {{error}}",
+        "waitingIndex": "⏳ Building index, will auto-search when complete...",
+        "waitingFiles": "⏳ Waiting for files to stabilize, will auto-build index and search..."
+      },
+      "results": {
+        "score": "{{score}}%",
+        "preview": "Preview"
+      }
     }
 }

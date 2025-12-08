@@ -25,6 +25,15 @@ html, body {
   line-height: 1.5;
 }
 
+/* 移动端：允许自然滚动以触发浏览器地址栏隐藏 */
+@media (max-width: 1023px) {
+  html, body {
+    overflow: visible;
+    height: auto;
+    min-height: 100%;
+  }
+}
+
 /* 链接样式 */
 a {
   color: var(--text-link);

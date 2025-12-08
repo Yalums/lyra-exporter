@@ -176,6 +176,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain; /* 防止滚动穿透 */
   background: var(--bg-primary);
   /* 修复：添加相对定位，为固定按钮提供定位上下文 */
   position: relative;
@@ -194,9 +195,9 @@
 
 .mobile-detail-body .detail-content {
   padding: 0;
-  /* 修复：让内容区域可滚动，并为底部按钮预留空间 */
+  /* 修复：不设置 overflow，让父容器 .mobile-detail-body 成为唯一滚动容器 */
   flex: 1;
-  overflow-y: auto;
+  overflow: visible;
   margin-bottom: 68px; /* 为固定在底部的按钮预留空间 */
 }
 
@@ -241,4 +242,14 @@
   .navbar-redesigned.hide-on-mobile {
     display: none;
   }
+}
+
+/* 移动端详情：确保 .mobile-detail-body 是唯一滚动容器 */
+.mobile-detail-body .message-detail {
+  height: auto;
+  overflow: visible;
+}
+
+.mobile-detail-body .message-detail .tab-content {
+  overflow: visible;
 }

@@ -1,5 +1,5 @@
 // components/ExportPanel.js
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getAllMarksStats } from '../utils/data/markManager';
 import { generateFileCardUuid, generateConversationCardUuid } from '../utils/data/uuidManager';
 
@@ -22,6 +22,62 @@ const ExportPanel = ({
   onExport,
   t
 }) => {
+  // 手势支持
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+  const panelRef = useRef(null);
+
+  // 浏览器回退支持
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // 添加 history 记录
+    window.history.pushState({ view: 'export-panel' }, '');
+
+    const handlePopState = () => {
+      onClose();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [isOpen, onClose]);
+
+  // 手势处理
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+
+    const distance = touchStart - touchEnd;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    // 右滑关闭面板
+    if (isRightSwipe) {
+      handleBackClick();
+    }
+  };
+
+  // 处理返回按钮点击
+  const handleBackClick = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      onClose();
+    }
+  };
+
   if (!isOpen) return null;
 
   const markStats = getAllMarksStats(
@@ -33,8 +89,15 @@ const ExportPanel = ({
   );
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content export-modal" onClick={e => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={handleBackClick}>
+      <div
+        className="modal-content export-modal"
+        onClick={e => e.stopPropagation()}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        ref={panelRef}
+      >
         <div className="modal-header">
           <h2>{t('app.export.title')}</h2>
           <button className="close-btn" onClick={onClose}>×</button>

@@ -32,6 +32,9 @@
   flex: 1;
   padding: 8px 12px;
   font-size: 0.85rem;
+  justify-content: center;
+  padding-left: 20px;
+  padding-right: 20px;
 }
 
 /* MessageDetail基础样式 */

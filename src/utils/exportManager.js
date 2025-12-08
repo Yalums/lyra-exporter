@@ -456,6 +456,13 @@ export class FileExporter {
  * 辅助函数：处理单个文件
  */
 async function processFileForExport(file, fileIndex) {
+  // 检查是否有预处理的合并数据（用于合并的JSONL文件）
+  if (file._mergedProcessedData) {
+    console.log('[Lyra] 使用预处理的合并数据:', file.name);
+    return file._mergedProcessedData;
+  }
+
+  // 否则正常解析文件
   const text = await file.text();
   const jsonData = JSON.parse(text);
   let data = extractChatData(jsonData, file.name);

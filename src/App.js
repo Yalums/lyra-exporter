@@ -12,6 +12,8 @@ import SettingsPanel from './components/SettingsManager';
 import ExportPanel from './components/ExportPanel';
 import ScreenshotPreviewPanel from './components/ScreenshotPreviewPanel';
 import { CardGrid } from './components/UnifiedCard';
+import SemanticSearchPanel from './components/SemanticSearchPanel';
+import MobileGlobalSearchPanel from './components/MobileGlobalSearchPanel';
 
 // 工具函数导入
 import { ThemeUtils } from './utils/themeManager';
@@ -78,8 +80,8 @@ export const ValidationUtils = {
       'https://yalums.github.io'
     ];
     return allowedOrigins.some(allowed => origin === allowed) ||
-           origin.includes('localhost') ||
-           origin.includes('127.0.0.1');
+      origin.includes('localhost') ||
+      origin.includes('127.0.0.1');
   }
 };
 
@@ -207,10 +209,10 @@ const useFullExportCardFilter = (conversations = [], operatedUuids = new Set()) 
   // 获取筛选统计
   const filterStats = useMemo(() => {
     const hasActiveFilters = filters.name.trim() ||
-                           filters.dateRange !== 'all' ||
-                           filters.project !== 'all' ||
-                           filters.starred !== 'all' ||
-                           filters.operated !== 'all';
+      filters.dateRange !== 'all' ||
+      filters.project !== 'all' ||
+      filters.starred !== 'all' ||
+      filters.operated !== 'all';
     return {
       total: conversations.length,
       filtered: filteredConversations.length,
@@ -682,23 +684,25 @@ function App() {
   // ==================== Hooks和状态管理 ====================
   // i18n
   const { t, currentLanguage } = useI18n();
-  
-  const { 
-    files, 
-    currentFile, 
-    currentFileIndex, 
-    processedData, 
+
+  const {
+    files,
+    currentFile,
+    currentFileIndex,
+    processedData,
     showTypeConflictModal,
     pendingFiles,
     fileMetadata,
-    actions: fileActions 
+    actions: fileActions
   } = useFileManager();
-  
+
   // 状态管理
   const [selectedMessageIndex, setSelectedMessageIndex] = useState(null);
   const [activeTab, setActiveTab] = useState('content');
   const [showExportPanel, setShowExportPanel] = useState(false);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
+  const [showSemanticSearch, setShowSemanticSearch] = useState(false);
+  const [showMobileGlobalSearch, setShowMobileGlobalSearch] = useState(false);
   const [screenshotPreview, setScreenshotPreview] = useState({
     isOpen: false,
     data: null
@@ -708,6 +712,8 @@ function App() {
   const [selectedConversationUuid, setSelectedConversationUuid] = useState(null);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [hideNavbar, setHideNavbar] = useState(false); // 新增：控制导航栏显示
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768); // 移动端检测
+  const [showMobileDetail, setShowMobileDetail] = useState(false); // 移动端详情显示状态
   const [operatedFiles, setOperatedFiles] = useState(new Set());
   const [scrollPositions, setScrollPositions] = useState({});
   const [error, setError] = useState(null);
@@ -736,15 +742,15 @@ function App() {
       includeAttachments: savedExportConfig.includeAttachments !== undefined ? savedExportConfig.includeAttachments : true
     };
   });
-  
+
   // 搜索状态
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState({ results: [], filteredMessages: [] });
-  
+
   const fileInputRef = useRef(null);
   const folderInputRef = useRef(null);
   const contentAreaRef = useRef(null);
-  
+
   // 管理器实例引用
   const markManagerRef = useRef(null);
   const starManagerRef = useRef(null);
@@ -752,7 +758,7 @@ function App() {
   const searchManagerRef = useRef(null);
 
   // ==================== 管理器初始化 ====================
-  
+
   // UUID管理
   const currentFileUuid = useMemo(() => {
     return getCurrentFileUuid(viewMode, selectedFileIndex, selectedConversationUuid, processedData, files);
@@ -760,7 +766,7 @@ function App() {
 
   // 星标系统
   const shouldUseStarSystem = processedData?.format === 'claude_full_export';
-  
+
   useEffect(() => {
     if (shouldUseStarSystem) {
       if (!starManagerRef.current) {
@@ -786,9 +792,55 @@ function App() {
     }
   }, []);
 
+  // 监听窗口大小变化，更新移动端状态
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // ==================== History API 导航管理 ====================
+  // 使用 ref 保存滚动位置的最新值，避免在 popstate 依赖数组中包含 state
+  const scrollPositionsRef = useRef(scrollPositions);
+  useEffect(() => {
+    scrollPositionsRef.current = scrollPositions;
+  }, [scrollPositions]);
+
+  useEffect(() => {
+    const handlePopState = (event) => {
+      const state = event.state;
+      if (!state || state.view === 'conversations') {
+        setViewMode('conversations');
+        setSelectedConversationUuid(null);
+        setSelectedFileIndex(null);
+        setSearchQuery('');
+        setSortVersion(v => v + 1);
+        setTimelineDisplayMessages([]);
+
+        // 延迟恢复滚动位置，等待 DOM 更新
+        setTimeout(() => {
+          if (contentAreaRef.current) {
+            const positions = scrollPositionsRef.current;
+            const savedPosition = positions['main'] || 0;
+            contentAreaRef.current.scrollTop = savedPosition;
+          }
+        }, 50);
+      } else if (state.view === 'timeline') {
+        setViewMode('timeline');
+        setSelectedFileIndex(state.fileIndex);
+        setSelectedConversationUuid(state.convUuid);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   // ==================== 数据计算 - 使用DataProcessor简化 ====================
-  
-  const rawConversations = useMemo(() => 
+
+  const rawConversations = useMemo(() =>
     DataProcessor.getRawConversations(viewMode, processedData, currentFileIndex, files),
     [viewMode, processedData, currentFileIndex, files, renameVersion]
   );
@@ -801,7 +853,7 @@ function App() {
     actions: filterActions
   } = useFullExportCardFilter(rawConversations, operatedFiles);
 
-  const fileCards = useMemo(() => 
+  const fileCards = useMemo(() =>
     DataProcessor.getFileCards(viewMode, processedData, files, currentFileIndex, fileMetadata, t),
     [files, currentFileIndex, processedData, fileMetadata, viewMode, t, renameVersion]
   );
@@ -813,7 +865,7 @@ function App() {
     return fileCards;
   }, [viewMode, processedData, filteredConversations, fileCards]);
 
-  const timelineMessages = useMemo(() => 
+  const timelineMessages = useMemo(() =>
     DataProcessor.getTimelineMessages(viewMode, selectedFileIndex, currentFileIndex, processedData, selectedConversationUuid),
     [viewMode, processedData, selectedConversationUuid, selectedFileIndex, currentFileIndex]
   );
@@ -892,7 +944,7 @@ function App() {
   const isFullExportConversationMode = viewMode === 'conversations' && processedData?.format === 'claude_full_export';
 
   // ==================== 事件处理函数 ====================
-  
+
   const postMessageHandler = useMemo(() => {
     return new PostMessageHandler(fileActions, setError);
   }, [fileActions]);
@@ -910,13 +962,13 @@ function App() {
 
   const handleNavigateToMessage = useCallback((navigationData) => {
     const { fileIndex, conversationUuid, messageIndex, messageId, messageUuid, highlight } = navigationData;
-    
+
     // 记录当前文件索引，用于判断是否需要切换文件
     const needFileSwitch = fileIndex !== selectedFileIndex || fileIndex !== currentFileIndex;
-    
+
     // 切换到时间线视图
     setViewMode('timeline');
-    
+
     // 切换文件（如果需要）
     if (needFileSwitch) {
       // 先切换当前文件
@@ -927,7 +979,7 @@ function App() {
     } else if (selectedFileIndex !== fileIndex) {
       setSelectedFileIndex(fileIndex);
     }
-    
+
     // 设置对话UUID
     if (conversationUuid) {
       // 如果是完整导出格式，需要提取真实的对话UUID
@@ -941,7 +993,7 @@ function App() {
       }
       setSelectedConversationUuid(realConversationUuid);
     }
-    
+
     // 通知ConversationTimeline滚动到消息，传递messageId和messageUuid
     // 根据不同情况设置不同延迟
     let delay;
@@ -955,13 +1007,13 @@ function App() {
       // 同一对话内导航
       delay = 300;
     }
-    
+
     setTimeout(() => {
       window.dispatchEvent(new CustomEvent('scrollToMessage', {
-        detail: { 
-          messageIndex, 
-          messageId, 
-          messageUuid, 
+        detail: {
+          messageIndex,
+          messageId,
+          messageUuid,
           highlight,
           fileIndex,  // 添加文件索引
           conversationUuid  // 添加对话UUID
@@ -978,14 +1030,14 @@ function App() {
         [key]: contentAreaRef.current.scrollTop
       }));
     }
-    
+
     setSelectedMessageIndex(null);
     setSearchQuery('');
     setSortVersion(v => v + 1);
-    
+
     if (card.type === 'file') {
       const needsFileSwitch = card.fileIndex !== currentFileIndex;
-      
+
       if (needsFileSwitch) {
         fileActions.switchFile(card.fileIndex);
         setTimeout(() => {
@@ -996,6 +1048,11 @@ function App() {
           } else {
             setSelectedFileIndex(card.fileIndex);
             setSelectedConversationUuid(null);
+            // 添加 history 记录
+            window.history.pushState(
+              { view: 'timeline', fileIndex: card.fileIndex, convUuid: null },
+              ''
+            );
             setViewMode('timeline');
           }
         }, 100);
@@ -1007,6 +1064,11 @@ function App() {
         } else {
           setSelectedFileIndex(card.fileIndex);
           setSelectedConversationUuid(null);
+          // 添加 history 记录
+          window.history.pushState(
+            { view: 'timeline', fileIndex: card.fileIndex, convUuid: null },
+            ''
+          );
           setViewMode('timeline');
         }
       }
@@ -1015,17 +1077,27 @@ function App() {
       const fileIndex = card.fileIndex;
       const conversationUuid = parsed.conversationUuid;
       const needsFileSwitch = fileIndex !== currentFileIndex;
-      
+
       if (needsFileSwitch) {
         fileActions.switchFile(fileIndex);
         setTimeout(() => {
           setSelectedFileIndex(fileIndex);
           setSelectedConversationUuid(conversationUuid);
+          // 添加 history 记录
+          window.history.pushState(
+            { view: 'timeline', fileIndex, convUuid: conversationUuid },
+            ''
+          );
           setViewMode('timeline');
         }, 100);
       } else {
         setSelectedFileIndex(fileIndex);
         setSelectedConversationUuid(conversationUuid);
+        // 添加 history 记录
+        window.history.pushState(
+          { view: 'timeline', fileIndex, convUuid: conversationUuid },
+          ''
+        );
         setViewMode('timeline');
       }
     }
@@ -1042,14 +1114,14 @@ function App() {
       }
       return;
     }
-    
+
     const parsed = parseUuid(fileIndexOrUuid);
     if (parsed.fileHash) {
       const index = files.findIndex((file, idx) => {
         const hash = generateFileHash(file);
         return hash === parsed.fileHash || generateFileCardUuid(idx, file) === fileIndexOrUuid;
       });
-      
+
       if (index !== -1) {
         fileActions.removeFile(index);
         if (index === currentFileIndex || index === selectedFileIndex) {
@@ -1062,38 +1134,36 @@ function App() {
     }
   }, [currentFileIndex, selectedFileIndex, files, fileActions]);
 
-  const handleBackToConversations = () => {
-    setViewMode('conversations');
-    setSelectedFileIndex(null);
-    setSelectedConversationUuid(null);
-    setSearchQuery('');
-    setSortVersion(v => v + 1);
-    setTimelineDisplayMessages([]); // 清空时间线显示消息
-    
-    setTimeout(() => {
-      if (contentAreaRef.current) {
-        const key = currentFile ? `file-${currentFileIndex}` : 'main';
-        const savedPosition = scrollPositions[key] || 0;
-        contentAreaRef.current.scrollTop = savedPosition;
-      }
-    }, 0);
-  };
+  const handleBackToConversations = useCallback(() => {
+    // 使用 window.history.back() 触发浏览器后退，状态更新由 popstate 处理
+    if (window.history.state && window.history.state.view === 'timeline') {
+      window.history.back();
+    } else {
+      // 直接更新状态（用于没有 history 记录的情况）
+      setViewMode('conversations');
+      setSelectedFileIndex(null);
+      setSelectedConversationUuid(null);
+      setSearchQuery('');
+      setSortVersion(v => v + 1);
+      setTimelineDisplayMessages([]);
+    }
+  }, []);
 
   const handleMarkToggle = (messageIndex, markType) => {
     if (markManagerRef.current) {
       markManagerRef.current.toggleMark(messageIndex, markType);
-      
+
       if (viewMode === 'timeline' && selectedFileIndex !== null) {
         const file = files[selectedFileIndex];
         if (file) {
           const fileUuid = selectedConversationUuid && processedData?.format === 'claude_full_export'
             ? generateConversationCardUuid(selectedFileIndex, selectedConversationUuid, file)
             : generateFileCardUuid(selectedFileIndex, file);
-          
+
           setOperatedFiles(prev => new Set(prev).add(fileUuid));
         }
       }
-      
+
       setMarkVersion(v => v + 1);
     }
   };
@@ -1104,7 +1174,7 @@ function App() {
       setStarredConversations(newStars);
     }
   };
-  
+
   const handleItemRename = (uuid, newName) => {
     // 强制刷新视图以应用重命名
     setRenameVersion(v => v + 1);
@@ -1199,7 +1269,7 @@ function App() {
     if (!window.confirm(t('app.confirmations.clearAllMarks'))) {
       return;
     }
-    
+
     const keysToRemove = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
@@ -1207,18 +1277,18 @@ function App() {
         keysToRemove.push(key);
       }
     }
-    
+
     keysToRemove.forEach(key => localStorage.removeItem(key));
     setOperatedFiles(new Set());
-    
+
     if (markManagerRef.current) {
       markManagerRef.current.clearAllMarks();
     }
-    
+
     if (sortManagerRef.current) {
       sortManagerRef.current.resetSort();
     }
-    
+
     setMarkVersion(v => v + 1);
     setSortVersion(v => v + 1);
   };
@@ -1258,7 +1328,7 @@ function App() {
   );
 
   // ==================== 副作用 ====================
-  
+
   useEffect(() => {
     if (viewMode === 'timeline' && timelineMessages.length > 0) {
       if (window.innerWidth >= 1024 && selectedMessageIndex === null) {
@@ -1273,36 +1343,36 @@ function App() {
   useEffect(() => {
     if (files.length > 0) {
       const operatedSet = new Set();
-      
+
       files.forEach((file, index) => {
         const fileUuid = generateFileCardUuid(index, file);
         const marksKey = `marks_${fileUuid}`;
         const sortKey = `message_order_${fileUuid}`;
-        
+
         if (localStorage.getItem(marksKey) || localStorage.getItem(sortKey)) {
           operatedSet.add(fileUuid);
         }
-        
+
         if (index === currentFileIndex && processedData?.format === 'claude_full_export') {
           const conversations = processedData.views?.conversationList || [];
           conversations.forEach(conv => {
             const convUuid = generateConversationCardUuid(index, conv.uuid, file);
             const convMarksKey = `marks_${convUuid}`;
             const convSortKey = `message_order_${convUuid}`;
-            
+
             if (localStorage.getItem(convMarksKey) || localStorage.getItem(convSortKey)) {
               operatedSet.add(convUuid);
             }
           });
         }
       });
-      
+
       if (operatedSet.size > 0) {
         setOperatedFiles(operatedSet);
       }
     }
   }, [files, currentFileIndex, processedData]);
-  
+
   useEffect(() => {
     ThemeUtils.applyTheme(ThemeUtils.getCurrentTheme());
   }, []);
@@ -1313,7 +1383,7 @@ function App() {
   }, [postMessageHandler]);
 
   // ==================== 渲染 ====================
-  
+
   return (
     <div className="app-redesigned">
       <input
@@ -1347,17 +1417,34 @@ function App() {
               <div className="logo">
                 <span className="logo-text">Lyra Exporter</span>
               </div>
-              
+
               {viewMode === 'timeline' && (
-                <button 
+                <button
                   className="btn-secondary small"
                   onClick={handleBackToConversations}
-                  >
+                >
                   ← {t('app.navbar.backToList')}
-                  </button>
+                </button>
               )}
-              
-              {!isFullExportConversationMode && (
+              {/* 移动端：显示搜索按钮 */}
+              {isMobile && !isFullExportConversationMode && (
+                <button
+                  className="btn-secondary small"
+                  onClick={() => setShowMobileGlobalSearch(true)}
+                >
+                  🔍
+                </button>
+              )}
+
+              <button
+                className="btn-secondary small"
+                onClick={() => setShowSemanticSearch(true)}
+              >
+                🔮
+              </button>
+
+              {/* 桌面端：显示搜索框 */}
+              {!isMobile && !isFullExportConversationMode && (
                 <EnhancedSearchBox
                   files={files}
                   processedData={processedData}
@@ -1367,16 +1454,16 @@ function App() {
               )}
             </div>
             <div className="navbar-right">
-              <button 
+              <button
                 className="btn-secondary small"
                 onClick={() => setShowSettingsPanel(true)}
                 title={t('app.navbar.settings')}
               >
                 ⚙️ {t('app.navbar.settings')}
               </button>
-              
+
               {isFullExportConversationMode && shouldUseStarSystem && starManagerRef.current && (
-                <button 
+                <button
                   className="btn-secondary small"
                   onClick={() => {
                     const newStars = starManagerRef.current.clearAllStars();
@@ -1468,7 +1555,7 @@ function App() {
                           [key]: contentAreaRef.current.scrollTop
                         }));
                       }
-                      
+
                       fileActions.switchFile(index);
                       setSelectedFileIndex(index);
                       setSelectedConversationUuid(null);
@@ -1480,16 +1567,18 @@ function App() {
                     onShowSettings={() => setShowSettingsPanel(true)}
                     onHideNavbar={setHideNavbar}
                     onRename={handleItemRename}
+                    onMobileDetailChange={setShowMobileDetail}
                   />
                 )}
               </div>
             </div>
           </div>
 
-          {/* 悬浮导出按钮 */}
-          <FloatingActionButton 
+          {/* 悬浮导出按钮 - 移动端查看消息详情时隐藏 */}
+          <FloatingActionButton
             onClick={() => setShowExportPanel(true)}
             title={t('app.export.button')}
+            hidden={isMobile && showMobileDetail}
           />
 
           {/* 文件类型冲突模态框 */}
@@ -1521,7 +1610,7 @@ function App() {
           )}
 
           {/* 设置面板 */}
-          <SettingsPanel 
+          <SettingsPanel
             isOpen={showSettingsPanel}
             onClose={() => setShowSettingsPanel(false)}
             exportOptions={exportOptions}
@@ -1548,7 +1637,24 @@ function App() {
             onExport={handleExportClick}
             t={t}
           />
-
+          {/* 语义搜索面板 */}
+          <SemanticSearchPanel
+            isOpen={showSemanticSearch}
+            onClose={() => setShowSemanticSearch(false)}
+            files={files}
+            processedData={processedData}
+            currentFileIndex={currentFileIndex}
+            onNavigateToMessage={handleNavigateToMessage}
+          />
+          {/* 移动端全局搜索面板 */}
+          <MobileGlobalSearchPanel
+            isOpen={showMobileGlobalSearch}
+            onClose={() => setShowMobileGlobalSearch(false)}
+            files={files}
+            processedData={processedData}
+            currentFileIndex={currentFileIndex}
+            onNavigateToMessage={handleNavigateToMessage}
+          />
           {/* 长截图预览面板 */}
           {screenshotPreview.isOpen && screenshotPreview.data && (
             <ScreenshotPreviewPanel
