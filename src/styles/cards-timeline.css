@@ -923,6 +923,15 @@
   overflow-wrap: break-word;
   white-space: pre-wrap;
   max-width: 100%;
+  overflow: hidden; /* 防止内容溢出导致移动端界面被拉伸 */
+}
+
+/* 时间线内容中的代码块防止溢出 */
+.timeline-body pre,
+.timeline-body code {
+  max-width: 100%;
+  overflow-x: auto;
+  word-break: break-all;
 }
 
 .timeline-footer {

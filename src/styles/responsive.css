@@ -34,7 +34,8 @@
 
   .content-area {
     padding: 12px;
-    overflow: visible;
+    overflow-x: hidden; /* 防止水平溢出导致界面被拉伸 */
+    overflow-y: auto;
     height: auto;
   }
 
@@ -139,12 +140,26 @@
   
   .timeline-content {
     padding: 16px;
+    max-width: 100%;
+    overflow: hidden; /* 防止内容溢出 */
   }
-  
+
   .timeline-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
+  }
+
+  /* 移动端防止长内容溢出 */
+  .timeline-body {
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .timeline-body pre,
+  .timeline-body code,
+  .timeline-body img {
+    max-width: 100%;
   }
   
   .timeline-avatar {

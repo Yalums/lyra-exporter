@@ -207,7 +207,8 @@
   .main-container {
     height: auto;
     min-height: calc(100vh - 65px);
-    overflow: visible;
+    overflow-x: hidden; /* 防止水平溢出导致界面被拉伸 */
+    overflow-y: visible;
   }
 }
 
@@ -223,7 +224,8 @@
 /* 移动端：内容决定高度 */
 @media (max-width: 1023px) {
   .content-area {
-    overflow: visible;
+    overflow-x: hidden; /* 防止水平溢出导致界面被拉伸 */
+    overflow-y: visible;
     height: auto;
   }
 }

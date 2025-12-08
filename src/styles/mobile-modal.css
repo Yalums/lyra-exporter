@@ -253,3 +253,28 @@
 .mobile-detail-body .message-detail .tab-content {
   overflow: visible;
 }
+
+/* 移动端详情 Modal 防止内容溢出 */
+.mobile-detail-body .message-text,
+.mobile-detail-body .thinking-text {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.mobile-detail-body pre,
+.mobile-detail-body code {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.mobile-detail-body table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.mobile-detail-body img {
+  max-width: 100%;
+  height: auto;
+}
