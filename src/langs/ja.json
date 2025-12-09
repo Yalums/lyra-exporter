@@ -126,10 +126,32 @@
     "success": "成功",
     "cancel": "キャンセル",
     "confirm": "確認",
+    "save": "保存",
     "close": "閉じる",
     "expand": "展開",
     "collapse": "折りたたむ",
     "retry": "再試行"
+  },
+  "screenshot": {
+    "previewTitle": "長いスクリーンショットのプレビュー",
+    "width": "エクスポート幅",
+    "heightLimit": "単一の高さ制限",
+    "recommended": "推奨",
+    "highQuality": "高品質モード",
+    "totalMessages": "合計 {{count}} 個のメッセージ",
+    "willGenerate": "{{count}} 枚の画像を生成します",
+    "generating": "生成中",
+    "export": "長いスクリーンショットをエクスポート",
+    "reset": "編集をリセット",
+    "edit": "編集",
+    "delete": "削除",
+    "splitLine": "スクリーンショット分割線",
+    "image": "画像",
+    "confirmDelete": "このメッセージを削除してもよろしいですか？",
+    "confirmReset": "すべての編集をリセットしてもよろしいですか？",
+    "noMessages": "エクスポートするメッセージがありません",
+    "exportError": "エクスポートに失敗しました：",
+    "doubleClickToEdit": "ダブルクリックしてテキストを編集"
   },
   "app": {
     "title": "Lyra Exporter",
@@ -168,6 +190,13 @@
         "pdf": "PDFドキュメント",
         "pdfDesc": "検索可能なプレーンテキストPDFとしてエクスポート（画像はサポートされていません）"
       },
+      "screenshot": {
+        "title": "スクリーンショット設定",
+        "heightLimit": "単一の高さ制限",
+        "recommended": "推奨",
+        "highQuality": "高品質モード (2x Retina)",
+        "highQualityDesc": "2倍の解像度の画像をエクスポート、ファイルサイズは大きくなりますがより鮮明です"
+      },
       "scope": {
         "title": "エクスポート範囲",
         "current": "現在のタイムラインファイル",
@@ -204,6 +233,22 @@
         "content": "現在のコンテンツ設定:",
         "contentDesc": "{{settings}}",
         "basicOnly": "基本コンテンツのみ"
+      }
+    },
+    "messageDetail": {
+      "title": "メッセージ詳細",
+      "tabs": {
+        "content": "コンテンツ",
+        "thinking": "思考プロセス",
+        "artifacts": "Artifacts"
+      },
+      "actions": {
+        "markCompleted": "完了マーク",
+        "unmarkCompleted": "完了を解除",
+        "markImportant": "重要マーク",
+        "unmarkImportant": "重要を解除",
+        "markDeleted": "削除マーク",
+        "unmarkDeleted": "削除を解除"
       }
     },
     "typeConflict": {
@@ -302,6 +347,9 @@
       "completed": "完了",
       "important": "重要",
       "deleted": "削除済み"
+    },
+    "detail": {
+      "selectMessage": "メッセージを選択して詳細を表示"
     }
   },
   "card": {
@@ -426,6 +474,15 @@
       "activeFilters": "{{count}}個のアクティブフィルター"
     }
   },
+  "rename": {
+    "title": "名前を変更",
+    "label": "新しい名前",
+    "placeholder": "新しい名前を入力...",
+    "action": "名前を変更",
+    "error": {
+      "empty": "名前を空にすることはできません"
+    }
+  },
   "settings": {
     "title": "設定",
     "done": "完了",
@@ -545,8 +602,8 @@
         "description": "ユーザーがアップロードしたファイルとそのプレビュー情報"
       },
       "canvas": {
-        "label": "Canvas 포함",
-        "description": "내보내기 시 Canvas 콘텐츠 포함"
+        "label": "Canvas を含める",
+        "description": "エクスポート時に Canvas コンテンツを含める"
       }
     },
     "about": {
@@ -589,6 +646,53 @@
     }
   },
   "exportManager": {
+    "metadata": {
+      "defaultTitle": "会話記録",
+      "created": "作成日時",
+      "unknown": "不明",
+      "exportTime": "エクスポート時刻",
+      "filterCondition": "フィルター条件"
+    },
+    "messages": {
+      "noMatchingMessages": "*条件に一致するメッセージはありません*",
+      "exportedCount": "*フィルター条件に基づいて {{total}} 個のメッセージから {{count}} 個をエクスポートしました*"
+    },
+    "format": {
+      "thinkingProcess": "思考プロセス",
+      "thinkingLabel": "💭 思考プロセス：",
+      "attachments": "📎 添付ファイル",
+      "type": "タイプ",
+      "contentPreview": "コンテンツプレビュー",
+      "artifact": "🔧 Artifact：",
+      "noTitle": "タイトルなし",
+      "unknown": "不明",
+      "typeLabel": "**タイプ**：",
+      "language": "**言語**：",
+      "content": "**コンテンツ**：",
+      "tool": "🔍 ツール：",
+      "searchQuery": "**検索クエリ**：",
+      "searchResults": "**検索結果**：",
+      "citations": "📎 引用",
+      "unknownSource": "不明なソース",
+      "unknownWebsite": "不明なウェブサイト"
+    },
+    "filters": {
+      "excludeDeleted": "削除済みを除外",
+      "onlyCompleted": "完了したメッセージのみ",
+      "onlyImportant": "重要なメッセージのみ",
+      "completedAndImportant": "完了かつ重要なメッセージのみ"
+    },
+    "errors": {
+      "saveFileFailed": "ファイルの保存に失敗しました。もう一度お試しください",
+      "noDataToExport": "エクスポートするデータがありません",
+      "exportFailed": "エクスポートに失敗しました",
+      "unknownScope": "不明なエクスポート範囲：",
+      "screenshotOnlySupportsCurrent": "スクリーンショットエクスポートは現在の会話または現在のブランチのみサポートします",
+      "pdfOnlySupportsCurrent": "PDFエクスポートは現在の会話または現在のブランチのみサポートします",
+      "noMatchingMessages": "条件に一致するメッセージがありません"
+    }
+  },
+  "search": {
     "metadata": {
       "defaultTitle": "会話記録",
       "created": "作成日時",

@@ -128,10 +128,32 @@
     "success": "成功",
     "cancel": "取消",
     "confirm": "確認",
+    "save": "儲存",
     "close": "關閉",
     "expand": "展開",
     "collapse": "收起",
     "retry": "重試"
+  },
+  "screenshot": {
+    "previewTitle": "長截圖預覽",
+    "width": "匯出寬度",
+    "heightLimit": "單張高度限制",
+    "recommended": "推薦",
+    "highQuality": "高清模式",
+    "totalMessages": "共 {{count}} 條訊息",
+    "willGenerate": "將生成 {{count}} 張圖片",
+    "generating": "生成中",
+    "export": "匯出長截圖",
+    "reset": "重置編輯",
+    "edit": "編輯",
+    "delete": "刪除",
+    "splitLine": "截圖分割線",
+    "image": "圖片",
+    "confirmDelete": "確定要刪除這條訊息嗎？",
+    "confirmReset": "確定要重置所有編輯嗎？",
+    "noMessages": "沒有可匯出的訊息",
+    "exportError": "匯出失敗：",
+    "doubleClickToEdit": "雙擊編輯文字"
   },
   "app": {
     "title": "Lyra Exporter",
@@ -170,6 +192,13 @@
         "pdf": "PDF文件",
         "pdfDesc": "匯出為可搜尋的純文字PDF（圖片無法顯示）"
       },
+      "screenshot": {
+        "title": "截圖設定",
+        "heightLimit": "單張高度限制",
+        "recommended": "推薦",
+        "highQuality": "高清模式 (2x Retina)",
+        "highQualityDesc": "匯出 2 倍解析度圖片，檔案更大但更清晰"
+      },
       "scope": {
         "title": "匯出範圍",
         "current": "當前時間線檔案",
@@ -206,6 +235,22 @@
         "content": "當前內容設定:",
         "contentDesc": "{{settings}}",
         "basicOnly": "僅基礎內容"
+      }
+    },
+    "messageDetail": {
+      "title": "訊息詳情",
+      "tabs": {
+        "content": "內容",
+        "thinking": "思考過程",
+        "artifacts": "Artifacts"
+      },
+      "actions": {
+        "markCompleted": "標記完成",
+        "unmarkCompleted": "取消完成",
+        "markImportant": "標記重要",
+        "unmarkImportant": "取消重要",
+        "markDeleted": "標記刪除",
+        "unmarkDeleted": "取消刪除"
       }
     },
     "typeConflict": {
@@ -304,6 +349,9 @@
       "completed": "已完成",
       "important": "重要",
       "deleted": "已刪除"
+    },
+    "detail": {
+      "selectMessage": "選擇一條訊息以檢視詳情"
     }
   },
   "card": {
@@ -426,6 +474,15 @@
       "showing": "顯示",
       "conversations": "個對話",
       "activeFilters": "{{count}}個活動篩選條件"
+    }
+  },
+  "rename": {
+    "title": "重新命名",
+    "label": "新名稱",
+    "placeholder": "輸入新的名稱...",
+    "action": "重新命名",
+    "error": {
+      "empty": "名稱不能為空"
     }
   },
   "settings": {
@@ -590,6 +647,53 @@
       "unknownType": "未知類型"
     }
   },
+  "exportManager": {
+    "metadata": {
+      "defaultTitle": "對話記錄",
+      "created": "建立時間",
+      "unknown": "未知",
+      "exportTime": "匯出時間",
+      "filterCondition": "篩選條件"
+    },
+    "messages": {
+      "noMatchingMessages": "*沒有符合條件的訊息*",
+      "exportedCount": "*根據篩選條件，從 {{total}} 條訊息中匯出了 {{count}} 條訊息*"
+    },
+    "format": {
+      "thinkingProcess": "思考過程",
+      "thinkingLabel": "💭 思考過程：",
+      "attachments": "📎 附加檔案",
+      "type": "類型",
+      "contentPreview": "內容預覽",
+      "artifact": "🔧 Artifact：",
+      "noTitle": "無標題",
+      "unknown": "未知",
+      "typeLabel": "**類型**：",
+      "language": "**語言**：",
+      "content": "**內容**：",
+      "tool": "🔍 工具：",
+      "searchQuery": "**搜尋查詢**：",
+      "searchResults": "**搜尋結果**：",
+      "citations": "📎 引用來源",
+      "unknownSource": "未知來源",
+      "unknownWebsite": "未知網站"
+    },
+    "filters": {
+      "excludeDeleted": "排除已刪除",
+      "onlyCompleted": "僅已完成的訊息",
+      "onlyImportant": "僅重要的訊息",
+      "completedAndImportant": "僅已完成且重要的訊息"
+    },
+    "errors": {
+      "saveFileFailed": "儲存檔案失敗，請重試",
+      "noDataToExport": "沒有可匯出的資料",
+      "exportFailed": "匯出失敗",
+      "unknownScope": "未知的匯出範圍：",
+      "screenshotOnlySupportsCurrent": "截圖匯出僅支援當前對話或當前分支",
+      "pdfOnlySupportsCurrent": "PDF匯出僅支援當前對話或當前分支",
+      "noMatchingMessages": "沒有符合條件的訊息"
+    }
+  },
   "search": {
       "all": "全部",
       "titles": "標題",
@@ -631,7 +735,7 @@
       "messages": "條訊息",
       "file": "檔案"
     },
-    "semanticSearch": {
+    "nodeLocator": {
       "title": "語義搜尋",
       "header": "🔮 語義搜尋",
       "settings": "設定",

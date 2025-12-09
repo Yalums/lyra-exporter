@@ -6,12 +6,13 @@
 
 ## Features
 
-- **Conversation Management**: Load multiple conversation JSON files from Claude, ChatGPT, Gemini, NotebookLM, and Google AI Studio. **Supports exporting entire Claude, ChatGPT account data for comprehensive management**
-- **Smart Search**: Search message content, find conversations with image attachments, thinking processes, and Artifacts
+- **Conversation Management**: Load multiple conversation JSON files from Claude, ChatGPT, Gemini, Grok, NotebookLM, and Google AI Studio. **Supports exporting entire Claude, ChatGPT account data for comprehensive management**, supports batch loading entire folders
+- **Smart Search**: Search message content, find conversations with image attachments, thinking processes, and Artifacts, supports semantic search (requires embedding model)
 - **Tagging System**: Mark messages as completed, important, or deleted, with format preservation during export
-- **Flexible Export**: Export to Markdown format with batch export support
-- **Branch Detection**: Automatically detect and visualize conversation branches
+- **Flexible Export**: Export to Markdown, PDF (with LaTeX formulas and images), and long screenshot formats, supports batch export and batch export of latest branches
+- **Branch Detection**: Automatically detect and visualize conversation branches, supports Gemini, Grok, and SillyTavern multi-branch parsing, one-click jump to latest branch
 - **Rich Content Parsing**: Intelligently recognize image attachments, thinking processes, and Markdown syntax
+- **Mobile Optimization**: Hide navigation bar on scroll down, support back operations, mobile-specific global search interface
 
 
 
@@ -21,8 +22,8 @@ Lyra Exporter relies on browsers to safely obtain conversation data. With this o
 
 1. Install the [Tampermonkey](https://www.tampermonkey.net/) browser extension
 2. Install Lyra Exporter Fetch script from [Greasy Fork](https://greasyfork.org/en/scripts/539579-lyra-s-exporter-fetch)
-3. Visit [Claude.ai](https://claude.ai/), [ChatGPT](https://chatgpt.com), [Gemini](https://gemini.google.com), [AI Studio](https://aistudio.google.com/), or [NotebookLM](https://notebooklm.google.com/)
-4. Click the export button on the page
+3. Visit [Claude.ai](https://claude.ai/), [ChatGPT](https://chatgpt.com), [Gemini](https://gemini.google.com), [Grok](https://x.com/i/grok), [AI Studio](https://aistudio.google.com/), or [NotebookLM](https://notebooklm.google.com/)
+4. Click the export button on the page (enable the "Real-time" option in the companion script to use multi-branch parsing)
 5. Choose export options (single conversation / full account)
 6. Data is automatically sent to Lyra Exporter or downloaded locally
 
@@ -68,15 +69,16 @@ Fast, nearly free, and gets the job done.
 **Broad Platform Compatibility**:
 
 * **Claude, ChatGPT**: From single conversations to complete account exports (including all conversations, projects, attachments, Artifacts, etc.)
-* **Gemini**: Full support for Gemini conversation format (including images and canvas)
+* **Gemini**: Full support for Gemini conversation format (including images and canvas), supports multi-branch parsing
+* **Grok**: Support for Grok conversation format and multi-branch parsing (requires updating companion script to latest version)
 * **NotebookLM**: Intelligent recognition of NotebookLM export data
 * **Google AI Studio**: Support for AI Studio conversation format
-* **SillyTavern**: Support for jsonl with branches splits.
+* **SillyTavern**: Support for SillyTavern conversation format, enhanced multi-branch parsing, can load entire folders and merge different branches into the same timeline
 
 **Smart Format Recognition**:
 
 * Auto-detect file format types—no manual selection needed
-* Batch load multiple files to manage all conversations at once
+* Batch load multiple files, supports loading entire folders at once (pure local browser static operation)
 * File type compatibility checks to prevent confusion
 
 ### 2. Unified Conversation Management
@@ -89,6 +91,7 @@ Fast, nearly free, and gets the job done.
 **Intelligent Search & Filtering**:
 
 * Real-time search across message content and conversation titles
+* Semantic search functionality (requires embedding model)
 * Quick filter for conversations with image attachments
 * Find messages with thinking processes
 * Locate conversations with created Artifacts
@@ -98,6 +101,7 @@ Fast, nearly free, and gets the job done.
 
 * Auto-detect conversation branch structures
 * Clearly mark branch points and paths
+* One-click jump to latest branch for quick access to the newest content
 * Easily trace the complete evolution of conversations
 
 **Star System** (preserves Claude's conversation favorites):
@@ -124,10 +128,11 @@ Fast, nearly free, and gets the job done.
 
 ### 4. Customizable Export Options
 
-**Markdown Format Export**:
+**Multiple Export Formats**:
 
-* Preserve original message format and structure
-* Support code highlighting and syntax annotation
+* **Markdown**: Preserve original message format and structure, support code highlighting and syntax annotation
+* **PDF**: Export to PDF format with LaTeX formulas and images
+* **Long Screenshot**: Export to long screenshot format
 
 **Rich Export Options**:
 
@@ -142,12 +147,15 @@ Fast, nearly free, and gets the job done.
 * **Current Conversation**: Export the conversation you're viewing
 * **Operated Conversations**: Batch export all marked or modified conversations
 * **All Conversations**: One-click export of all loaded conversations
+* **Latest Branch**: Batch export the latest branches of conversations for more convenient batch export experience
 
 **Batch Export**:
 
-* Multiple conversations automatically packaged as ZIP files (gradually optimizing multi-conversation export experience)
+* Multiple conversations automatically packaged as ZIP files
+* Support batch export of latest branches (the original claude_all_conversation can now be exported to a single compressed package)
 * Smart file naming (title + timestamp)
 * Support for large-scale exports
+* Fixed previous markdown batch export failures
 
 ### 5. Progressive Content Parser
 

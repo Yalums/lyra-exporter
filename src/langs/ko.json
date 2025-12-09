@@ -124,10 +124,32 @@
     "success": "성공",
     "cancel": "취소",
     "confirm": "확인",
+    "save": "저장",
     "close": "닫기",
     "expand": "확장",
     "collapse": "접기",
     "retry": "다시 시도"
+  },
+  "screenshot": {
+    "previewTitle": "긴 스크린샷 미리보기",
+    "width": "내보내기 너비",
+    "heightLimit": "단일 높이 제한",
+    "recommended": "권장",
+    "highQuality": "고품질 모드",
+    "totalMessages": "총 {{count}}개 메시지",
+    "willGenerate": "{{count}}개 이미지 생성 예정",
+    "generating": "생성 중",
+    "export": "긴 스크린샷 내보내기",
+    "reset": "편집 재설정",
+    "edit": "편집",
+    "delete": "삭제",
+    "splitLine": "스크린샷 분할선",
+    "image": "이미지",
+    "confirmDelete": "이 메시지를 삭제하시겠습니까?",
+    "confirmReset": "모든 편집을 재설정하시겠습니까?",
+    "noMessages": "내보낼 메시지가 없습니다",
+    "exportError": "내보내기 실패:",
+    "doubleClickToEdit": "더블클릭하여 텍스트 편집"
   },
   "app": {
     "title": "Lyra Exporter",
@@ -166,6 +188,13 @@
         "pdf": "PDF 문서",
         "pdfDesc": "검색 가능한 일반 텍스트 PDF로 내보내기(이미지 미지원)"
       },
+      "screenshot": {
+        "title": "스크린샷 설정",
+        "heightLimit": "단일 높이 제한",
+        "recommended": "권장",
+        "highQuality": "고품질 모드 (2x Retina)",
+        "highQualityDesc": "2배 해상도 이미지 내보내기, 파일 크기는 크지만 더 선명합니다"
+      },
       "scope": {
         "title": "내보내기 범위",
         "current": "현재 타임라인 파일",
@@ -202,6 +231,22 @@
         "content": "현재 콘텐츠 설정:",
         "contentDesc": "{{settings}}",
         "basicOnly": "기본 콘텐츠만"
+      }
+    },
+    "messageDetail": {
+      "title": "메시지 상세정보",
+      "tabs": {
+        "content": "콘텐츠",
+        "thinking": "사고 과정",
+        "artifacts": "Artifacts"
+      },
+      "actions": {
+        "markCompleted": "완료 표시",
+        "unmarkCompleted": "완료 취소",
+        "markImportant": "중요 표시",
+        "unmarkImportant": "중요 취소",
+        "markDeleted": "삭제 표시",
+        "unmarkDeleted": "삭제 취소"
       }
     },
     "typeConflict": {
@@ -300,6 +345,9 @@
       "completed": "완료",
       "important": "중요",
       "deleted": "삭제됨"
+    },
+    "detail": {
+      "selectMessage": "메시지를 선택하여 세부정보 보기"
     }
   },
   "card": {
@@ -422,6 +470,15 @@
       "showing": "표시 중",
       "conversations": "개 대화",
       "activeFilters": "{{count}}개 활성 필터"
+    }
+  },
+  "rename": {
+    "title": "이름 변경",
+    "label": "새 이름",
+    "placeholder": "새 이름 입력...",
+    "action": "이름 변경",
+    "error": {
+      "empty": "이름은 비워둘 수 없습니다"
     }
   },
   "settings": {
@@ -584,6 +641,53 @@
       "artifactsLabel": "🔧 Artifacts:",
       "noTitle": "제목 없음",
       "unknownType": "알 수 없는 유형"
+    }
+  },
+  "exportManager": {
+    "metadata": {
+      "defaultTitle": "대화 기록",
+      "created": "생성일",
+      "unknown": "알 수 없음",
+      "exportTime": "내보내기 시간",
+      "filterCondition": "필터 조건"
+    },
+    "messages": {
+      "noMatchingMessages": "*조건에 맞는 메시지가 없습니다*",
+      "exportedCount": "*필터 조건에 따라 {{total}}개 메시지 중 {{count}}개를 내보냈습니다*"
+    },
+    "format": {
+      "thinkingProcess": "사고 과정",
+      "thinkingLabel": "💭 사고 과정:",
+      "attachments": "📎 첨부 파일",
+      "type": "유형",
+      "contentPreview": "콘텐츠 미리보기",
+      "artifact": "🔧 Artifact:",
+      "noTitle": "제목 없음",
+      "unknown": "알 수 없음",
+      "typeLabel": "**유형**:",
+      "language": "**언어**:",
+      "content": "**콘텐츠**:",
+      "tool": "🔍 도구:",
+      "searchQuery": "**검색 쿼리**:",
+      "searchResults": "**검색 결과**:",
+      "citations": "📎 인용",
+      "unknownSource": "알 수 없는 출처",
+      "unknownWebsite": "알 수 없는 웹사이트"
+    },
+    "filters": {
+      "excludeDeleted": "삭제됨 제외",
+      "onlyCompleted": "완료된 메시지만",
+      "onlyImportant": "중요한 메시지만",
+      "completedAndImportant": "완료되고 중요한 메시지만"
+    },
+    "errors": {
+      "saveFileFailed": "파일 저장 실패, 다시 시도하세요",
+      "noDataToExport": "내보낼 데이터가 없습니다",
+      "exportFailed": "내보내기 실패",
+      "unknownScope": "알 수 없는 내보내기 범위:",
+      "screenshotOnlySupportsCurrent": "스크린샷 내보내기는 현재 대화 또는 현재 분기만 지원합니다",
+      "pdfOnlySupportsCurrent": "PDF 내보내기는 현재 대화 또는 현재 분기만 지원합니다",
+      "noMatchingMessages": "조건에 맞는 메시지가 없습니다"
     }
   },
   "search": {
