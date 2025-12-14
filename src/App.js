@@ -712,7 +712,7 @@ function App() {
   const [selectedConversationUuid, setSelectedConversationUuid] = useState(null);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [hideNavbar, setHideNavbar] = useState(false); // 新增：控制导航栏显示
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768); // 移动端检测
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024); // 移动端检测（统一断点：< 1024px）
   const [showMobileDetail, setShowMobileDetail] = useState(false); // 移动端详情显示状态
   const [operatedFiles, setOperatedFiles] = useState(new Set());
   const [scrollPositions, setScrollPositions] = useState({});
@@ -795,7 +795,7 @@ function App() {
   // 监听窗口大小变化，更新移动端状态
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
+      setIsMobile(window.innerWidth < 1024);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);

@@ -113,21 +113,37 @@ export default function MobileGlobalSearchPanel({
 
   const onTouchStart = (e) => {
     setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
+    // 同时记录 X 和 Y 坐标
+    setTouchStart({
+      x: e.targetTouches[0].clientX,
+      y: e.targetTouches[0].clientY
+    });
   };
 
   const onTouchMove = (e) => {
-    setTouchEnd(e.targetTouches[0].clientX);
+    // 同时记录 X 和 Y 坐标
+    setTouchEnd({
+      x: e.targetTouches[0].clientX,
+      y: e.targetTouches[0].clientY
+    });
   };
 
   const onTouchEnd = () => {
     if (!touchStart || !touchEnd) return;
 
-    const distance = touchStart - touchEnd;
-    const isRightSwipe = distance < -minSwipeDistance;
+    const distanceX = touchStart.x - touchEnd.x;
+    const distanceY = touchStart.y - touchEnd.y;
 
-    // 右滑关闭面板
-    if (isRightSwipe) {
+    // 计算绝对距离
+    const absDistanceX = Math.abs(distanceX);
+    const absDistanceY = Math.abs(distanceY);
+
+    // 只有当水平移动距离 > 垂直移动距离，且水平移动距离 > 阈值时，才判定为水平滑动
+    const isHorizontalSwipe = absDistanceX > absDistanceY && absDistanceX > minSwipeDistance;
+    const isRightSwipe = distanceX < -minSwipeDistance;
+
+    // 右滑关闭面板（需要满足水平滑动条件）
+    if (isHorizontalSwipe && isRightSwipe) {
       window.history.back();
     }
   };
