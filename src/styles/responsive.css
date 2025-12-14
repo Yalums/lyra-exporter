@@ -1,11 +1,11 @@
 /* =================== 响应式设计 =================== */
 
-/* ============ 平板设备 (max-width: 1024px) ============ */
-@media (max-width: 1024px) {
+/* ============ 平板设备 (max-width: 1023px) ============ */
+@media (max-width: 1023px) {
   .mobile-layout .timeline-main-content {
     display: block;
   }
-  
+
   .mobile-layout .timeline-left-panel {
     height: auto;
     max-width: 100%;

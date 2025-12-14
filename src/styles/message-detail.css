@@ -772,6 +772,7 @@
   .tab-content {
     max-width: 100%;
     overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent; /* 禁用移动端点击高亮 */
   }
 
   .message-text,
@@ -780,6 +781,23 @@
     max-width: 100%;
     overflow-wrap: break-word;
     word-break: break-word;
+    -webkit-tap-highlight-color: transparent; /* 禁用移动端点击高亮 */
+    -webkit-touch-callout: none; /* 禁用 iOS 长按弹出菜单 */
+  }
+
+  /* 移动端自定义文本选择样式 */
+  .message-text ::selection,
+  .thinking-text ::selection,
+  .message-content ::selection {
+    background: rgba(217, 119, 6, 0.2);
+    color: inherit;
+  }
+
+  .message-text ::-moz-selection,
+  .thinking-text ::-moz-selection,
+  .message-content ::-moz-selection {
+    background: rgba(217, 119, 6, 0.2);
+    color: inherit;
   }
 
   .message-text pre,

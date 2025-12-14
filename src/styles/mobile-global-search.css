@@ -30,6 +30,7 @@
   flex-direction: column;
   overflow: hidden;
   position: relative;
+  -webkit-tap-highlight-color: transparent; /* 禁用移动端点击高亮 */
 }
 
 /* 头部 */
