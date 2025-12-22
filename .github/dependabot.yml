@@ -1,0 +1,44 @@
+# Dependabot configuration for automatic dependency updates
+# This file enables weekly security and dependency updates for npm packages and GitHub Actions
+
+version: 2
+updates:
+  # Enable version updates for npm (JavaScript dependencies)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    # Create pull requests for dependency updates
+    open-pull-requests-limit: 10
+    # Group minor and patch updates together to reduce PR noise
+    groups:
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    # Keep auto-merge disabled for manual review
+    pull-request-branch-name:
+      separator: "/"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    # Create pull requests for action updates
+    open-pull-requests-limit: 5
+    # Keep auto-merge disabled for manual review
+    pull-request-branch-name:
+      separator: "/"
+    commit-message:
+      prefix: "chore(actions)"
+      include: "scope"
