@@ -142,7 +142,7 @@ const SUPERSCRIPT_SAFE = {
   'x': '^x', 'y': '^y', 'z': '^z'
 };
 
-// 下标数字和字母映射
+// 下标数字和字母映射（Unicode下标字符）
 const SUBSCRIPT_MAP = {
   '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄',
   '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉',
@@ -151,6 +151,20 @@ const SUBSCRIPT_MAP = {
   'k': 'ₖ', 'l': 'ₗ', 'm': 'ₘ', 'n': 'ₙ', 'o': 'ₒ',
   'p': 'ₚ', 'r': 'ᵣ', 's': 'ₛ', 't': 'ₜ', 'u': 'ᵤ',
   'v': 'ᵥ', 'x': 'ₓ'
+};
+
+// 下标字符的ASCII安全回退（当Unicode不被字体支持时使用）
+// 使用括号包裹的下标形式，更易读
+const SUBSCRIPT_SAFE = {
+  '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄',
+  '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉',
+  // 字母下标使用括号形式，因为Unicode字母下标字体支持差
+  'a': '(a)', 'b': '(b)', 'c': '(c)', 'd': '(d)', 'e': '(e)',
+  'f': '(f)', 'g': '(g)', 'h': '(h)', 'i': '(i)', 'j': '(j)',
+  'k': '(k)', 'l': '(l)', 'm': '(m)', 'n': '(n)', 'o': '(o)',
+  'p': '(p)', 'q': '(q)', 'r': '(r)', 's': '(s)', 't': '(t)',
+  'u': '(u)', 'v': '(v)', 'w': '(w)', 'x': '(x)', 'y': '(y)', 'z': '(z)',
+  '+': '(+)', '-': '(-)', '=': '(=)', '(': '(()', ')': '())'
 };
 
 /**
@@ -402,6 +416,12 @@ export class LaTeXRenderer {
       return `[${simplifiedInner}]←`;
     });
 
+    // 处理 \boxed{...} - 用方括号包裹内容
+    result = this.simplifyBoxed(result);
+
+    // 处理 \underbrace{...}_{...} 和 \overbrace{...}^{...}
+    result = this.simplifyBraces(result);
+
     // 处理 \frac{a}{b} - 简化为 a/b 形式
     result = this.simplifyFractions(result);
 
@@ -430,38 +450,157 @@ export class LaTeXRenderer {
   }
 
   /**
+   * 简化 \boxed{...} 命令 - 用方括号包裹内容
+   */
+  simplifyBoxed(text) {
+    let result = text;
+    let lastResult = '';
+
+    while (result !== lastResult) {
+      lastResult = result;
+
+      const boxedMatch = result.match(/\\boxed/);
+      if (!boxedMatch) break;
+
+      const startIdx = boxedMatch.index;
+      const afterBoxed = result.substring(startIdx + 6); // 跳过 \boxed
+
+      // 提取花括号内容
+      const content = extractBracedContent(afterBoxed);
+      if (content === null) break;
+
+      // 构建替换文本：用方括号包裹，递归简化内部内容
+      const fullMatch = result.substring(startIdx, startIdx + 6 + content.length + 2);
+      const simplifiedContent = this.simplifyLaTeX(content);
+      const simplified = `[ ${simplifiedContent} ]`;
+
+      result = result.replace(fullMatch, simplified);
+    }
+
+    return result;
+  }
+
+  /**
+   * 简化 \underbrace{...}_{...} 和 \overbrace{...}^{...} 命令
+   * 格式：内容(标注)
+   */
+  simplifyBraces(text) {
+    let result = text;
+    let lastResult = '';
+
+    // 处理 \underbrace{content}_{label}
+    while (result !== lastResult) {
+      lastResult = result;
+
+      const underbraceMatch = result.match(/\\underbrace/);
+      if (!underbraceMatch) break;
+
+      const startIdx = underbraceMatch.index;
+      const afterCmd = result.substring(startIdx + 11); // 跳过 \underbrace
+
+      // 提取主内容
+      const content = extractBracedContent(afterCmd);
+      if (content === null) break;
+
+      // 检查是否有下标标注
+      const afterContent = afterCmd.substring(content.length + 2);
+      let label = '';
+      let totalLength = 11 + content.length + 2; // \underbrace + {content}
+
+      if (afterContent.startsWith('_')) {
+        const labelContent = extractBracedContent(afterContent.substring(1));
+        if (labelContent !== null) {
+          label = labelContent;
+          totalLength += 1 + labelContent.length + 2; // _ + {label}
+        }
+      }
+
+      // 构建替换文本
+      const fullMatch = result.substring(startIdx, startIdx + totalLength);
+      const simplifiedContent = this.simplifyLaTeX(content);
+      const simplifiedLabel = label ? this.simplifyLaTeX(label) : '';
+      const simplified = simplifiedLabel
+        ? `${simplifiedContent}[${simplifiedLabel}]`
+        : simplifiedContent;
+
+      result = result.replace(fullMatch, simplified);
+    }
+
+    // 处理 \overbrace{content}^{label}
+    lastResult = '';
+    while (result !== lastResult) {
+      lastResult = result;
+
+      const overbraceMatch = result.match(/\\overbrace/);
+      if (!overbraceMatch) break;
+
+      const startIdx = overbraceMatch.index;
+      const afterCmd = result.substring(startIdx + 10); // 跳过 \overbrace
+
+      // 提取主内容
+      const content = extractBracedContent(afterCmd);
+      if (content === null) break;
+
+      // 检查是否有上标标注
+      const afterContent = afterCmd.substring(content.length + 2);
+      let label = '';
+      let totalLength = 10 + content.length + 2; // \overbrace + {content}
+
+      if (afterContent.startsWith('^')) {
+        const labelContent = extractBracedContent(afterContent.substring(1));
+        if (labelContent !== null) {
+          label = labelContent;
+          totalLength += 1 + labelContent.length + 2; // ^ + {label}
+        }
+      }
+
+      // 构建替换文本
+      const fullMatch = result.substring(startIdx, startIdx + totalLength);
+      const simplifiedContent = this.simplifyLaTeX(content);
+      const simplifiedLabel = label ? this.simplifyLaTeX(label) : '';
+      const simplified = simplifiedLabel
+        ? `${simplifiedContent}[${simplifiedLabel}]`
+        : simplifiedContent;
+
+      result = result.replace(fullMatch, simplified);
+    }
+
+    return result;
+  }
+
+  /**
    * 简化分数表达式（支持嵌套）
    */
   simplifyFractions(text) {
     let result = text;
     let lastResult = '';
-    
+
     // 循环处理嵌套分数
     while (result !== lastResult) {
       lastResult = result;
-      
+
       const fracMatch = result.match(/\\frac/);
       if (!fracMatch) break;
-      
+
       const startIdx = fracMatch.index;
       const afterFrac = result.substring(startIdx + 5); // 跳过 \frac
-      
+
       // 提取分子
       const numerator = extractBracedContent(afterFrac);
       if (numerator === null) break;
-      
+
       // 提取分母
       const afterNum = afterFrac.substring(numerator.length + 2);
       const denominator = extractBracedContent(afterNum);
       if (denominator === null) break;
-      
+
       // 构建替换文本
       const fullMatch = result.substring(startIdx, startIdx + 5 + numerator.length + 2 + denominator.length + 2);
       const simplified = `(${numerator})/(${denominator})`;
-      
+
       result = result.replace(fullMatch, simplified);
     }
-    
+
     return result;
   }
 
@@ -519,16 +658,41 @@ export class LaTeXRenderer {
   }
 
   /**
-   * 转换为下标Unicode
+   * 转换为下标Unicode（使用安全回退策略）
+   * 数字下标使用Unicode（₀₁₂等，字体支持较好）
+   * 字母下标使用括号形式（如 x(n)），避免乱码
    */
   convertToSubscript(text) {
     // 先简化内部LaTeX
     const simplified = this.simplifyLaTeX(text);
-    // 下标数字通常被支持，字母可能不被支持
-    return simplified.split('').map(char => {
-      if (SUBSCRIPT_MAP[char]) return SUBSCRIPT_MAP[char];
-      return '_' + char;  // 未知字符用_x形式
-    }).join('');
+
+    // 检查是否全是数字（数字下标Unicode支持较好）
+    const isAllDigits = /^[0-9]+$/.test(simplified);
+
+    if (isAllDigits) {
+      // 纯数字下标：使用Unicode下标数字
+      return simplified.split('').map(char => {
+        return SUBSCRIPT_MAP[char] || char;
+      }).join('');
+    } else {
+      // 包含字母的下标：使用安全的括号形式
+      // 例如：u_0 -> u₀, u_n -> u(n), u_{max} -> u(max)
+      const result = simplified.split('').map(char => {
+        // 数字仍使用Unicode下标
+        if (/[0-9]/.test(char)) {
+          return SUBSCRIPT_MAP[char] || char;
+        }
+        // 字母和其他字符保持原样（后面会用括号包裹）
+        return char;
+      }).join('');
+
+      // 如果结果中包含非下标数字的字符，用括号包裹整个下标
+      const hasNonDigit = /[^₀₁₂₃₄₅₆₇₈₉]/.test(result);
+      if (hasNonDigit) {
+        return '(' + result + ')';
+      }
+      return result;
+    }
   }
 
   /**
@@ -676,17 +840,38 @@ export class LaTeXRenderer {
 
   /**
    * 解析复杂LaTeX为可渲染的元素
+   * 对于包含 \boxed、\underbrace 等复杂结构的公式，
+   * 先用 simplifyLaTeX 简化整个公式，然后再解析分数
    */
   parseComplexLaTeX(latex) {
     const elements = [];
+
+    // 先用 simplifyLaTeX 处理 \boxed、\underbrace 等复杂结构
+    // 这样可以正确处理嵌套的花括号
+    const preprocessed = this.simplifyLaTeX(latex);
+
+    // 然后检查简化后的文本中是否还有需要特殊渲染的分数
+    // 注意：simplifyLaTeX 会把 \frac{a}{b} 转换为 (a)/(b)
+    // 所以这里不需要再处理分数了，直接返回简化后的文本
+    if (preprocessed) {
+      elements.push({ type: 'text', content: preprocessed });
+    }
+
+    return elements;
+  }
+
+  /**
+   * 解析复杂LaTeX为可渲染的元素（旧版本，保留用于分数渲染）
+   * 如果需要真正的分数渲染（分子在上，分母在下），使用此方法
+   */
+  parseComplexLaTeXWithFractions(latex) {
+    const elements = [];
     let remaining = latex;
-    
-    // 简化解析：主要处理分数
-    const fracRegex = /\\frac\{([^}]*)\}\{([^}]*)\}/;
-    
+
+    // 使用支持嵌套的分数匹配
     while (remaining.length > 0) {
-      const fracMatch = remaining.match(fracRegex);
-      
+      const fracMatch = remaining.match(/\\frac/);
+
       if (fracMatch) {
         // 添加分数前的文本
         if (fracMatch.index > 0) {
@@ -696,16 +881,35 @@ export class LaTeXRenderer {
             elements.push({ type: 'text', content: simplified });
           }
         }
-        
-        // 添加分数
-        elements.push({
-          type: 'fraction',
-          numerator: this.simplifyLaTeX(fracMatch[1]),
-          denominator: this.simplifyLaTeX(fracMatch[2]),
-          raw: fracMatch[0]
-        });
-        
-        remaining = remaining.substring(fracMatch.index + fracMatch[0].length);
+
+        // 使用 extractBracedContent 提取分子和分母（支持嵌套）
+        const afterFrac = remaining.substring(fracMatch.index + 5);
+        const numerator = extractBracedContent(afterFrac);
+
+        if (numerator !== null) {
+          const afterNum = afterFrac.substring(numerator.length + 2);
+          const denominator = extractBracedContent(afterNum);
+
+          if (denominator !== null) {
+            // 添加分数
+            elements.push({
+              type: 'fraction',
+              numerator: this.simplifyLaTeX(numerator),
+              denominator: this.simplifyLaTeX(denominator),
+              raw: remaining.substring(fracMatch.index, fracMatch.index + 5 + numerator.length + 2 + denominator.length + 2)
+            });
+
+            remaining = remaining.substring(fracMatch.index + 5 + numerator.length + 2 + denominator.length + 2);
+            continue;
+          }
+        }
+
+        // 如果提取失败，处理剩余文本
+        const simplified = this.simplifyLaTeX(remaining);
+        if (simplified) {
+          elements.push({ type: 'text', content: simplified });
+        }
+        break;
       } else {
         // 没有更多分数，处理剩余文本
         const simplified = this.simplifyLaTeX(remaining);

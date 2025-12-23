@@ -32,6 +32,9 @@
   flex: 1;
   padding: 8px 12px;
   font-size: 0.85rem;
+  justify-content: center;
+  padding-left: 20px;
+  padding-right: 20px;
 }
 
 /* MessageDetail基础样式 */
@@ -760,5 +763,65 @@
 @media (max-width: 768px) {
   .katex-display {
     font-size: 0.9em;
+  }
+
+  /* 移动端防止内容溢出导致界面被拉伸 */
+  .message-detail,
+  .message-detail-container,
+  .detail-content,
+  .tab-content {
+    max-width: 100%;
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent; /* 禁用移动端点击高亮 */
+  }
+
+  .message-text,
+  .thinking-text,
+  .message-content {
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    -webkit-tap-highlight-color: transparent; /* 禁用移动端点击高亮 */
+    -webkit-touch-callout: none; /* 禁用 iOS 长按弹出菜单 */
+  }
+
+  /* 移动端自定义文本选择样式 */
+  .message-text ::selection,
+  .thinking-text ::selection,
+  .message-content ::selection {
+    background: rgba(217, 119, 6, 0.2);
+    color: inherit;
+  }
+
+  .message-text ::-moz-selection,
+  .thinking-text ::-moz-selection,
+  .message-content ::-moz-selection {
+    background: rgba(217, 119, 6, 0.2);
+    color: inherit;
+  }
+
+  .message-text pre,
+  .thinking-text pre,
+  .code-content,
+  .artifact-code {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .message-text table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .message-text img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* 长链接和长单词断行 */
+  .message-text a,
+  .citation-item a {
+    word-break: break-all;
   }
 }

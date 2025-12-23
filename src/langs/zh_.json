@@ -23,7 +23,7 @@
       "batchExport": {
         "badge": "⚡ 批次處理",
         "title": "批次匯出最新分支",
-        "description": "選擇多個JSON檔案，自動將每個檔案的最新對話分支匯出為Markdown，並打包成ZIP檔案",
+        "description": "選擇多個JSON檔案，將每個檔案的最新對話分支匯出為Markdown，並打包成ZIP檔案",
         "button": "開始批次匯出",
         "processing": "處理中...",
         "progress": "正在處理 {{current}}/{{total}} 個檔案",
@@ -128,10 +128,32 @@
     "success": "成功",
     "cancel": "取消",
     "confirm": "確認",
+    "save": "儲存",
     "close": "關閉",
     "expand": "展開",
     "collapse": "收起",
     "retry": "重試"
+  },
+  "screenshot": {
+    "previewTitle": "長截圖預覽",
+    "width": "匯出寬度",
+    "heightLimit": "單張高度限制",
+    "recommended": "推薦",
+    "highQuality": "高清模式",
+    "totalMessages": "共 {{count}} 條訊息",
+    "willGenerate": "將生成 {{count}} 張圖片",
+    "generating": "生成中",
+    "export": "匯出長截圖",
+    "reset": "重置編輯",
+    "edit": "編輯",
+    "delete": "刪除",
+    "splitLine": "截圖分割線",
+    "image": "圖片",
+    "confirmDelete": "確定要刪除這條訊息嗎？",
+    "confirmReset": "確定要重置所有編輯嗎？",
+    "noMessages": "沒有可匯出的訊息",
+    "exportError": "匯出失敗：",
+    "doubleClickToEdit": "雙擊編輯文字"
   },
   "app": {
     "title": "Lyra Exporter",
@@ -170,6 +192,13 @@
         "pdf": "PDF文件",
         "pdfDesc": "匯出為可搜尋的純文字PDF（圖片無法顯示）"
       },
+      "screenshot": {
+        "title": "截圖設定",
+        "heightLimit": "單張高度限制",
+        "recommended": "推薦",
+        "highQuality": "高清模式 (2x Retina)",
+        "highQualityDesc": "匯出 2 倍解析度圖片，檔案更大但更清晰"
+      },
       "scope": {
         "title": "匯出範圍",
         "current": "當前時間線檔案",
@@ -206,6 +235,22 @@
         "content": "當前內容設定:",
         "contentDesc": "{{settings}}",
         "basicOnly": "僅基礎內容"
+      }
+    },
+    "messageDetail": {
+      "title": "訊息詳情",
+      "tabs": {
+        "content": "內容",
+        "thinking": "思考過程",
+        "artifacts": "Artifacts"
+      },
+      "actions": {
+        "markCompleted": "標記完成",
+        "unmarkCompleted": "取消完成",
+        "markImportant": "標記重要",
+        "unmarkImportant": "取消重要",
+        "markDeleted": "標記刪除",
+        "unmarkDeleted": "取消刪除"
       }
     },
     "typeConflict": {
@@ -304,6 +349,9 @@
       "completed": "已完成",
       "important": "重要",
       "deleted": "已刪除"
+    },
+    "detail": {
+      "selectMessage": "選擇一條訊息以檢視詳情"
     }
   },
   "card": {
@@ -426,6 +474,15 @@
       "showing": "顯示",
       "conversations": "個對話",
       "activeFilters": "{{count}}個活動篩選條件"
+    }
+  },
+  "rename": {
+    "title": "重新命名",
+    "label": "新名稱",
+    "placeholder": "輸入新的名稱...",
+    "action": "重新命名",
+    "error": {
+      "empty": "名稱不能為空"
     }
   },
   "settings": {
@@ -590,6 +647,53 @@
       "unknownType": "未知類型"
     }
   },
+  "exportManager": {
+    "metadata": {
+      "defaultTitle": "對話記錄",
+      "created": "建立時間",
+      "unknown": "未知",
+      "exportTime": "匯出時間",
+      "filterCondition": "篩選條件"
+    },
+    "messages": {
+      "noMatchingMessages": "*沒有符合條件的訊息*",
+      "exportedCount": "*根據篩選條件，從 {{total}} 條訊息中匯出了 {{count}} 條訊息*"
+    },
+    "format": {
+      "thinkingProcess": "思考過程",
+      "thinkingLabel": "💭 思考過程：",
+      "attachments": "📎 附加檔案",
+      "type": "類型",
+      "contentPreview": "內容預覽",
+      "artifact": "🔧 Artifact：",
+      "noTitle": "無標題",
+      "unknown": "未知",
+      "typeLabel": "**類型**：",
+      "language": "**語言**：",
+      "content": "**內容**：",
+      "tool": "🔍 工具：",
+      "searchQuery": "**搜尋查詢**：",
+      "searchResults": "**搜尋結果**：",
+      "citations": "📎 引用來源",
+      "unknownSource": "未知來源",
+      "unknownWebsite": "未知網站"
+    },
+    "filters": {
+      "excludeDeleted": "排除已刪除",
+      "onlyCompleted": "僅已完成的訊息",
+      "onlyImportant": "僅重要的訊息",
+      "completedAndImportant": "僅已完成且重要的訊息"
+    },
+    "errors": {
+      "saveFileFailed": "儲存檔案失敗，請重試",
+      "noDataToExport": "沒有可匯出的資料",
+      "exportFailed": "匯出失敗",
+      "unknownScope": "未知的匯出範圍：",
+      "screenshotOnlySupportsCurrent": "截圖匯出僅支援當前對話或當前分支",
+      "pdfOnlySupportsCurrent": "PDF匯出僅支援當前對話或當前分支",
+      "noMatchingMessages": "沒有符合條件的訊息"
+    }
+  },
   "search": {
       "all": "全部",
       "titles": "標題",
@@ -630,5 +734,60 @@
       "hasArtifacts": "Artifacts",
       "messages": "條訊息",
       "file": "檔案"
+    },
+    "nodeLocator": {
+      "title": "語義搜尋",
+      "header": "🔮 語義搜尋",
+      "settings": "設定",
+      "close": "關閉",
+      "embeddingModel": {
+        "title": "向量化模型",
+        "apiUrl": "API 位址",
+        "apiUrlPlaceholder": "http://localhost:1234",
+        "modelName": "模型名稱",
+        "modelNamePlaceholder": "qwen3-embedding",
+        "infoLmstudio": "💡 請確保本地 Embedding 服務已啟動並載入模型。"
+      },
+      "llmConfig": {
+        "title": "AI 回答（可選）",
+        "provider": "AI 服務",
+        "none": "僅搜尋（不使用 AI）",
+        "openai": "OpenAI",
+        "claude": "Claude",
+        "apiKey": "API Key",
+        "apiKeyPlaceholder": "輸入你的 API Key",
+        "apiEndpoint": "API 接入點",
+        "apiEndpointPlaceholder": "",
+        "model": "模型",
+        "modelPlaceholder": "輸入模型名稱（如 gpt-4o-mini）"
+      },
+      "status": {
+        "initializing": "初始化中...",
+        "waitingFiles": "⏳ 等待檔案穩定...",
+        "rebuildIndex": "🔄 重新建構索引",
+        "ready": "✅ 就緒",
+        "indexSize": "{{count}} 條訊息",
+        "embeddingInfo": "向量化 · {{count}} 條訊息",
+        "filesChanging": "檔案變化中，等待穩定...",
+        "filesChanged": "檔案已變化，請重新建構索引"
+      },
+      "chat": {
+        "placeholder": "問我任何關於你歷史對話的問題...",
+        "placeholderWaiting": "檔案載入中，輸入問題，穩定後將自動搜尋...",
+        "placeholderIndexing": "輸入問題，索引完成後將自動搜尋...",
+        "placeholderNotReady": "輸入問題並按回車，將自動啟動索引...",
+        "send": "傳送",
+        "search": "搜尋",
+        "greeting": "👋 你好！我可以幫你在歷史對話中搜尋內容。",
+        "noResults": "沒有找到相關的對話記錄。請嘗試其他關鍵詞。",
+        "resultsIntro": "以下是與你問題相關的對話記錄：",
+        "searchError": "搜尋出錯: {{error}}",
+        "waitingIndex": "⏳ 正在建構索引，完成後將自動搜尋...",
+        "waitingFiles": "⏳ 等待檔案穩定中，穩定後將自動建構索引並搜尋..."
+      },
+      "results": {
+        "score": "{{score}}%",
+        "preview": "預覽"
+      }
     }
 }

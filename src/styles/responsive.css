@@ -1,11 +1,11 @@
 /* =================== 响应式设计 =================== */
 
-/* ============ 平板设备 (max-width: 1024px) ============ */
-@media (max-width: 1024px) {
+/* ============ 平板设备 (max-width: 1023px) ============ */
+@media (max-width: 1023px) {
   .mobile-layout .timeline-main-content {
     display: block;
   }
-  
+
   .mobile-layout .timeline-left-panel {
     height: auto;
     max-width: 100%;
@@ -34,9 +34,9 @@
 
   .content-area {
     padding: 12px;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-    height: calc(100vh - 65px);
+    overflow-x: hidden; /* 防止水平溢出导致界面被拉伸 */
+    overflow-y: auto;
+    height: auto;
   }
 
   /* 统计面板响应式 */
@@ -140,12 +140,26 @@
   
   .timeline-content {
     padding: 16px;
+    max-width: 100%;
+    overflow: hidden; /* 防止内容溢出 */
   }
-  
+
   .timeline-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
+  }
+
+  /* 移动端防止长内容溢出 */
+  .timeline-body {
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .timeline-body pre,
+  .timeline-body code,
+  .timeline-body img {
+    max-width: 100%;
   }
   
   .timeline-avatar {

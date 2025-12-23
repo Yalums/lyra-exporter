@@ -70,24 +70,59 @@ const ChatBubbleScreenshot = ({
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
-                  p: ({ children }) => <span>{children}</span>,
-                  h1: ({ children }) => <strong>{children}</strong>,
-                  h2: ({ children }) => <strong>{children}</strong>,
-                  h3: ({ children }) => <strong>{children}</strong>,
-                  h4: ({ children }) => <strong>{children}</strong>,
-                  h5: ({ children }) => <strong>{children}</strong>,
-                  h6: ({ children }) => <strong>{children}</strong>,
+                  p: ({ children }) => <p>{children}</p>,
+                  h1: ({ children }) => <h1>{children}</h1>,
+                  h2: ({ children }) => <h2>{children}</h2>,
+                  h3: ({ children }) => <h3>{children}</h3>,
+                  h4: ({ children }) => <h4>{children}</h4>,
+                  h5: ({ children }) => <h5>{children}</h5>,
+                  h6: ({ children }) => <h6>{children}</h6>,
                   strong: ({ children }) => <strong>{children}</strong>,
                   em: ({ children }) => <em>{children}</em>,
-                  code: ({ inline, children }) => inline ? 
-                    <code className="inline-code">{children}</code> : 
-                    <code>{children}</code>,
-                  pre: ({ children }) => <span>{children}</span>,
-                  blockquote: ({ children }) => <span>" {children} "</span>,
-                  a: ({ children }) => <span>{children}</span>,
-                  ul: ({ children }) => <span>{children}</span>,
-                  ol: ({ children }) => <span>{children}</span>,
-                  li: ({ children }) => <span>• {children}</span>
+
+                  // 代码块渲染 - 参考 MessageDetail.js 的风格
+                  pre: ({ children, ...props }) => (
+                    <pre {...props} style={{ overflowX: 'auto' }}>
+                      {children}
+                    </pre>
+                  ),
+
+                  code: ({ inline, className, children, ...props }) => {
+                    if (inline) {
+                      return <code className="inline-code" {...props}>{children}</code>;
+                    }
+
+                    const match = /language-(\w+)/.exec(className || '');
+                    const language = match ? match[1] : '';
+
+                    return (
+                      <code
+                        className={`code-block ${className || ''}`}
+                        data-language={language}
+                        {...props}
+                      >
+                        {children}
+                      </code>
+                    );
+                  },
+
+                  blockquote: ({ children, ...props }) => (
+                    <blockquote {...props}>{children}</blockquote>
+                  ),
+
+                  a: ({ href, children, ...props }) => (
+                    <a href={href} {...props}>{children}</a>
+                  ),
+
+                  ul: ({ children, ...props }) => <ul {...props}>{children}</ul>,
+                  ol: ({ children, ...props }) => <ol {...props}>{children}</ol>,
+                  li: ({ children, ...props }) => <li {...props}>{children}</li>,
+
+                  table: ({ children, ...props }) => (
+                    <div style={{ overflowX: 'auto' }}>
+                      <table {...props}>{children}</table>
+                    </div>
+                  )
                 }}
               >
                 {message.display_text || message.text || ''}
@@ -104,20 +139,39 @@ const ChatBubbleScreenshot = ({
                     <span>思考过程</span>
                   </div>
                 )}
-                {/* 图片 */}
-                {message.images && message.images.length > 0 && (
-                  <div className="timeline-tag">
-                    <span>🖼️</span>
-                    <span>{message.images.length} 张图片</span>
-                  </div>
-                )}
-                {/* 附件 - 根据exportOptions控制 */}
-                {message.attachments && message.attachments.length > 0 && exportOptions.includeAttachments !== false && (
-                  <div className="timeline-tag">
-                    <span>📎</span>
-                    <span>{message.attachments.length} 个附件</span>
-                  </div>
-                )}
+                {/* 图片 - 合并 images 数组和 attachments 中的嵌入图片 */}
+                {(() => {
+                  // 兼容性处理：自动检测图片类型的附件
+                  const embeddedImages = message.attachments?.filter(att => {
+                    if (att.is_embedded_image) return true;
+                    // 兼容旧数据：检查 MIME 类型
+                    if (att.file_type && att.file_type.startsWith('image/')) return true;
+                    return false;
+                  }) || [];
+                  const totalImages = (message.images?.length || 0) + embeddedImages.length;
+                  return totalImages > 0 && (
+                    <div className="timeline-tag">
+                      <span>🖼️</span>
+                      <span>{totalImages} 张图片</span>
+                    </div>
+                  );
+                })()}
+                {/* 附件 - 排除嵌入的图片，只显示真实附件 */}
+                {(() => {
+                  // 兼容性处理：自动排除图片类型的附件
+                  const regularAttachments = message.attachments?.filter(att => {
+                    if (att.is_embedded_image) return false;
+                    // 兼容旧数据：排除图片类型
+                    if (att.file_type && att.file_type.startsWith('image/')) return false;
+                    return true;
+                  }) || [];
+                  return regularAttachments.length > 0 && exportOptions.includeAttachments !== false && (
+                    <div className="timeline-tag">
+                      <span>📎</span>
+                      <span>{regularAttachments.length} 个附件</span>
+                    </div>
+                  );
+                })()}
                 {/* Artifacts - 根据exportOptions控制 */}
                 {message.sender !== 'human' && message.artifacts && message.artifacts.length > 0 && exportOptions.includeArtifacts !== false && (
                   <div className="timeline-tag">

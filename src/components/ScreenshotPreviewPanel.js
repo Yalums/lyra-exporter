@@ -28,6 +28,62 @@ const ScreenshotPreviewPanel = ({
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const previewRef = useRef(null);
 
+  // 手势支持
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+  const panelRef = useRef(null);
+
+  // 浏览器回退支持
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // 添加 history 记录
+    window.history.pushState({ view: 'screenshot-preview' }, '');
+
+    const handlePopState = () => {
+      onClose();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [isOpen, onClose]);
+
+  // 手势处理
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+
+    const distance = touchStart - touchEnd;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    // 右滑关闭面板
+    if (isRightSwipe) {
+      handleBackClick();
+    }
+  };
+
+  // 处理返回按钮点击
+  const handleBackClick = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      onClose();
+    }
+  };
+
   // 当初始消息变化时重置可编辑消息
   useEffect(() => {
     if (initialMessages) {
@@ -160,10 +216,14 @@ const ScreenshotPreviewPanel = ({
   if (!isOpen) return null;
 
   return (
-    <div className="screenshot-preview-modal" onClick={onClose}>
+    <div className="screenshot-preview-modal" onClick={handleBackClick}>
       <div
         className="screenshot-preview-content"
         onClick={(e) => e.stopPropagation()}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        ref={panelRef}
       >
         {/* 头部 */}
         <div className="screenshot-preview-header">

@@ -1,5 +1,5 @@
 // components/ExportPanel.js
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getAllMarksStats } from '../utils/data/markManager';
 import { generateFileCardUuid, generateConversationCardUuid } from '../utils/data/uuidManager';
 
@@ -22,6 +22,78 @@ const ExportPanel = ({
   onExport,
   t
 }) => {
+  // 手势支持
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+  const panelRef = useRef(null);
+
+  // 浏览器回退支持
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // 添加 history 记录
+    window.history.pushState({ view: 'export-panel' }, '');
+
+    const handlePopState = () => {
+      onClose();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [isOpen, onClose]);
+
+  // 手势处理
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e) => {
+    setTouchEnd(null);
+    // 同时记录 X 和 Y 坐标
+    setTouchStart({
+      x: e.targetTouches[0].clientX,
+      y: e.targetTouches[0].clientY
+    });
+  };
+
+  const onTouchMove = (e) => {
+    // 同时记录 X 和 Y 坐标
+    setTouchEnd({
+      x: e.targetTouches[0].clientX,
+      y: e.targetTouches[0].clientY
+    });
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+
+    const distanceX = touchStart.x - touchEnd.x;
+    const distanceY = touchStart.y - touchEnd.y;
+
+    // 计算绝对距离
+    const absDistanceX = Math.abs(distanceX);
+    const absDistanceY = Math.abs(distanceY);
+
+    // 只有当水平移动距离 > 垂直移动距离，且水平移动距离 > 阈值时，才判定为水平滑动
+    const isHorizontalSwipe = absDistanceX > absDistanceY && absDistanceX > minSwipeDistance;
+    const isRightSwipe = distanceX < -minSwipeDistance;
+
+    // 右滑关闭面板（需要满足水平滑动条件）
+    if (isHorizontalSwipe && isRightSwipe) {
+      handleBackClick();
+    }
+  };
+
+  // 处理返回按钮点击
+  const handleBackClick = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      onClose();
+    }
+  };
+
   if (!isOpen) return null;
 
   const markStats = getAllMarksStats(
@@ -33,8 +105,15 @@ const ExportPanel = ({
   );
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content export-modal" onClick={e => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={handleBackClick}>
+      <div
+        className="modal-content export-modal"
+        onClick={e => e.stopPropagation()}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        ref={panelRef}
+      >
         <div className="modal-header">
           <h2>{t('app.export.title')}</h2>
           <button className="close-btn" onClick={onClose}>×</button>

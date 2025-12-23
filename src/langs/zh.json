@@ -19,8 +19,10 @@
       "batchExport": {
         "badge": "⚡ 批量处理",
         "title": "批量导出最新分支",
-        "description": "选择多个JSON文件，自动将每个文件的最新对话分支导出为Markdown，并打包成ZIP文件",
+        "description": "选择多个JSON导出为Markdown，并打包成ZIP文件\n 或导入整个文件夹，解析其中所有对话JSON文件",
         "button": "开始批量导出",
+        "folderButton": "导入文件夹",
+        "folderDescription": "解析整个文件夹内的对话JSON",
         "processing": "处理中...",
         "progress": "正在处理 {{current}}/{{total}} 个文件",
         "complete": "导出完成！",
@@ -730,5 +732,60 @@
     "hasArtifacts": "Artifacts",
     "messages": "条消息",
     "file": "文件"
+  },
+  "semanticSearch": {
+    "title": "语义搜索",
+    "header": "🔮 语义搜索",
+    "settings": "设置",
+    "close": "关闭",
+    "embeddingModel": {
+      "title": "向量化模型",
+      "apiUrl": "API 地址",
+      "apiUrlPlaceholder": "http://localhost:1234",
+      "modelName": "模型名称",
+      "modelNamePlaceholder": "qwen3-embedding",
+      "infoLmstudio": "💡 请确保本地 Embedding 服务已启动并加载模型。"
+    },
+    "llmConfig": {
+      "title": "AI 回答（可选）",
+      "provider": "AI 服务",
+      "none": "仅搜索（不使用 AI）",
+      "openai": "OpenAI",
+      "claude": "Claude",
+      "apiKey": "API Key",
+      "apiKeyPlaceholder": "输入你的 API Key",
+      "apiEndpoint": "API 接入点",
+      "apiEndpointPlaceholder": "",
+      "model": "模型",
+      "modelPlaceholder": "输入模型名称（如 gpt-4o-mini）"
+    },
+    "status": {
+      "initializing": "初始化中...",
+      "waitingFiles": "⏳ 等待文件稳定...",
+      "rebuildIndex": "🔄 重新构建索引",
+      "ready": "✅ 就绪",
+      "indexSize": "{{count}} 条消息",
+      "embeddingInfo": "向量化 · {{count}} 条消息",
+      "filesChanging": "文件变化中，等待稳定...",
+      "filesChanged": "文件已变化，请重新构建索引"
+    },
+    "chat": {
+      "placeholder": "问我任何关于你历史对话的问题...",
+      "placeholderWaiting": "文件加载中，输入问题，稳定后将自动搜索...",
+      "placeholderIndexing": "输入问题，索引完成后将自动搜索...",
+      "placeholderNotReady": "输入问题并按回车，将自动启动索引...",
+      "send": "发送",
+      "search": "搜索",
+      "greeting": "👋 你好！我可以帮你在历史对话中搜索内容。",
+      "noResults": "没有找到相关的对话记录。请尝试其他关键词。",
+      "resultsIntro": "以下是与你问题相关的对话记录：",
+      "searchError": "搜索出错: {{error}}",
+      "waitingIndex": "⏳ 正在构建索引，完成后将自动搜索...",
+      "waitingFiles": "⏳ 等待文件稳定中，稳定后将自动构建索引并搜索..."
+    },
+    "results": {
+      "score": "{{score}}%",
+      "preview": "预览"
+    }
   }
 }

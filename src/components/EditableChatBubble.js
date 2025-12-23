@@ -169,20 +169,39 @@ const EditableChatBubble = ({
                     <span>{t('timeline.tags.hasThinking')}</span>
                   </div>
                 )}
-                {/* 图片 */}
-                {message.images && message.images.length > 0 && (
-                  <div className="timeline-tag">
-                    <span>🖼️</span>
-                    <span>{message.images.length}{t('timeline.tags.images')}</span>
-                  </div>
-                )}
-                {/* 附件 */}
-                {message.attachments && message.attachments.length > 0 && (
-                  <div className="timeline-tag">
-                    <span>📎</span>
-                    <span>{message.attachments.length}{t('timeline.tags.attachments')}</span>
-                  </div>
-                )}
+                {/* 图片 - 合并 images 数组和 attachments 中的嵌入图片 */}
+                {(() => {
+                  // 兼容性处理：自动检测图片类型的附件
+                  const embeddedImages = message.attachments?.filter(att => {
+                    if (att.is_embedded_image) return true;
+                    // 兼容旧数据：检查 MIME 类型
+                    if (att.file_type && att.file_type.startsWith('image/')) return true;
+                    return false;
+                  }) || [];
+                  const totalImages = (message.images?.length || 0) + embeddedImages.length;
+                  return totalImages > 0 && (
+                    <div className="timeline-tag">
+                      <span>🖼️</span>
+                      <span>{totalImages}{t('timeline.tags.images')}</span>
+                    </div>
+                  );
+                })()}
+                {/* 附件 - 排除嵌入的图片，只显示真实附件 */}
+                {(() => {
+                  // 兼容性处理：自动排除图片类型的附件
+                  const regularAttachments = message.attachments?.filter(att => {
+                    if (att.is_embedded_image) return false;
+                    // 兼容旧数据：排除图片类型
+                    if (att.file_type && att.file_type.startsWith('image/')) return false;
+                    return true;
+                  }) || [];
+                  return regularAttachments.length > 0 && (
+                    <div className="timeline-tag">
+                      <span>📎</span>
+                      <span>{regularAttachments.length}{t('timeline.tags.attachments')}</span>
+                    </div>
+                  );
+                })()}
                 {/* Artifacts */}
                 {message.sender !== 'human' && message.artifacts && message.artifacts.length > 0 && (
                   <div className="timeline-tag">

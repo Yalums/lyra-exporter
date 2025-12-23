@@ -5,12 +5,13 @@
 
 ## 功能特性
 
-- **对话管理**: 加载多个Claude、ChatGPT、Gemini、NotebookLM、Google AI Studio平台的对话JSON文件，**支持导出整个Claude、ChatGPT账号对话数据并进行管理**
-- **智能查找**: 搜索消息内容，查找有图片附件、思考过程和创建了 Artifacts 的对话
+- **对话管理**: 加载多个Claude、ChatGPT、Gemini、Grok、NotebookLM、Google AI Studio平台的对话JSON文件，**支持导出整个Claude、ChatGPT账号对话数据并进行管理**，支持批量加载整个文件夹
+- **智能查找**: 搜索消息内容，查找有图片附件、思考过程和创建了 Artifacts 的对话，支持语义搜索功能（需配合embedding模型）
 - **标记系统**: 标记消息为完成、重要或删除，并在导出时保留特定格式
-- **灵活导出**: 导出为Markdown格式，支持批量导出
-- **分支检测**: 自动检测和显示对话分支
+- **灵活导出**: 支持Markdown、PDF（含LaTeX公式与图片）、长截图格式导出，支持批量导出和批量导出最新分支
+- **分支检测**: 自动检测和显示对话分支，支持Gemini、Grok、SillyTavern多分支解析，一键跳转到最新分支
 - **全功能读取**: 智能识别图片附件、思考过程、Markdown 语法
+- **移动端优化**: 向下滚动隐藏导航栏，支持返回操作，移动端专项全局搜索界面
 
 ## 🔌 Lyra Exporter Fetch 配套脚本
 
@@ -20,8 +21,8 @@
 
 1. 安装 [Tampermonkey](https://www.tampermonkey.net/) 浏览器扩展
 2. 从 [Greasy Fork](https://greasyfork.org/zh-CN/scripts/539579-lyra-s-exporter-fetch) 安装 Lyra Exporter Fetch 脚本
-3. 访问 [Claude.ai](https://claude.ai/)、[ChatGPT](https://chatgpt.com/)、[Gemini](gemini.google.com)、[AI Studio](https://aistudio.google.com/)、[NotebookLM](https://notebooklm.google.com/)
-4. 点击页面上的导出按钮
+3. 访问 [Claude.ai](https://claude.ai/)、[ChatGPT](https://chatgpt.com/)、[Gemini](gemini.google.com)、[Grok](https://x.com/i/grok)、[AI Studio](https://aistudio.google.com/)、[NotebookLM](https://notebooklm.google.com/)
+4. 点击页面上的导出按钮（打开配套脚本的「实时」选项可使用多分支解析功能）
 5. 选择导出选项（单个对话 / 完整账号）
 6. 数据自动发送到 Lyra Exporter 或下载到本地
 
@@ -49,15 +50,16 @@
 **广泛的平台兼容性**：
 
 * **Claude/ChatGPT**: 支持从单个对话到完整账号的对话导出（包含所有对话和项目、附件、Artifacts等）
-* **Gemini**: 完整支持 Gemini 对话格式（含图片和Canvas）
+* **Gemini**: 完整支持 Gemini 对话格式（含图片和Canvas），支持多分支解析
+* **Grok**: 支持 Grok 对话格式和多分支解析（需更新配套脚本至最新版本）
 * **NotebookLM**: 智能识别 NotebookLM 导出数据
 * **Google AI Studio**: 支持 AI Studio 对话格式
-* **JSONL**: 部分支持 SillyTavern 对话格式
+* **SillyTavern**: 支持 SillyTavern 对话格式，增强多分支解析，可读入整个文件夹并合并不同分支到同一时间线
 
 **智能格式识别**：
 
 * 自动检测文件格式类型，无需手动选择
-* 多文件批量加载，一次性管理所有对话
+* 多文件批量加载，支持一次性读入整个文件夹（纯本地浏览器静态工作）
 * 文件类型兼容性检查，避免混淆
 
 ### 2. 统一的对话管理
@@ -70,6 +72,7 @@
 **智能搜索与筛选**：
 
 * 实时搜索消息内容和对话标题
+* 语义搜索功能（需配合embedding模型使用）
 * 快速筛选包含图片附件的对话
 * 查找有思考过程的消息
 * 定位创建了 Artifacts 的对话
@@ -79,6 +82,7 @@
 
 * 自动检测对话分支结构
 * 清晰标注分支点和分支路径
+* 一键跳转到最新分支，快速查看对话的最新内容
 * 轻松追溯对话的完整演变过程
 
 **星标系统** (保留 Claude 的对话收藏)：
@@ -105,10 +109,11 @@
 
 ### 4. 自定义导出功能
 
-**Markdown 格式导出**：
+**多种导出格式**：
 
-* 保持原始消息格式和结构
-* 支持代码高亮和语法标注
+* **Markdown**: 保持原始消息格式和结构，支持代码高亮和语法标注
+* **PDF**: 支持导出为PDF格式，包含LaTeX公式与图片
+* **长截图**: 支持导出为长截图格式
 
 **丰富的导出选项**：
 
@@ -123,12 +128,15 @@
 * **当前对话**: 导出正在查看的对话
 * **操作过的对话**: 批量导出所有标记或修改过的对话
 * **所有对话**: 一键导出所有已加载的对话
+* **最新分支**: 批量导出对话的最新分支，更便捷的批量导出体验
 
 **批量导出**：
 
-* 多个对话自动打包成 ZIP 文件（正在逐步优化多对话导出体验）
+* 多个对话自动打包成 ZIP 文件
+* 支持批量导出最新分支功能（原来的 claude_all_conversation 现在可以导出到一个压缩包内）
 * 智能文件命名（标题+时间戳）
 * 支持大规模导出
+* 修复之前批量导出markdown失败的问题
 
 ### 5. 逐步完善的内容解析器
 
