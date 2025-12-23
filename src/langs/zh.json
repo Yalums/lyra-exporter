@@ -787,5 +787,44 @@
       "score": "{{score}}%",
       "preview": "预览"
     }
+  },
+  "granularExport": {
+    "title": "细粒度导出",
+    "selectBranch": "选择分支",
+    "allBranches": "所有分支",
+    "notAvailable": "不可用",
+    "exporting": "导出中...",
+    "project": {
+      "label": "项目",
+      "description": "提取全部内容（描述、系统提示词、知识库、对话）"
+    },
+    "conversation": {
+      "label": "对话",
+      "description": "提取整个对话（包括分支）"
+    },
+    "message": {
+      "label": "消息",
+      "description": "导出选中的消息"
+    },
+    "thinking": {
+      "label": "思考过程",
+      "description": "消息的思考过程"
+    },
+    "output": {
+      "label": "输出",
+      "description": "消息内容"
+    },
+    "artifact": {
+      "label": "代码产物",
+      "description": "生成的代码/文档"
+    },
+    "add": {
+      "label": "添加",
+      "description": "添加到知识库"
+    },
+    "nomenclature": {
+      "title": "命名规范",
+      "example": "例：001-USER-M-001-message.md"
+    }
   }
 }

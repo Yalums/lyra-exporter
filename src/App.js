@@ -14,6 +14,7 @@ import ScreenshotPreviewPanel from './components/ScreenshotPreviewPanel';
 import { CardGrid } from './components/UnifiedCard';
 import SemanticSearchPanel from './components/SemanticSearchPanel';
 import MobileGlobalSearchPanel from './components/MobileGlobalSearchPanel';
+import GranularExportMenu from './components/GranularExportMenu';
 
 // 工具函数导入
 import { ThemeUtils } from './utils/themeManager';
@@ -703,6 +704,7 @@ function App() {
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const [showSemanticSearch, setShowSemanticSearch] = useState(false);
   const [showMobileGlobalSearch, setShowMobileGlobalSearch] = useState(false);
+  const [showGranularExport, setShowGranularExport] = useState(false);
   const [screenshotPreview, setScreenshotPreview] = useState({
     isOpen: false,
     data: null
@@ -1443,6 +1445,16 @@ function App() {
                 🔮
               </button>
 
+              {viewMode === 'timeline' && (
+                <button
+                  className="btn-secondary small"
+                  onClick={() => setShowGranularExport(true)}
+                  title={t('granularExport.title')}
+                >
+                  📦
+                </button>
+              )}
+
               {/* 桌面端：显示搜索框 */}
               {!isMobile && !isFullExportConversationMode && (
                 <EnhancedSearchBox
@@ -1663,6 +1675,18 @@ function App() {
               onClose={closeScreenshotPreview}
             />
           )}
+          {/* 细粒度导出菜单 */}
+          <GranularExportMenu
+            isOpen={showGranularExport}
+            onClose={() => setShowGranularExport(false)}
+            processedData={processedData}
+            selectedMessage={selectedMessageIndex !== null ? (sortedMessages.find(m => m.index === selectedMessageIndex) || timelineMessages.find(m => m.index === selectedMessageIndex)) : null}
+            selectedMessageIndex={selectedMessageIndex}
+            files={files}
+            currentFileIndex={currentFileIndex}
+            viewMode={viewMode}
+            t={t}
+          />
         </>
       )}
     </div>

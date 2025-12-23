@@ -1,0 +1,430 @@
+/* granularExport.css */
+/* Estilos para o menu de exportação granular */
+
+/* Overlay */
+.granular-export-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Panel */
+.granular-export-panel {
+  background: var(--bg-primary, #ffffff);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  width: 90%;
+  max-width: 480px;
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Header */
+.granular-export-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color, #e5e5e5);
+  position: sticky;
+  top: 0;
+  background: var(--bg-primary, #ffffff);
+  z-index: 10;
+}
+
+.granular-export-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.header-actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: var(--bg-secondary, #f5f5f5);
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.header-actions button:hover {
+  background: var(--bg-tertiary, #e5e5e5);
+  color: var(--text-primary, #1a1a1a);
+}
+
+/* Branch Selector */
+.branch-selector {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border-color, #e5e5e5);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.branch-selector label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary, #666);
+  white-space: nowrap;
+}
+
+.branch-selector select {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color, #e5e5e5);
+  border-radius: 8px;
+  background: var(--bg-primary, #ffffff);
+  color: var(--text-primary, #1a1a1a);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.branch-selector select:focus {
+  outline: none;
+  border-color: var(--accent-color, #6366f1);
+}
+
+/* Export Options Grid */
+.export-options-grid {
+  padding: 16px;
+  display: grid;
+  gap: 8px;
+}
+
+.export-options-grid.icons {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.export-options-grid.full {
+  grid-template-columns: 1fr;
+}
+
+/* Export Option Button */
+.export-option {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--border-color, #e5e5e5);
+  border-radius: 12px;
+  background: var(--bg-primary, #ffffff);
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.export-option.icons {
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  padding: 16px 12px;
+}
+
+.export-option.full {
+  gap: 12px;
+}
+
+.export-option:hover:not(.disabled) {
+  border-color: var(--accent-color, #6366f1);
+  background: var(--bg-secondary, #f5f5f5);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.export-option:active:not(.disabled) {
+  transform: translateY(0);
+}
+
+.export-option.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.export-option.disabled:hover {
+  border-color: var(--border-color, #e5e5e5);
+  background: var(--bg-primary, #ffffff);
+  transform: none;
+  box-shadow: none;
+}
+
+/* Option Icon */
+.option-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--accent-light, #eef2ff);
+  color: var(--accent-color, #6366f1);
+  flex-shrink: 0;
+}
+
+.export-option.icons .option-icon {
+  width: 48px;
+  height: 48px;
+}
+
+.export-option.disabled .option-icon {
+  background: var(--bg-secondary, #f5f5f5);
+  color: var(--text-tertiary, #999);
+}
+
+/* Option Content */
+.option-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.option-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.option-label-compact {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a1a);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.option-description {
+  font-size: 12px;
+  color: var(--text-secondary, #666);
+  line-height: 1.4;
+}
+
+.option-output {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-tertiary, #999);
+  margin-top: 4px;
+}
+
+.option-output svg {
+  opacity: 0.7;
+}
+
+/* Arrow */
+.option-arrow {
+  color: var(--text-tertiary, #999);
+  flex-shrink: 0;
+}
+
+.export-option.icons .option-arrow {
+  display: none;
+}
+
+/* Export Result */
+.export-result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  margin: 0 16px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.export-result.success {
+  background: var(--success-bg, #dcfce7);
+  color: var(--success-color, #166534);
+}
+
+.export-result.error {
+  background: var(--error-bg, #fef2f2);
+  color: var(--error-color, #991b1b);
+}
+
+/* Loading State */
+.export-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px;
+  color: var(--text-secondary, #666);
+  font-size: 14px;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-color, #e5e5e5);
+  border-top-color: var(--accent-color, #6366f1);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Nomenclature Info */
+.nomenclature-info {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-color, #e5e5e5);
+  background: var(--bg-secondary, #f5f5f5);
+  border-radius: 0 0 16px 16px;
+}
+
+.nomenclature-info h4 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, #666);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.nomenclature-info code {
+  display: block;
+  padding: 8px 12px;
+  background: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border-color, #e5e5e5);
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 13px;
+  color: var(--accent-color, #6366f1);
+}
+
+.nomenclature-info p {
+  margin: 8px 0 0;
+}
+
+.nomenclature-info small {
+  font-size: 11px;
+  color: var(--text-tertiary, #999);
+}
+
+/* Dark Mode */
+[data-theme="dark"] .granular-export-panel {
+  background: var(--bg-primary, #1a1a2e);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .granular-export-header {
+  background: var(--bg-primary, #1a1a2e);
+  border-color: var(--border-color, #2d2d44);
+}
+
+[data-theme="dark"] .export-option {
+  border-color: var(--border-color, #2d2d44);
+}
+
+[data-theme="dark"] .export-option:hover:not(.disabled) {
+  background: var(--bg-secondary, #25253d);
+}
+
+[data-theme="dark"] .option-icon {
+  background: rgba(99, 102, 241, 0.15);
+}
+
+[data-theme="dark"] .nomenclature-info {
+  background: var(--bg-secondary, #25253d);
+}
+
+[data-theme="dark"] .nomenclature-info code {
+  background: var(--bg-tertiary, #1a1a2e);
+  border-color: var(--border-color, #2d2d44);
+}
+
+/* Mobile Responsive */
+@media (max-width: 640px) {
+  .granular-export-panel {
+    width: 100%;
+    max-width: none;
+    max-height: 100vh;
+    border-radius: 20px 20px 0 0;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    animation: slideUpMobile 0.3s ease-out;
+  }
+
+  @keyframes slideUpMobile {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  .export-options-grid.icons {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .export-option.icons {
+    padding: 12px 8px;
+  }
+
+  .export-option.icons .option-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .option-label-compact {
+    font-size: 10px;
+  }
+}
+
+/* Small mobile */
+@media (max-width: 400px) {
+  .export-options-grid.icons {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

@@ -720,5 +720,44 @@
         "score": "{{score}}%",
         "preview": "Preview"
       }
+    },
+    "granularExport": {
+      "title": "Granular Export",
+      "selectBranch": "Select Branch",
+      "allBranches": "All branches",
+      "notAvailable": "Not available",
+      "exporting": "Exporting...",
+      "project": {
+        "label": "PROJECT",
+        "description": "Extract everything (description, system prompt, knowledge base, conversations)"
+      },
+      "conversation": {
+        "label": "CONVERSATION",
+        "description": "Extract entire conversation (including branches)"
+      },
+      "message": {
+        "label": "MESSAGE",
+        "description": "Export selected message"
+      },
+      "thinking": {
+        "label": "THINKING",
+        "description": "Thinking process of the message"
+      },
+      "output": {
+        "label": "OUTPUT",
+        "description": "Message content"
+      },
+      "artifact": {
+        "label": "ARTIFACT",
+        "description": "Generated code/document"
+      },
+      "add": {
+        "label": "ADD",
+        "description": "Add to knowledge base"
+      },
+      "nomenclature": {
+        "title": "Naming Convention",
+        "example": "Ex: 001-USER-M-001-message.md"
+      }
     }
 }
