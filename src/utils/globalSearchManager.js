@@ -32,6 +32,10 @@ export class GlobalSearchManager {
       // 如果是当前文件且已有解析数据，直接使用
       if (fileIndex === currentFileIndex && processedData) {
         data = processedData;
+      } else if (file._mergedProcessedData) {
+        // 检查是否有预处理的合并数据（用于合并的JSONL文件）
+        console.log(`[GlobalSearch] 使用预处理的合并数据: ${file.name}`);
+        data = file._mergedProcessedData;
       } else {
         // 否则需要读取并解析文件
         try {
