@@ -585,7 +585,7 @@ const MessageDetail = ({
               <div className="error-notice">⚠️ {t('messageDetail.tools.executionError')}</div>
             )}
             
-            {tool.name === 'web_search' && tool.result.content && (
+            {tool.name === 'web_search_tool' && tool.result.content && (
               <div className="search-results">
                 {tool.result.content.slice(0, 5).map((item, idx) => (
                   <div key={idx} className="search-result-item">

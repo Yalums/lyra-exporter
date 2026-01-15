@@ -21,7 +21,7 @@ const PLATFORM_ICONS = {
 // 需要白色背景的图标
 const NEEDS_WHITE_BG = ['chatgpt', 'gemini', 'grok'];
 
-const PlatformIcon = ({ platform, format, size = 16, style = {} }) => {
+const PlatformIcon = React.memo(({ platform, format, size = 16, style = {} }) => {
   // 根据format和platform确定使用哪个图标
   const getIconKey = () => {
     if (format === 'gemini_notebooklm') {
@@ -92,6 +92,8 @@ const PlatformIcon = ({ platform, format, size = 16, style = {} }) => {
       }}
     />
   );
-};
+});
+
+PlatformIcon.displayName = 'PlatformIcon';
 
 export default PlatformIcon;

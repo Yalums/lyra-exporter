@@ -245,7 +245,7 @@
   flex-shrink: 0;
 }
 
-.result-content {
+.mobile-search-panel .result-content {
   margin-bottom: 8px;
   line-height: 1.5;
 }
@@ -261,7 +261,6 @@
   font-size: 13px;
   color: var(--text-primary);
   display: -webkit-box;
-  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

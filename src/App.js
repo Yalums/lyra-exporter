@@ -1,5 +1,4 @@
-﻿// App.js - 大幅简化版本
-import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+﻿import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import './styles/index.css';
 
 // 组件导入
@@ -9,11 +8,9 @@ import ConversationTimeline from './components/ConversationTimeline';
 import FullExportCardFilter from './components/FullExportCardFilter';
 import FloatingActionButton from './components/FloatingActionButton';
 import SettingsPanel from './components/SettingsManager';
-import ExportPanel from './components/ExportPanel';
+import ActionPanel from './components/ActionPanel';
 import ScreenshotPreviewPanel from './components/ScreenshotPreviewPanel';
 import { CardGrid } from './components/UnifiedCard';
-import SemanticSearchPanel from './components/SemanticSearchPanel';
-import MobileGlobalSearchPanel from './components/MobileGlobalSearchPanel';
 
 // 工具函数导入
 import { ThemeUtils } from './utils/themeManager';
@@ -33,7 +30,9 @@ import { SearchManager } from './utils/searchManager';
 
 import EnhancedSearchBox from './components/EnhancedSearchBox';
 import { getGlobalSearchManager } from './utils/globalSearchManager';
+import { getRenameManager } from './utils/renameManager';
 import { useI18n } from './index.js';
+
 
 // ==================== 通用工具类 ====================
 
@@ -681,7 +680,7 @@ const useFileManager = () => {
 };
 
 function App() {
-  // ==================== Hooks和状态管理 ====================
+
   // i18n
   const { t, currentLanguage } = useI18n();
 
@@ -699,10 +698,10 @@ function App() {
   // 状态管理
   const [selectedMessageIndex, setSelectedMessageIndex] = useState(null);
   const [activeTab, setActiveTab] = useState('content');
-  const [showExportPanel, setShowExportPanel] = useState(false);
+  const [showActionPanel, setShowActionPanel] = useState(false);
+  const [actionPanelSection, setActionPanelSection] = useState('globalSearch');
+  const [initialSearchQuery, setInitialSearchQuery] = useState('');
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
-  const [showSemanticSearch, setShowSemanticSearch] = useState(false);
-  const [showMobileGlobalSearch, setShowMobileGlobalSearch] = useState(false);
   const [screenshotPreview, setScreenshotPreview] = useState({
     isOpen: false,
     data: null
@@ -791,6 +790,30 @@ function App() {
       searchManagerRef.current = new SearchManager();
     }
   }, []);
+
+  // 集中化构建全局搜索索引
+  useEffect(() => {
+    if (files.length > 0) {
+      // 使用 setTimeout 来避免阻塞主线程
+      const timer = setTimeout(() => {
+        console.log('[App] 正在构建全局搜索索引...');
+        const globalSearchManager = getGlobalSearchManager();
+        const renameManager = getRenameManager();
+        const customNames = renameManager.getAllRenames();
+
+        globalSearchManager.buildGlobalIndex(files, processedData, currentFileIndex, customNames)
+          .then(() => {
+            console.log('[App] 全局搜索索引已更新');
+          })
+          .catch(err => {
+            console.error('[App] 构建全局搜索索引失败:', err);
+          });
+      }, 200); // 延迟执行，等待状态稳定
+
+      return () => clearTimeout(timer);
+    }
+  }, [files, processedData, currentFileIndex]);
+
 
   // 监听窗口大小变化，更新移动端状态
   useEffect(() => {
@@ -942,6 +965,7 @@ function App() {
   }, [viewMode, selectedFileIndex, selectedConversationUuid, processedData, files, currentFileIndex, fileMetadata, renameVersion]);
 
   const isFullExportConversationMode = viewMode === 'conversations' && processedData?.format === 'claude_full_export';
+
 
   // ==================== 事件处理函数 ====================
 
@@ -1185,7 +1209,7 @@ function App() {
   // 打开截图预览面板
   const openScreenshotPreview = (data) => {
     setScreenshotPreview({ isOpen: true, data });
-    setShowExportPanel(false); // 关闭导出面板
+    setShowActionPanel(false); // 关闭操作面板
   };
 
   // 关闭截图预览面板
@@ -1216,7 +1240,7 @@ function App() {
     });
 
     if (success) {
-      setShowExportPanel(false);
+      setShowActionPanel(false);
     }
   };
 
@@ -1293,8 +1317,8 @@ function App() {
     setSortVersion(v => v + 1);
   };
 
-  // 获取统计 - 使用dataManager中的StatsCalculator
-  const getStats = () => {
+  // 获取统计 - 使用 useMemo 缓存结果，避免重复计算
+  const stats = useMemo(() => {
     return StatsCalculator.getStats({
       viewMode,
       allCards,
@@ -1311,7 +1335,7 @@ function App() {
       processedData,
       currentFileIndex
     });
-  };
+  }, [viewMode, allCards, sortedMessages, timelineMessages, files, shouldUseStarSystem, currentConversation, processedData, currentFileIndex, markVersion]);
 
   const getSearchPlaceholder = () => {
     if (isFullExportConversationMode) {
@@ -1382,6 +1406,7 @@ function App() {
     return cleanup;
   }, [postMessageHandler]);
 
+
   // ==================== 渲染 ====================
 
   return (
@@ -1397,8 +1422,7 @@ function App() {
       <input
         ref={folderInputRef}
         type="file"
-        webkitdirectory=""
-        directory=""
+        webkitdirectory="true"
         multiple
         onChange={handleFolderLoad}
         style={{ display: 'none' }}
@@ -1430,7 +1454,10 @@ function App() {
               {isMobile && !isFullExportConversationMode && (
                 <button
                   className="btn-secondary small"
-                  onClick={() => setShowMobileGlobalSearch(true)}
+                  onClick={() => {
+                    setActionPanelSection('globalSearch');
+                    setShowActionPanel(true);
+                  }}
                 >
                   🔍
                 </button>
@@ -1438,7 +1465,10 @@ function App() {
 
               <button
                 className="btn-secondary small"
-                onClick={() => setShowSemanticSearch(true)}
+                onClick={() => {
+                  setActionPanelSection('semanticSearch');
+                  setShowActionPanel(true);
+                }}
               >
                 🔮
               </button>
@@ -1446,10 +1476,16 @@ function App() {
               {/* 桌面端：显示搜索框 */}
               {!isMobile && !isFullExportConversationMode && (
                 <EnhancedSearchBox
-                  files={files}
-                  processedData={processedData}
-                  currentFileIndex={currentFileIndex}
-                  onNavigateToMessage={handleNavigateToMessage}
+                  onSearch={(query) => {
+                    setInitialSearchQuery(query);
+                    setActionPanelSection('globalSearch');
+                    setShowActionPanel(true);
+                  }}
+                  onExpand={(query) => {
+                    setInitialSearchQuery(query || '');
+                    setActionPanelSection('globalSearch');
+                    setShowActionPanel(true);
+                  }}
                 />
               )}
             </div>
@@ -1484,24 +1520,24 @@ function App() {
               <div className="stats-panel">
                 <div className="stats-grid">
                   <div className="stat-card">
-                    <div className="stat-value">{getStats().totalMessages}</div>
+                    <div className="stat-value">{stats.totalMessages}</div>
                     <div className="stat-label">{t('app.stats.totalMessages')}</div>
                   </div>
                   <div className="stat-card">
-                    <div className="stat-value">{getStats().conversationCount}</div>
+                    <div className="stat-value">{stats.conversationCount}</div>
                     <div className="stat-label">{t('app.stats.conversationCount')}</div>
                   </div>
                   <div className="stat-card">
-                    <div className="stat-value">{getStats().fileCount}</div>
+                    <div className="stat-value">{stats.fileCount}</div>
                     <div className="stat-label">{t('app.stats.fileCount')}</div>
                   </div>
                   <div className="stat-card">
-                    <div className="stat-value">{getStats().markedCount}</div>
+                    <div className="stat-value">{stats.markedCount}</div>
                     <div className="stat-label">{t('app.stats.markedCount')}</div>
                   </div>
                   {isFullExportConversationMode && shouldUseStarSystem && (
                     <div className="stat-card">
-                      <div className="stat-value">{getStats().starredCount}</div>
+                      <div className="stat-value">{stats.starredCount}</div>
                       <div className="stat-label">{t('app.stats.starredCount')}</div>
                     </div>
                   )}
@@ -1576,7 +1612,10 @@ function App() {
 
           {/* 悬浮导出按钮 - 移动端查看消息详情时隐藏 */}
           <FloatingActionButton
-            onClick={() => setShowExportPanel(true)}
+            onClick={() => {
+              setActionPanelSection('exportMarkdown');
+              setShowActionPanel(true);
+            }}
             title={t('app.export.button')}
             hidden={isMobile && showMobileDetail}
           />
@@ -1617,43 +1656,30 @@ function App() {
             setExportOptions={setExportOptions}
           />
 
-          {/* 导出面板 */}
-          <ExportPanel
-            isOpen={showExportPanel}
-            onClose={() => setShowExportPanel(false)}
+          {/* 操作面板 - 整合全局搜索、语义搜索、导出功能 */}
+          <ActionPanel
+            isOpen={showActionPanel}
+            onClose={() => {
+              setShowActionPanel(false);
+              setInitialSearchQuery('');
+            }}
+            initialSection={actionPanelSection}
+            initialSearchQuery={initialSearchQuery}
+            onNavigateToMessage={handleNavigateToMessage}
+            files={files}
+            processedData={processedData}
+            currentFileIndex={currentFileIndex}
             exportOptions={exportOptions}
             setExportOptions={setExportOptions}
             viewMode={viewMode}
             currentBranchState={currentBranchState}
             operatedFiles={operatedFiles}
-            files={files}
-            stats={getStats()}
+            stats={stats}
             starManagerRef={starManagerRef}
             shouldUseStarSystem={shouldUseStarSystem}
             isFullExportConversationMode={isFullExportConversationMode}
             allCards={allCards}
-            processedData={processedData}
-            currentFileIndex={currentFileIndex}
             onExport={handleExportClick}
-            t={t}
-          />
-          {/* 语义搜索面板 */}
-          <SemanticSearchPanel
-            isOpen={showSemanticSearch}
-            onClose={() => setShowSemanticSearch(false)}
-            files={files}
-            processedData={processedData}
-            currentFileIndex={currentFileIndex}
-            onNavigateToMessage={handleNavigateToMessage}
-          />
-          {/* 移动端全局搜索面板 */}
-          <MobileGlobalSearchPanel
-            isOpen={showMobileGlobalSearch}
-            onClose={() => setShowMobileGlobalSearch(false)}
-            files={files}
-            processedData={processedData}
-            currentFileIndex={currentFileIndex}
-            onNavigateToMessage={handleNavigateToMessage}
           />
           {/* 长截图预览面板 */}
           {screenshotPreview.isOpen && screenshotPreview.data && (

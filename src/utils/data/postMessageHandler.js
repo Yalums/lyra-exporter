@@ -1,7 +1,7 @@
 // data/postMessageHandler.js
 // 跨窗口通信处理器
 
-import { ValidationUtils } from '../../App';
+import { ValidationUtils } from './validationUtils';
 
 /**
  * PostMessage处理器类

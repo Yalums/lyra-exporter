@@ -4,8 +4,11 @@
 
 import { pipeline } from '@xenova/transformers';
 
+// localStorage 键名
+const STORAGE_KEY = 'lyra-semantic-search-config';
+
 // 默认配置
-const DEFAULT_EMBEDDING_CONFIG = {
+const DEFAULT_CONFIG = {
   provider: 'lmstudio',  // 'transformers' | 'lmstudio'
   lmStudioUrl: 'http://localhost:1234',
   modelName: 'qwen3-embedding',  // LM Studio 中加载的模型名称
@@ -24,58 +27,88 @@ export class SemanticSearchManager {
     this.loadProgress = 0;
     this.onProgressCallback = null;
 
-    // Embedding 配置
-    this.embeddingConfig = this.loadEmbeddingConfig();
+    // 初始化配置
+    this.config = this.loadConfig();
   }
 
   /**
    * 从 localStorage 加载配置
+   * @returns {Object}
    */
-  loadEmbeddingConfig() {
+  loadConfig() {
     try {
-      const saved = localStorage.getItem('semantic-embedding-config');
+      const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        return { ...DEFAULT_EMBEDDING_CONFIG, ...JSON.parse(saved) };
+        const parsed = JSON.parse(saved);
+        // 合并默认配置，确保所有字段都存在
+        return { ...DEFAULT_CONFIG, ...parsed };
       }
     } catch (e) {
-      console.warn('[SemanticSearch] 加载配置失败:', e);
+      console.warn('[SemanticSearch] Failed to load config from localStorage:', e);
     }
-    return { ...DEFAULT_EMBEDDING_CONFIG };
+    return { ...DEFAULT_CONFIG };
   }
 
   /**
    * 保存配置到 localStorage
    */
-  saveEmbeddingConfig() {
+  saveConfig() {
+    if (!this.config) return;
+
     try {
-      localStorage.setItem('semantic-embedding-config', JSON.stringify(this.embeddingConfig));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.config));
+      console.log('[SemanticSearch] Config saved to localStorage');
     } catch (e) {
-      console.warn('[SemanticSearch] 保存配置失败:', e);
+      console.warn('[SemanticSearch] Failed to save config to localStorage:', e);
     }
   }
 
   /**
-   * 设置 Embedding 配置
+   * 配置语义搜索
    * @param {Object} config - 配置对象
    */
-  setEmbeddingConfig(config) {
+  configure(config) {
     // 如果 provider 改变了，需要重置状态
-    if (config.provider !== this.embeddingConfig.provider) {
+    if (config.provider !== this.config.provider) {
       this.isReady = false;
       this.embedder = null;
       this.vectorIndex = [];
     }
 
-    this.embeddingConfig = { ...this.embeddingConfig, ...config };
-    this.saveEmbeddingConfig();
-    console.log('[SemanticSearch] 配置已更新:', this.embeddingConfig);
+    this.config = {
+      provider: config.provider || DEFAULT_CONFIG.provider,
+      lmStudioUrl: config.lmStudioUrl || DEFAULT_CONFIG.lmStudioUrl,
+      modelName: config.modelName || DEFAULT_CONFIG.modelName
+    };
+
+    // 保存到 localStorage
+    this.saveConfig();
+    console.log('[SemanticSearch] Configuration updated:', this.config);
   }
 
   /**
-   * 获取当前 Embedding 配置
+   * 获取当前配置（返回副本，避免外部修改）
+   * @returns {Object}
    */
-  getEmbeddingConfig() {
-    return { ...this.embeddingConfig };
+  getConfig() {
+    return { ...this.config };
+  }
+
+  /**
+   * 清除配置
+   */
+  clearConfig() {
+    this.config = { ...DEFAULT_CONFIG };
+    this.isReady = false;
+    this.embedder = null;
+    this.vectorIndex = [];
+
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      console.log('[SemanticSearch] Config cleared');
+    } catch (e) {
+      console.warn('[SemanticSearch] Failed to clear config from localStorage:', e);
+    }
   }
 
   /**
@@ -84,7 +117,7 @@ export class SemanticSearchManager {
    * @returns {Float32Array} 向量
    */
   async embedViaLMStudio(text) {
-    const { lmStudioUrl, modelName } = this.embeddingConfig;
+    const { lmStudioUrl, modelName } = this.config;
     const url = `${lmStudioUrl}/v1/embeddings`;
 
     try {
@@ -131,7 +164,7 @@ export class SemanticSearchManager {
     this.isLoading = true;
     this.onProgressCallback = onProgress;
 
-    const { provider } = this.embeddingConfig;
+    const { provider } = this.config;
 
     try {
       if (provider === 'lmstudio') {
@@ -140,14 +173,14 @@ export class SemanticSearchManager {
         return await this.initializeTransformers(onProgress);
       }
     } catch (error) {
-      console.error('[SemanticSearch] 初始化失败:', error);
+      console.error('[SemanticSearch] Initialization failed:', error);
       this.isLoading = false;
 
       if (this.onProgressCallback) {
         this.onProgressCallback({
           status: 'error',
           progress: 0,
-          message: `初始化失败: ${error.message}`
+          message: `Initialization failed: ${error.message}`
         });
       }
 
@@ -159,30 +192,30 @@ export class SemanticSearchManager {
    * 初始化 LM Studio 后端
    */
   async initializeLMStudio(onProgress) {
-    const { lmStudioUrl, modelName } = this.embeddingConfig;
+    const { lmStudioUrl, modelName } = this.config;
 
-    console.log('[SemanticSearch] 使用 LM Studio 后端');
-    console.log('[SemanticSearch] API 地址:', lmStudioUrl);
-    console.log('[SemanticSearch] 模型名称:', modelName);
+    console.log('[SemanticSearch] Using LM Studio backend');
+    console.log('[SemanticSearch] API URL:', lmStudioUrl);
+    console.log('[SemanticSearch] Model name:', modelName);
 
     if (onProgress) {
       onProgress({
         status: 'loading',
         progress: 30,
-        message: `连接 LM Studio (${lmStudioUrl})...`
+        message: `Connecting to LM Studio (${lmStudioUrl})...`
       });
     }
 
     // 测试连接
     try {
-      const testEmbedding = await this.embedViaLMStudio('测试连接');
-      console.log('[SemanticSearch] LM Studio 连接成功，向量维度:', testEmbedding.length);
+      const testEmbedding = await this.embedViaLMStudio('test connection');
+      console.log('[SemanticSearch] LM Studio connected successfully, vector dimension:', testEmbedding.length);
 
       if (onProgress) {
         onProgress({
           status: 'loading',
           progress: 100,
-          message: `LM Studio 连接成功 (向量维度: ${testEmbedding.length})`
+          message: `LM Studio connected (dimension: ${testEmbedding.length})`
         });
       }
 
@@ -193,7 +226,7 @@ export class SemanticSearchManager {
         onProgress({
           status: 'ready',
           progress: 100,
-          message: `已连接 LM Studio (${modelName})`
+          message: `Connected to LM Studio (${modelName})`
         });
       }
 
@@ -208,7 +241,7 @@ export class SemanticSearchManager {
    * 初始化 Transformers.js 后端
    */
   async initializeTransformers(onProgress) {
-    console.log('[SemanticSearch] 使用 Transformers.js 后端');
+    console.log('[SemanticSearch] Using Transformers.js backend');
 
     const modelConfig = {
       model: 'Xenova/paraphrase-multilingual-MiniLM-L12-v2',
@@ -216,7 +249,7 @@ export class SemanticSearchManager {
     };
 
     const modelPath = modelConfig.localModelPath || modelConfig.model;
-    console.log('[SemanticSearch] 使用模型:', modelPath);
+    console.log('[SemanticSearch] Using model:', modelPath);
 
     // 使用多语言模型，支持中英文
     this.embedder = await pipeline(
@@ -224,14 +257,14 @@ export class SemanticSearchManager {
       modelPath,
       {
         progress_callback: (progress) => {
-          console.log('[SemanticSearch] 进度更新:', progress);
+          console.log('[SemanticSearch] Progress update:', progress);
 
           if (progress.status === 'initiate') {
             if (this.onProgressCallback) {
               this.onProgressCallback({
                 status: 'loading',
                 progress: 0,
-                message: `准备下载模型文件: ${progress.file}...`
+                message: `Preparing to download: ${progress.file}...`
               });
             }
           } else if (progress.status === 'download') {
@@ -240,7 +273,7 @@ export class SemanticSearchManager {
               this.onProgressCallback({
                 status: 'loading',
                 progress: percent,
-                message: `下载中: ${progress.file} (${percent.toFixed(1)}%)`
+                message: `Downloading: ${progress.file} (${percent.toFixed(1)}%)`
               });
             }
           } else if (progress.status === 'progress') {
@@ -249,7 +282,7 @@ export class SemanticSearchManager {
               this.onProgressCallback({
                 status: 'loading',
                 progress: this.loadProgress,
-                message: `加载模型中... ${this.loadProgress}%`
+                message: `Loading model... ${this.loadProgress}%`
               });
             }
           } else if (progress.status === 'done') {
@@ -257,7 +290,7 @@ export class SemanticSearchManager {
               this.onProgressCallback({
                 status: 'loading',
                 progress: 100,
-                message: `文件加载完成: ${progress.file}`
+                message: `File loaded: ${progress.file}`
               });
             }
           }
@@ -266,26 +299,26 @@ export class SemanticSearchManager {
     );
 
     // 测试模型是否真正可用
-    console.log('[SemanticSearch] 测试模型...');
+    console.log('[SemanticSearch] Testing model...');
     if (this.onProgressCallback) {
       this.onProgressCallback({
         status: 'loading',
         progress: 95,
-        message: '正在测试模型...'
+        message: 'Testing model...'
       });
     }
 
-    await this.embedder('测试', { pooling: 'mean', normalize: true });
+    await this.embedder('test', { pooling: 'mean', normalize: true });
 
     this.isReady = true;
     this.isLoading = false;
-    console.log('[SemanticSearch] Transformers.js 模型加载完成');
+    console.log('[SemanticSearch] Transformers.js model loaded successfully');
 
     if (this.onProgressCallback) {
       this.onProgressCallback({
         status: 'ready',
         progress: 100,
-        message: '模型加载完成'
+        message: 'Model loaded successfully'
       });
     }
 
@@ -299,18 +332,18 @@ export class SemanticSearchManager {
    */
   async embed(text) {
     if (!this.isReady) {
-      throw new Error('模型未初始化');
+      throw new Error('Model not initialized');
     }
 
     // 截断过长的文本
     const truncatedText = text.slice(0, 1500);
-    const { provider } = this.embeddingConfig;
+    const { provider } = this.config;
 
     if (provider === 'lmstudio') {
       return await this.embedViaLMStudio(truncatedText);
     } else {
       if (!this.embedder) {
-        throw new Error('Transformers.js 模型未加载');
+        throw new Error('Transformers.js model not loaded');
       }
       const output = await this.embedder(truncatedText, {
         pooling: 'mean',
@@ -334,11 +367,11 @@ export class SemanticSearchManager {
     const total = messages.length;
     let processed = 0;
 
-    console.log(`[SemanticSearch] 开始构建索引，共 ${total} 条消息`);
+    console.log(`[SemanticSearch] Building index for ${total} messages`);
 
     // 批量处理
     // LM Studio 使用较小的批次避免请求过多
-    const batchSize = this.embeddingConfig.provider === 'lmstudio' ? 5 : 10;
+    const batchSize = this.config.provider === 'lmstudio' ? 5 : 10;
 
     for (let i = 0; i < messages.length; i += batchSize) {
       const batch = messages.slice(i, i + batchSize);
@@ -353,8 +386,8 @@ export class SemanticSearchManager {
             metadata: msg.metadata
           });
         } catch (error) {
-          console.error(`[SemanticSearch] 向量化失败 (${msg.id}):`, error);
-          console.error('[SemanticSearch] 消息内容:', msg.content?.substring(0, 100));
+          console.error(`[SemanticSearch] Failed to vectorize (${msg.id}):`, error);
+          console.error('[SemanticSearch] Message content:', msg.content?.substring(0, 100));
         }
       }));
 
@@ -363,18 +396,18 @@ export class SemanticSearchManager {
         onProgress({
           status: 'indexing',
           progress: Math.round((processed / total) * 100),
-          message: `向量化中... ${processed}/${total}`
+          message: `Indexing... ${processed}/${total}`
         });
       }
     }
 
-    console.log(`[SemanticSearch] 索引构建完成，共 ${this.vectorIndex.length} 条`);
+    console.log(`[SemanticSearch] Index built: ${this.vectorIndex.length} messages`);
 
     if (onProgress) {
       onProgress({
         status: 'indexed',
         progress: 100,
-        message: `索引完成，共 ${this.vectorIndex.length} 条`
+        message: `Index complete: ${this.vectorIndex.length} messages`
       });
     }
 
@@ -440,9 +473,9 @@ export class SemanticSearchManager {
       isLoading: this.isLoading,
       indexSize: this.vectorIndex.length,
       loadProgress: this.loadProgress,
-      provider: this.embeddingConfig.provider,
-      lmStudioUrl: this.embeddingConfig.lmStudioUrl,
-      modelName: this.embeddingConfig.modelName
+      provider: this.config.provider,
+      lmStudioUrl: this.config.lmStudioUrl,
+      modelName: this.config.modelName
     };
   }
 

@@ -551,7 +551,100 @@
       "appDescription": "Powerful conversation export and management tool",
       "version": "Version",
       "github": "GitHub",
-      "githubDescription": "Open source project, contributions and feedback welcome"
+      "githubDescription": "Open source project, contributions and feedback welcome",
+      "aiChatTitle": "AI Chat Assistant",
+      "aiChatDescription": "Embedded AI assistant to help you organize conversations while browsing",
+      "mainFeatures": "Main Features",
+      "feature1": "Context-aware AI conversations",
+      "feature2": "Intelligent context management based on browsing history",
+      "feature3": "MCP tool integration support",
+      "feature4": "Streaming responses with real-time display",
+      "mcpTitle": "MCP Integration",
+      "mcpDescription": "Supports Model Context Protocol (MCP) to connect various MCP servers and extend AI capabilities",
+      "mcpBuiltin": "Built-in MCP",
+      "mcpBuiltinDesc": "Pre-configured conversation context services",
+      "mcpCustom": "Custom MCP",
+      "mcpCustomDesc": "Support for adding any MCP server",
+      "relatedLinks": "Related Links",
+      "mcpDocs": "MCP Official Documentation",
+      "anthropicDocs": "Anthropic API Documentation"
+    },
+    "nav": {
+      "general": "General",
+      "export": "Export",
+      "ai": "AI Config",
+      "about": "About"
+    },
+    "aiChat": {
+      "title": "AI Chat Configuration",
+      "description": "Configure embedded AI assistant API settings",
+      "protocol": {
+        "label": "Protocol",
+        "description": "Select API communication protocol type"
+      },
+      "apiKey": {
+        "label": "API Key",
+        "description": "Enter your API key (stored locally only)"
+      },
+      "baseUrl": {
+        "label": "API Base URL",
+        "description": "API server address, supports proxy and relay services"
+      },
+      "model": {
+        "label": "Model",
+        "description": "Select or enter the model name to use"
+      },
+      "maxTokens": {
+        "label": "Max Tokens",
+        "description": "Maximum number of tokens per conversation"
+      }
+    },
+    "embedding": {
+      "title": "Semantic Search Configuration",
+      "description": "Configure embedding model for semantic search (AI search feature)",
+      "apiUrl": {
+        "label": "LM Studio API URL",
+        "description": "Local LM Studio embedding service address"
+      },
+      "modelName": {
+        "label": "Model Name",
+        "description": "Loaded embedding model name"
+      },
+      "info": "Please ensure LM Studio is running and has loaded an embedding model. Recommended: qwen3-embedding or similar lightweight models."
+    },
+    "mcp": {
+      "title": "MCP Server Management",
+      "description": "Configure and manage Model Context Protocol (MCP) servers to extend AI capabilities",
+      "serversCount": "servers",
+      "toolsCount": "tools",
+      "addServer": "Add Server",
+      "cancelAdd": "Cancel",
+      "confirmAdd": "Confirm Add",
+      "removeServer": "Remove Server",
+      "serverName": "Server Name",
+      "typeStdio": "Stdio (CLI)",
+      "typeHttp": "HTTP/SSE",
+      "command": "Command (e.g., npx)",
+      "args": "Arguments (e.g., -y @modelcontextprotocol/server-filesystem)",
+      "serverUrl": "Server URL (e.g., http://localhost:3000/mcp)",
+      "builtin": "Built-in",
+      "noServers": "No MCP servers yet",
+      "availableTools": "Available Tools"
+    },
+    "searchOptions": {
+      "title": "Search Settings",
+      "removeDuplicates": {
+        "label": "Remove Duplicates",
+        "description": "Automatically filter duplicate search results, showing only unique messages"
+      },
+      "includeThinking": {
+        "label": "Search Thinking Content",
+        "description": "Include Claude's thinking process in search"
+      },
+      "includeArtifacts": {
+        "label": "Search Artifacts Content",
+        "description": "Include Claude-created Artifacts in search"
+      }
     }
   },
   "rename": {
@@ -643,7 +736,12 @@
       "includeArtifacts": "Include Artifacts",
       "messagesWithThinking": "{{count}} messages with thinking",
       "messagesWithArtifacts": "{{count}} messages with Artifacts",
-      "blankMessages": "{{count}} blank messages"
+      "blankMessages": "{{count}} blank messages",
+      "expandPanel": "Expand search panel",
+      "history": {
+        "title": "Search History",
+        "delete": "Delete this record"
+      }
     },
     "nodeLocator": {
       "title": "Search Results",
@@ -720,5 +818,132 @@
         "score": "{{score}}%",
         "preview": "Preview"
       }
+    },
+  "actionPanel": {
+    "title": "Action Panel",
+    "nav": {
+      "globalSearch": "Global Search",
+      "semanticSearch": "Semantic Search",
+      "exportMarkdown": "Markdown",
+      "exportScreenshot": "Screenshot",
+      "exportPdf": "PDF"
     }
+  },
+  "aiChat": {
+    "panel": {
+      "title": "AI Chat",
+      "settings": "Settings",
+      "openSettings": "Open Settings",
+      "backToChat": "Back to Chat",
+      "pin": "Pin Window",
+      "unpin": "Unpin",
+      "minimize": "Minimize",
+      "restore": "Restore",
+      "close": "Close",
+      "assistant": "AI Assistant"
+    },
+    "chat": {
+      "needsConfig": "API Configuration Required",
+      "configPrompt": "Please configure API key in settings first",
+      "goToSettings": "Go to Settings",
+      "expandDetails": "Expand Details",
+      "collapseDetails": "Collapse Details",
+      "clearChat": "Clear Chat",
+      "placeholder": "Start a conversation...",
+      "placeholderWithContext": "Ask about the conversation you're browsing..."
+    },
+    "context": {
+      "empty": "No browsing context",
+      "messages": "{{count}} messages",
+      "tokens": "~{{count}} tokens",
+      "steps": "{{count}} steps",
+      "refresh": "Refresh Context",
+      "clear": "Clear Context",
+      "detailsTitle": "Current Context Details",
+      "browsingMessages": "Browsing Messages",
+      "browsingPath": "Browsing Path",
+      "summaries": "Generated Summaries",
+      "remove": "Remove"
+    },
+    "manage": {
+      "tabs": {
+        "mcp": "MCP Servers",
+        "api": "API Settings",
+        "about": "About"
+      },
+      "mcp": {
+        "title": "MCP Servers",
+        "builtin": "Built-in Servers",
+        "custom": "Custom Servers",
+        "addServer": "Add Server",
+        "noBuiltin": "No built-in servers",
+        "noCustom": "No custom servers",
+        "active": "Active",
+        "inactive": "Inactive",
+        "tools": "{{count}} tools",
+        "refresh": "Refresh",
+        "remove": "Remove",
+        "serverName": "Server Name",
+        "serverType": "Connection Type",
+        "typeStdio": "Stdio (Local Process)",
+        "typeHttp": "HTTP/SSE (Network)",
+        "command": "Command",
+        "commandPlaceholder": "e.g.: npx",
+        "args": "Arguments",
+        "argsPlaceholder": "e.g.: -y @anthropic-ai/mcp-server",
+        "baseUrl": "Base URL",
+        "baseUrlPlaceholder": "e.g.: http://localhost:3000",
+        "cancel": "Cancel",
+        "add": "Add"
+      },
+      "api": {
+        "title": "API Settings",
+        "configured": "Configured",
+        "notConfigured": "Not Configured",
+        "apiKey": "API Key",
+        "apiKeyPlaceholder": "Enter your Claude API key",
+        "baseUrl": "API Base URL",
+        "baseUrlPlaceholder": "https://api.anthropic.com",
+        "model": "Model",
+        "maxTokens": "Max Tokens",
+        "save": "Save Settings",
+        "note": {
+          "title": "Usage Notes",
+          "items": [
+            "API key is configured via environment variables (local deployment)",
+            "Custom API proxy URL supported",
+            "Recommended model: claude-sonnet-4-5-20250929"
+          ]
+        }
+      },
+      "about": {
+        "title": "Lyra AI Chat",
+        "version": "Version",
+        "description": "Embedded AI chat panel for reviewing and organizing conversation records.",
+        "features": {
+          "title": "Features",
+          "items": [
+            "Auto-track browsing message context",
+            "Record branch switch history",
+            "Manual context cleanup",
+            "MCP tool integration"
+          ]
+        },
+        "mcpInfo": {
+          "title": "MCP Integration",
+          "description": "Supports Model Context Protocol for extended AI capabilities"
+        },
+        "links": {
+          "github": "GitHub",
+          "docs": "Documentation"
+        }
+      }
+    },
+    "messages": {
+      "empty": "No messages",
+      "emptyHint": "Start typing to begin a conversation",
+      "toolCall": "Tool Call",
+      "thinking": "Thinking..."
+    }
+  }
 }

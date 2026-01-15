@@ -15,6 +15,15 @@ import {
 
 // ==================== Claude 解析器 ====================
 export const extractClaudeData = (jsonData) => {
+  // 调试输出：检查原始数据中的字段
+  console.log('[Lyra Parser Debug] Claude - 原始JSON顶层字段:', Object.keys(jsonData));
+  console.log('[Lyra Parser Debug] Claude - 原始数据中的关键字段:', {
+    organization_id: jsonData.organization_id,
+    project_uuid: jsonData.project_uuid,
+    project: jsonData.project,
+    settings: jsonData.settings
+  });
+
   const title = jsonData.name || "无标题对话";
   const createdAt = DateTimeUtils.formatDateTime(jsonData.created_at);
   const updatedAt = DateTimeUtils.formatDateTime(jsonData.updated_at);
@@ -25,12 +34,20 @@ export const extractClaudeData = (jsonData) => {
     created_at: createdAt,
     updated_at: updatedAt,
     project_uuid: jsonData.project_uuid || "",
+    organization_id: jsonData.organization_id || "",  // 新增：记录organization_id
+    project: jsonData.project || null,  // 新增：记录完整的project对象
     uuid: jsonData.uuid || "",
     model: model,
     platform: 'claude',
     has_embedded_images: jsonData._debug_info?.images_processed > 0,
     images_processed: jsonData._debug_info?.images_processed || 0
   };
+
+  console.log('[Lyra Parser Debug] Claude - 解析后的metaInfo:', {
+    organization_id: metaInfo.organization_id,
+    project_uuid: metaInfo.project_uuid,
+    project: metaInfo.project
+  });
 
   const chatHistory = [];
   const messages = jsonData.chat_messages || [];

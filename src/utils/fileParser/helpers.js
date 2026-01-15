@@ -656,7 +656,7 @@ export const extractToolUse = (toolItem) => {
     input: toolItem.input || {},
     result: null
   };
-  if (toolItem.name === "web_search" && toolItem.input?.query) {
+  if (toolItem.name === "web_search_tool" && toolItem.input?.query) {
     toolData.query = toolItem.input.query;
   }
   return toolData;

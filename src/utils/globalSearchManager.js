@@ -9,7 +9,7 @@ export class GlobalSearchManager {
   constructor() {
     this.messageIndex = new Map();
     this.fileData = new Map();
-    this.searchCache = new Map();
+    this.fileCache = new Map(); // 文件内容的缓存 { fileName: { lastModified: timestamp, data: parsedData } }
   }
 
   /**
@@ -22,35 +22,68 @@ export class GlobalSearchManager {
   async buildGlobalIndex(files, processedData, currentFileIndex, customNames = {}) {
     this.customNames = customNames;  // 保存以便后续使用
     const startTime = Date.now();
+    
+    // 如果文件列表发生巨大变化，或者强制重建，则清除旧索引
+    // 但为了性能，我们尽量增量更新或重用缓存
     this.messageIndex.clear();
-    this.fileData.clear();
+    const newFileData = new Map();
     
     for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
       const file = files[fileIndex];
       let data;
       
-      // 如果是当前文件且已有解析数据，直接使用
-      if (fileIndex === currentFileIndex && processedData) {
-        data = processedData;
-      } else if (file._mergedProcessedData) {
-        // 检查是否有预处理的合并数据（用于合并的JSONL文件）
-        console.log(`[GlobalSearch] 使用预处理的合并数据: ${file.name}`);
-        data = file._mergedProcessedData;
+      // 1. 尝试从缓存获取
+      const cacheKey = file.name;
+      const cached = this.fileCache.get(cacheKey);
+      
+      // 检查缓存是否有效 (通过 lastModified)
+      if (cached && cached.lastModified === file.lastModified) {
+         // 如果是当前文件，且传入了 processedData，优先使用传入的最新 processedData 
+         // (因为 processedData 可能包含了 React 状态中最新的处理结果，虽然理论上 content 没变)
+         if (fileIndex === currentFileIndex && processedData) {
+             data = processedData;
+             // 更新缓存(以防万一 processedData 有微小差异)
+             this.fileCache.set(cacheKey, { lastModified: file.lastModified, data });
+         } else {
+             // console.log(`[GlobalSearch] 使用缓存数据: ${file.name}`);
+             data = cached.data;
+         }
       } else {
-        // 否则需要读取并解析文件
-        try {
-          const text = await file.text();
-          // 智能解析：检测是 JSON 还是 JSONL 格式
-          const isJSONL = file.name.endsWith('.jsonl') || (text.includes('\n{') && !text.trim().startsWith('['));
-          const jsonData = isJSONL ? parseJSONL(text) : JSON.parse(text);
-          data = extractChatData(jsonData, file.name);
-          // 检测分支结构（与 App.js 保持一致）
-          data = detectBranches(data);
-        } catch (error) {
-          console.error(`[GlobalSearch] 解析文件 ${file.name} 失败:`, error);
-          continue;
+        // 2. 缓存无效或不存在，需要解析
+        
+        // 如果是当前文件且已有解析数据，直接使用
+        if (fileIndex === currentFileIndex && processedData) {
+            data = processedData;
+        } else if (file._mergedProcessedData) {
+            // 检查是否有预处理的合并数据（用于合并的JSONL文件）
+            console.log(`[GlobalSearch] 使用预处理的合并数据: ${file.name}`);
+            data = file._mergedProcessedData;
+        } else {
+            // 否则需要读取并解析文件
+            try {
+            // console.log(`[GlobalSearch] 解析文件: ${file.name}`);
+            const text = await file.text();
+            // 智能解析：检测是 JSON 还是 JSONL 格式
+            const isJSONL = file.name.endsWith('.jsonl') || (text.includes('\n{') && !text.trim().startsWith('['));
+            const jsonData = isJSONL ? parseJSONL(text) : JSON.parse(text);
+            data = extractChatData(jsonData, file.name);
+            // 检测分支结构（与 App.js 保持一致）
+            data = detectBranches(data);
+            } catch (error) {
+            console.error(`[GlobalSearch] 解析文件 ${file.name} 失败:`, error);
+            continue;
+            }
+        }
+        
+        // 更新缓存
+        if (data) {
+            this.fileCache.set(cacheKey, { lastModified: file.lastModified, data });
         }
       }
+      
+      if (!data) continue;
+
+      newFileData.set(file.name, data);
       
       // 处理不同格式的数据
       if (data.format === 'claude_full_export') {
@@ -60,6 +93,7 @@ export class GlobalSearchManager {
       }
     }
     
+    this.fileData = newFileData;
     console.log(`[GlobalSearch] 索引构建完成: ${this.messageIndex.size} 条消息, 来自 ${files.length} 个文件, 耗时 ${Date.now() - startTime}ms`);
     return this.messageIndex;
   }

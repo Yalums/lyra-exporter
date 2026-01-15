@@ -1,8 +1,8 @@
 {
   "name": "lyra-exporter",
-  "version": "1.7.1",
+  "version": "1.7.2",
   "private": true,
-  "homepage": "https://yalums.github.io/lyra-exporter",
+  "homepage": ".",
   "description": "A handy tool for exporting chat conversations.",
   "author": {
     "name": "Yalums"
@@ -30,6 +30,7 @@
     "start:local": "cross-env PORT=3789 react-scripts start",
     "start:network": "cross-env HOST=0.0.0.0 PORT=3789 react-scripts start",
     "build": "react-scripts build",
+    "build:extension": "react-scripts build",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build",
     "tauri": "tauri",

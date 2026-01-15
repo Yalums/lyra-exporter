@@ -140,7 +140,7 @@ export function formatTool(tool, gt) {
     content.push(`${gt('format.searchQuery')} \`${tool.query}\``, '');
   }
 
-  if (tool.result?.content && tool.name === 'web_search') {
+  if (tool.result?.content && tool.name === 'web_search_tool') {
     content.push(`${gt('format.searchResults')}`, '');
     tool.result.content.slice(0, 5).forEach((item, i) => {
       content.push(`${i + 1}. [${item.title || gt('format.noTitle')}](${item.url || '#'})`);

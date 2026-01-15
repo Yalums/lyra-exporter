@@ -11,8 +11,8 @@ import { getRenameManager } from '../utils/renameManager';
  * 通用卡片组件
  * 支持文件卡片和对话卡片两种类型
  */
-export const Card = ({ 
-  item, 
+export const Card = React.memo(({
+  item,
   isSelected = false,
   isStarred = false,
   onSelect,
@@ -129,12 +129,14 @@ export const Card = ({
       )}
     </div>
   );
-};
+});
+
+Card.displayName = 'Card';
 
 /**
  * 卡片头部组件
  */
-const CardHeader = ({ title, isStarred, onStar, onRename, onRemove, t }) => (
+const CardHeader = React.memo(({ title, isStarred, onStar, onRename, onRemove, t }) => (
   <div className="tile-header">
     <div className="tile-title">
       <span>{title}</span>
@@ -173,7 +175,9 @@ const CardHeader = ({ title, isStarred, onStar, onRename, onRemove, t }) => (
       )}
     </div>
   </div>
-);
+));
+
+CardHeader.displayName = 'CardHeader';
 
 /**
  * 卡片元数据组件

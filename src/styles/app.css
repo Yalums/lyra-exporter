@@ -1,5 +1,19 @@
 /* =================== App全局主布局样式 =================== */
 
+/* Chrome 扩展侧边栏样式 */
+@media all {
+  :root {
+    /* 强制设置侧边栏宽度 */
+    width: 100% !important;
+    min-width: 700px !important;
+  }
+
+  body {
+    width: 100% !important;
+    min-width: 700px !important;
+  }
+}
+
 /* 应用根样式 */
 .app-redesigned {
   min-height: 100vh;
@@ -10,6 +24,7 @@
   flex-direction: column;
   overflow: hidden;
   height: 100vh;
+  width: 100%;
 }
 
 @supports (-webkit-touch-callout: none) {
@@ -154,6 +169,42 @@
   box-shadow: none;
 }
 
+.navbar-left .enhanced-search-box .expand-btn {
+  position: absolute;
+  right: 32px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 10px;
+  cursor: pointer;
+  padding: 4px 6px;
+  transition: color 0.15s;
+}
+
+.navbar-left .enhanced-search-box .expand-btn:hover {
+  color: var(--text-primary);
+}
+
+.navbar-left .enhanced-search-box .clear-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.15s;
+}
+
+.navbar-left .enhanced-search-box .clear-btn:hover {
+  color: var(--text-primary);
+}
+
 .search-icon {
   position: absolute;
   left: 12px;
@@ -207,7 +258,8 @@
   .main-container {
     height: auto;
     min-height: calc(100vh - 65px);
-    overflow-x: hidden; /* 防止水平溢出导致界面被拉伸 */
+    overflow-x: hidden;
+    /* 防止水平溢出导致界面被拉伸 */
     overflow-y: visible;
   }
 }
@@ -224,7 +276,8 @@
 /* 移动端：内容决定高度 */
 @media (max-width: 1023px) {
   .content-area {
-    overflow-x: hidden; /* 防止水平溢出导致界面被拉伸 */
+    overflow-x: hidden;
+    /* 防止水平溢出导致界面被拉伸 */
     overflow-y: visible;
     height: auto;
   }
@@ -303,13 +356,26 @@
 
 /* 打字动画效果 */
 @keyframes typing {
-  from { width: 0; }
-  to { width: 100%; }
+  from {
+    width: 0;
+  }
+
+  to {
+    width: 100%;
+  }
 }
 
 @keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
+
+  0%,
+  50% {
+    opacity: 1;
+  }
+
+  51%,
+  100% {
+    opacity: 0;
+  }
 }
 
 .typing-text {
@@ -323,13 +389,14 @@
 
 /* 欢迎页特效动画 */
 @keyframes fadeIn {
-  from { 
-    opacity: 0; 
-    transform: translateY(10px); 
+  from {
+    opacity: 0;
+    transform: translateY(10px);
   }
-  to { 
-    opacity: 1; 
-    transform: translateY(0); 
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -437,4 +504,1247 @@
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
+}
+
+/* ========== Ubuntu风格双栏设置面板 ========== */
+
+.settings-panel-ubuntu {
+  width: 900px;
+  max-width: 95vw;
+  max-height: 85vh;
+  background: var(--bg-primary);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 顶部标题栏 */
+.settings-panel-ubuntu .settings-header {
+  padding: 16px 20px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.settings-panel-ubuntu .settings-header h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.settings-panel-ubuntu .close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.settings-panel-ubuntu .close-btn:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+/* 双栏主体布局 */
+.settings-panel-ubuntu .settings-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* 左侧导航栏 - Ubuntu风格 */
+.settings-panel-ubuntu .settings-nav {
+  width: 180px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+
+.settings-panel-ubuntu .nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  width: 100%;
+}
+
+.settings-panel-ubuntu .nav-item:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+.settings-panel-ubuntu .nav-item.active {
+  background: var(--accent-color);
+  color: white;
+}
+
+.settings-panel-ubuntu .nav-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.settings-panel-ubuntu .nav-label {
+  flex: 1;
+}
+
+/* 右侧内容区域 */
+.settings-panel-ubuntu .settings-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  min-width: 0;
+}
+
+.settings-section-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.settings-panel-ubuntu .settings-section {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid var(--border-color);
+}
+
+.settings-panel-ubuntu .settings-section h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+  color: var(--text-primary);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.settings-panel-ubuntu .section-description {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+/* 设置项 */
+.settings-panel-ubuntu .setting-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.settings-panel-ubuntu .setting-item:last-child {
+  border-bottom: none;
+}
+
+.settings-panel-ubuntu .setting-item.static {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.settings-panel-ubuntu .setting-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-panel-ubuntu .setting-label>span:first-child {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.settings-panel-ubuntu .setting-description {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* 复选框样式 */
+.settings-panel-ubuntu .setting-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.settings-panel-ubuntu .setting-checkbox input[type="checkbox"] {
+  margin-top: 2px;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--accent-color);
+  flex-shrink: 0;
+}
+
+/* 选择框和输入框 */
+.settings-panel-ubuntu .setting-select,
+.settings-panel-ubuntu .setting-input {
+  min-width: 200px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.settings-panel-ubuntu .setting-select:focus,
+.settings-panel-ubuntu .setting-input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+.settings-panel-ubuntu .setting-input[type="number"] {
+  width: 120px;
+}
+
+/* 格式预览 */
+.settings-panel-ubuntu .format-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.settings-panel-ubuntu .preview-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-panel-ubuntu .preview-item code {
+  flex: 1;
+  padding: 6px 10px;
+  background: var(--code-bg);
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--code-text);
+}
+
+.settings-panel-ubuntu .preview-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* 主题切换按钮 */
+.settings-panel-ubuntu .theme-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.settings-panel-ubuntu .theme-toggle-btn:hover {
+  background: var(--hover-bg);
+  border-color: var(--accent-color);
+}
+
+.settings-panel-ubuntu .theme-icon {
+  font-size: 18px;
+}
+
+/* GitHub链接 */
+.settings-panel-ubuntu .github-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: #24292f;
+  color: #ffffff;
+  border: 1px solid rgba(240, 246, 252, 0.1);
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.settings-panel-ubuntu .github-link:hover {
+  background: #2c333a;
+  border-color: rgba(240, 246, 252, 0.2);
+  transform: translateY(-1px);
+}
+
+.settings-panel-ubuntu .github-link svg {
+  flex-shrink: 0;
+}
+
+/* 设置信息提示 */
+.settings-panel-ubuntu .setting-info {
+  padding: 12px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-top: 8px;
+}
+
+/* 底部按钮栏 - 位于左侧导航下方 */
+.settings-panel-ubuntu .settings-footer {
+  padding: 16px 8px;
+  border-top: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.settings-panel-ubuntu .settings-footer .btn-primary {
+  width: 100%;
+  padding: 10px 24px;
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.settings-panel-ubuntu .settings-footer .btn-primary:hover {
+  background: var(--accent-color-hover);
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .settings-panel-ubuntu {
+    width: 100vw;
+    max-width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .settings-panel-ubuntu .settings-body {
+    flex-direction: column;
+  }
+
+  .settings-panel-ubuntu .settings-sidebar {
+    width: 100%;
+    flex-direction: row;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .settings-panel-ubuntu .settings-nav {
+    flex: 1;
+    flex-direction: row;
+    border-bottom: none;
+    padding: 8px;
+    overflow-x: auto;
+  }
+
+  .settings-panel-ubuntu .settings-footer {
+    display: none;
+  }
+
+  .settings-panel-ubuntu .nav-item {
+    flex-direction: column;
+    gap: 4px;
+    min-width: 70px;
+    text-align: center;
+  }
+
+  .settings-panel-ubuntu .nav-icon {
+    font-size: 24px;
+  }
+
+  .settings-panel-ubuntu .nav-label {
+    font-size: 11px;
+  }
+
+  .settings-panel-ubuntu .settings-content {
+    padding: 16px;
+  }
+
+  .settings-panel-ubuntu .setting-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .settings-panel-ubuntu .setting-select,
+  .settings-panel-ubuntu .setting-input {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+/* ========== ActionPanel - Ubuntu风格操作面板 ========== */
+
+.action-panel-ubuntu {
+  width: 900px;
+  max-width: 95vw;
+  height: 85vh;
+  background: var(--bg-primary);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 顶部标题栏 */
+.action-panel-ubuntu .action-panel-header {
+  padding: 16px 20px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.action-panel-ubuntu .action-panel-header h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.action-panel-ubuntu .close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.action-panel-ubuntu .close-btn:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+/* 双栏主体布局 */
+.action-panel-ubuntu .action-panel-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* 左侧导航栏 */
+.action-panel-ubuntu .action-panel-nav {
+  width: 160px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+
+.action-panel-ubuntu .nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  width: 100%;
+}
+
+.action-panel-ubuntu .nav-item:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+.action-panel-ubuntu .nav-item.active {
+  background: var(--accent-color);
+  color: white;
+}
+
+.action-panel-ubuntu .nav-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.action-panel-ubuntu .nav-label {
+  flex: 1;
+}
+
+/* 右侧内容区域 */
+.action-panel-ubuntu .action-panel-content {
+  flex: 1;
+  overflow-y: auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.action-section-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ===== 全局搜索部分样式 ===== */
+.global-search-section {
+  padding: 16px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.global-search-section .search-input-container {
+  position: relative;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.global-search-section .action-search-input {
+  width: 100%;
+  padding: 12px 40px 12px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.global-search-section .action-search-input:focus {
+  border-color: var(--accent-color);
+}
+
+.global-search-section .clear-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.global-search-section .search-results-container {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.global-search-section .search-loading,
+.global-search-section .search-placeholder,
+.global-search-section .search-no-results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.global-search-section .search-stats {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 8px;
+}
+
+.global-search-section .results-header {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 8px;
+}
+
+.global-search-section .results-count {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.global-search-section .conversation-group {
+  margin-bottom: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.global-search-section .conversation-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.global-search-section .conversation-header:hover {
+  background: var(--hover-bg);
+}
+
+.global-search-section .expand-icon {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.global-search-section .conversation-name {
+  flex: 1;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.global-search-section .result-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.global-search-section .conversation-results {
+  border-top: 1px solid var(--border-color);
+}
+
+.global-search-section .result-item {
+  padding: 12px;
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.global-search-section .result-item:last-child {
+  border-bottom: none;
+}
+
+.global-search-section .result-item:hover {
+  background: var(--hover-bg);
+}
+
+.global-search-section .result-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.global-search-section .result-sender {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.global-search-section .result-index {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.action-panel-ubuntu .global-search-section .result-content,
+.global-search-section .result-content {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+}
+
+.global-search-section .result-meta {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+/* 搜索关键词高亮 */
+.global-search-section .search-highlight {
+  background: rgba(234, 88, 12, 0.2);
+  color: #ea580c;
+  font-weight: 600;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+[data-theme="dark"] .global-search-section .search-highlight {
+  background: rgba(217, 119, 6, 0.25);
+  color: #d97706;
+}
+
+/* Markdown 格式渲染 */
+.global-search-section .search-bold {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.global-search-section .search-italic {
+  font-style: italic;
+}
+
+/* 搜索历史样式 */
+.global-search-section .search-history {
+  margin-top: 24px;
+  text-align: left;
+}
+
+.global-search-section .history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.global-search-section .history-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.global-search-section .history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.global-search-section .history-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.global-search-section .history-item:hover {
+  background: var(--bg-tertiary);
+}
+
+.global-search-section .history-icon {
+  font-size: 14px;
+  opacity: 0.6;
+}
+
+.global-search-section .history-query {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.global-search-section .history-delete {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.global-search-section .history-item:hover .history-delete {
+  opacity: 1;
+}
+
+.global-search-section .history-delete:hover {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* ===== 语义搜索部分样式 ===== */
+.semantic-search-section {
+  padding: 16px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.semantic-search-section .semantic-status {
+  padding: 12px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.semantic-search-section .status-init {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.semantic-search-section .progress-bar {
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.semantic-search-section .progress-fill {
+  height: 100%;
+  background: var(--accent-color);
+  transition: width 0.3s;
+}
+
+.semantic-search-section .status-message {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.semantic-search-section .status-ready {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.semantic-search-section .status-badge {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent-success);
+}
+
+.semantic-search-section .status-info {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.semantic-search-section .semantic-chat {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding: 8px 0;
+}
+
+.semantic-search-section .chat-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 20px;
+}
+
+.semantic-search-section .chat-message {
+  margin-bottom: 16px;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.semantic-search-section .chat-message.user {
+  background: var(--accent-color);
+  color: white;
+  margin-left: 20%;
+}
+
+.semantic-search-section .chat-message.assistant {
+  background: var(--bg-secondary);
+  margin-right: 20%;
+}
+
+.semantic-search-section .chat-message .message-content {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.semantic-search-section .chat-message .search-results {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.semantic-search-section .result-card {
+  padding: 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.semantic-search-section .result-card:hover {
+  border-color: var(--accent-color);
+  transform: translateY(-1px);
+}
+
+.semantic-search-section .result-card .result-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.semantic-search-section .result-card .result-source {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.semantic-search-section .result-card .result-score {
+  font-size: 12px;
+  color: var(--accent-success);
+}
+
+.semantic-search-section .result-card .result-preview {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.semantic-search-section .result-card .result-meta {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  display: flex;
+  gap: 12px;
+}
+
+.semantic-search-section .typing-indicator {
+  display: flex;
+  gap: 4px;
+  padding: 8px 0;
+}
+
+.semantic-search-section .typing-indicator span {
+  width: 8px;
+  height: 8px;
+  background: var(--text-tertiary);
+  border-radius: 50%;
+  animation: typing 1.4s infinite;
+}
+
+.semantic-search-section .typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.semantic-search-section .typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+
+  30% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.semantic-search-section .semantic-input {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-shrink: 0;
+}
+
+.semantic-search-section .semantic-input textarea {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 14px;
+  resize: none;
+  min-height: 44px;
+  max-height: 100px;
+  outline: none;
+}
+
+.semantic-search-section .semantic-input textarea:focus {
+  border-color: var(--accent-color);
+}
+
+.semantic-search-section .semantic-input button {
+  padding: 12px 20px;
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.semantic-search-section .semantic-input button:hover:not(:disabled) {
+  background: var(--accent-color-hover);
+}
+
+.semantic-search-section .semantic-input button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===== 导出部分样式 ===== */
+.export-section {
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.export-section .export-group {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border-color);
+}
+
+.export-section .export-group h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  color: var(--text-primary);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.export-section .export-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.export-section .export-radio-option,
+.export-section .export-checkbox-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.export-section .export-radio-option:hover,
+.export-section .export-checkbox-option:hover {
+  border-color: var(--accent-color);
+}
+
+.export-section .export-radio-option input,
+.export-section .export-checkbox-option input {
+  margin-top: 2px;
+  accent-color: var(--accent-color);
+}
+
+.export-section .option-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.export-section .option-title {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.export-section .option-desc {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.export-section .option-hint {
+  display: block;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.export-section .option-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: normal;
+}
+
+.export-section .export-radio-option:has(input:disabled),
+.export-section .export-checkbox-option:has(input:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.export-section .export-info {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border-color);
+}
+
+.export-section .export-info .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 13px;
+}
+
+.export-section .export-info .info-row:last-child {
+  border-bottom: none;
+}
+
+.export-section .export-info .label {
+  color: var(--text-secondary);
+}
+
+.export-section .export-info .value {
+  color: var(--text-primary);
+  text-align: right;
+}
+
+.export-section .export-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.export-section .btn-secondary {
+  padding: 10px 20px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.export-section .btn-secondary:hover {
+  background: var(--hover-bg);
+}
+
+.export-section .btn-primary {
+  padding: 10px 20px;
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.export-section .btn-primary:hover {
+  background: var(--accent-color-hover);
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .action-panel-ubuntu {
+    width: 100vw;
+    max-width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+  }
+
+  .action-panel-ubuntu .action-panel-body {
+    flex-direction: column;
+  }
+
+  .action-panel-ubuntu .action-panel-nav {
+    width: 100%;
+    flex-direction: row;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    padding: 8px;
+    overflow-x: auto;
+    flex-shrink: 0;
+  }
+
+  .action-panel-ubuntu .nav-item {
+    flex-direction: column;
+    gap: 4px;
+    min-width: 70px;
+    text-align: center;
+    padding: 8px;
+  }
+
+  .action-panel-ubuntu .nav-icon {
+    font-size: 24px;
+  }
+
+  .action-panel-ubuntu .nav-label {
+    font-size: 11px;
+  }
+
+  .semantic-search-section .chat-message.user {
+    margin-left: 10%;
+  }
+
+  .semantic-search-section .chat-message.assistant {
+    margin-right: 10%;
+  }
 }

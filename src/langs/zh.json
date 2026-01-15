@@ -407,7 +407,23 @@
       "appDescription": "强大的对话导出和管理工具",
       "version": "版本",
       "github": "GitHub",
-      "githubDescription": "开源项目，欢迎贡献和反馈"
+      "githubDescription": "开源项目，欢迎贡献和反馈",
+      "aiChatTitle": "AI 对话助手",
+      "aiChatDescription": "嵌入式AI对话助手，帮助你在浏览对话历史时获得整理建议",
+      "mainFeatures": "主要功能",
+      "feature1": "与AI进行上下文相关的对话",
+      "feature2": "基于浏览轨迹的智能上下文管理",
+      "feature3": "支持MCP工具调用",
+      "feature4": "流式响应，实时显示",
+      "mcpTitle": "MCP集成说明",
+      "mcpDescription": "本工具支持Model Context Protocol (MCP)，可以连接各种MCP服务器扩展AI能力",
+      "mcpBuiltin": "内置MCP",
+      "mcpBuiltinDesc": "预配置的对话上下文服务",
+      "mcpCustom": "自定义MCP",
+      "mcpCustomDesc": "支持添加任意MCP服务器",
+      "relatedLinks": "相关链接",
+      "mcpDocs": "MCP官方文档",
+      "anthropicDocs": "Anthropic API文档"
     },
     "searchOptions": {
         "title": "搜索设置",
@@ -423,7 +439,69 @@
           "label": "搜索Artifacts内容",
           "description": "在搜索时包含Claude创建的Artifacts"
         }
+      },
+    "nav": {
+      "general": "通用",
+      "export": "导出",
+      "ai": "AI 配置",
+      "about": "关于"
+    },
+    "aiChat": {
+      "title": "AI 对话配置",
+      "description": "配置嵌入式 AI 助手的 API 设置",
+      "protocol": {
+        "label": "通信协议",
+        "description": "选择 API 通信协议类型"
+      },
+      "apiKey": {
+        "label": "API 密钥",
+        "description": "输入你的 API 密钥（仅保存在本地）"
+      },
+      "baseUrl": {
+        "label": "API 基础 URL",
+        "description": "API 服务器地址，支持代理和中转服务"
+      },
+      "model": {
+        "label": "模型",
+        "description": "选择或输入要使用的模型名称"
+      },
+      "maxTokens": {
+        "label": "最大 Token 数",
+        "description": "单次对话的最大令牌数量限制"
       }
+    },
+    "embedding": {
+      "title": "语义搜索配置",
+      "description": "配置语义搜索的向量化模型（用于 AI 搜索功能）",
+      "apiUrl": {
+        "label": "LM Studio API 地址",
+        "description": "本地 LM Studio Embedding 服务地址"
+      },
+      "modelName": {
+        "label": "模型名称",
+        "description": "已加载的 Embedding 模型名称"
+      },
+      "info": "请确保本地 LM Studio 已启动并加载 Embedding 模型。推荐使用 qwen3-embedding 等轻量模型。"
+    },
+    "mcp": {
+      "title": "MCP 服务器管理",
+      "description": "配置和管理 Model Context Protocol (MCP) 服务器，扩展 AI 的能力",
+      "serversCount": "个服务器",
+      "toolsCount": "个工具",
+      "addServer": "添加服务器",
+      "cancelAdd": "取消",
+      "confirmAdd": "确认添加",
+      "removeServer": "删除服务器",
+      "serverName": "服务器名称",
+      "typeStdio": "Stdio (命令行)",
+      "typeHttp": "HTTP/SSE",
+      "command": "命令 (例如: npx)",
+      "args": "参数 (例如: -y @modelcontextprotocol/server-filesystem)",
+      "serverUrl": "服务器URL (例如: http://localhost:3000/mcp)",
+      "builtin": "内置",
+      "noServers": "暂无 MCP 服务器",
+      "availableTools": "可用工具"
+    }
   },
   "timeline": {
     "branch": {
@@ -710,7 +788,12 @@
     "includeArtifacts": "包含Artifacts",
     "messagesWithThinking": "{{count}} 条有思考过程的消息",
     "messagesWithArtifacts": "{{count}} 条有Artifacts的消息",
-    "blankMessages": "{{count}} 条空白消息"
+    "blankMessages": "{{count}} 条空白消息",
+    "expandPanel": "展开搜索面板",
+    "history": {
+      "title": "搜索历史",
+      "delete": "删除此记录"
+    }
   },
   "nodeLocator": {
     "title": "搜索结果",
@@ -786,6 +869,133 @@
     "results": {
       "score": "{{score}}%",
       "preview": "预览"
+    }
+  },
+  "actionPanel": {
+    "title": "操作面板",
+    "nav": {
+      "globalSearch": "全局搜索",
+      "semanticSearch": "语义搜索",
+      "exportMarkdown": "Markdown",
+      "exportScreenshot": "长截图",
+      "exportPdf": "PDF"
+    }
+  },
+  "aiChat": {
+    "panel": {
+      "title": "AI 对话",
+      "settings": "设置",
+      "openSettings": "打开设置",
+      "backToChat": "返回对话",
+      "pin": "固定窗口",
+      "unpin": "取消固定",
+      "minimize": "最小化",
+      "restore": "恢复",
+      "close": "关闭",
+      "assistant": "AI 助手"
+    },
+    "chat": {
+      "needsConfig": "需要配置 API",
+      "configPrompt": "请先在设置中配置 API 密钥",
+      "goToSettings": "前往设置",
+      "expandDetails": "展开详情",
+      "collapseDetails": "收起详情",
+      "clearChat": "清除对话",
+      "placeholder": "开始对话...",
+      "placeholderWithContext": "询问关于当前浏览的对话内容..."
+    },
+    "context": {
+      "empty": "暂无浏览上下文",
+      "messages": "{{count}} 条消息",
+      "tokens": "约 {{count}} tokens",
+      "steps": "{{count}} 步轨迹",
+      "refresh": "刷新上下文",
+      "clear": "清理上下文",
+      "detailsTitle": "当前上下文详情",
+      "browsingMessages": "浏览的消息",
+      "browsingPath": "浏览轨迹",
+      "summaries": "生成的总结",
+      "remove": "移除"
+    },
+    "manage": {
+      "tabs": {
+        "mcp": "MCP 服务器",
+        "api": "API 设置",
+        "about": "关于"
+      },
+      "mcp": {
+        "title": "MCP 服务器",
+        "builtin": "内置服务器",
+        "custom": "自定义服务器",
+        "addServer": "添加服务器",
+        "noBuiltin": "暂无内置服务器",
+        "noCustom": "暂无自定义服务器",
+        "active": "已激活",
+        "inactive": "未激活",
+        "tools": "{{count}} 个工具",
+        "refresh": "刷新",
+        "remove": "移除",
+        "serverName": "服务器名称",
+        "serverType": "连接类型",
+        "typeStdio": "Stdio (本地进程)",
+        "typeHttp": "HTTP/SSE (网络)",
+        "command": "命令",
+        "commandPlaceholder": "例如: npx",
+        "args": "参数",
+        "argsPlaceholder": "例如: -y @anthropic-ai/mcp-server",
+        "baseUrl": "基础 URL",
+        "baseUrlPlaceholder": "例如: http://localhost:3000",
+        "cancel": "取消",
+        "add": "添加"
+      },
+      "api": {
+        "title": "API 设置",
+        "configured": "已配置",
+        "notConfigured": "未配置",
+        "apiKey": "API 密钥",
+        "apiKeyPlaceholder": "输入你的 Claude API 密钥",
+        "baseUrl": "API 基础 URL",
+        "baseUrlPlaceholder": "https://api.anthropic.com",
+        "model": "模型",
+        "maxTokens": "最大 Token 数",
+        "save": "保存设置",
+        "note": {
+          "title": "使用说明",
+          "items": [
+            "API 密钥通过环境变量配置（本地部署）",
+            "支持自定义 API 代理地址",
+            "建议使用 claude-sonnet-4-5-20250929 模型"
+          ]
+        }
+      },
+      "about": {
+        "title": "Lyra AI Chat",
+        "version": "版本",
+        "description": "嵌入式 AI 对话浮窗，用于回顾和整理对话记录。",
+        "features": {
+          "title": "功能特性",
+          "items": [
+            "自动追踪浏览的消息上下文",
+            "记录分支切换轨迹",
+            "支持手动清理上下文",
+            "集成 MCP 工具扩展"
+          ]
+        },
+        "mcpInfo": {
+          "title": "MCP 集成",
+          "description": "支持 Model Context Protocol，可扩展 AI 能力"
+        },
+        "links": {
+          "github": "GitHub",
+          "docs": "文档"
+        }
+      }
+    },
+    "messages": {
+      "empty": "暂无消息",
+      "emptyHint": "开始输入以发起对话",
+      "toolCall": "调用工具",
+      "thinking": "思考中..."
     }
   }
 }

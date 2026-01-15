@@ -12,12 +12,12 @@ import { useI18n } from '../index.js';
 import { getRenameManager } from '../utils/renameManager';
 
 // ==================== 重命名对话框组件 ====================
-const RenameDialog = ({ 
-  isOpen, 
-  currentName, 
-  onSave, 
+const RenameDialog = ({
+  isOpen,
+  currentName,
+  onSave,
   onCancel,
-  t 
+  t
 }) => {
   const [newName, setNewName] = useState(currentName || '');
   const [error, setError] = useState('');
@@ -87,10 +87,10 @@ const RenameDialog = ({
 };
 
 // ==================== 分支切换器组件(内嵌) ====================
-const BranchSwitcher = ({ 
-  branchPoint, 
-  availableBranches, 
-  currentBranchIndex, 
+const BranchSwitcher = ({
+  branchPoint,
+  availableBranches,
+  currentBranchIndex,
   onBranchChange,
   onShowAllBranches,
   showAllMode = false,
@@ -102,11 +102,21 @@ const BranchSwitcher = ({
   const [listPosition, setListPosition] = useState({ top: 0, left: 0, width: 0 });
   const switcherRef = useRef(null);
   const listRef = useRef(null);
+  const switchTimeoutRef = useRef(null); // 用于清理 setTimeout
+
+  // 清理 setTimeout
+  useEffect(() => {
+    return () => {
+      if (switchTimeoutRef.current) {
+        clearTimeout(switchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const currentBranch = availableBranches[currentBranchIndex];
   const hasPrevious = currentBranchIndex > 0;
   const hasNext = currentBranchIndex < availableBranches.length - 1;
-  
+
   // 计算弹出列表位置
   useEffect(() => {
     if (isExpanded && switcherRef.current) {
@@ -118,21 +128,21 @@ const BranchSwitcher = ({
       });
     }
   }, [isExpanded]);
-  
+
   // 点击外部关闭
   useEffect(() => {
     if (!isExpanded) return;
-    
+
     const handleClickOutside = (e) => {
       // 检查是否点击了切换器或列表
       const clickedSwitcher = switcherRef.current && switcherRef.current.contains(e.target);
       const clickedList = listRef.current && listRef.current.contains(e.target);
-      
+
       if (!clickedSwitcher && !clickedList) {
         setIsExpanded(false);
       }
     };
-    
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isExpanded]);
@@ -140,7 +150,8 @@ const BranchSwitcher = ({
   const handlePrevious = () => {
     if (hasPrevious) {
       setSwitchAnimation(true);
-      setTimeout(() => {
+      if (switchTimeoutRef.current) clearTimeout(switchTimeoutRef.current);
+      switchTimeoutRef.current = setTimeout(() => {
         onBranchChange(currentBranchIndex - 1);
         setSwitchAnimation(false);
       }, 150);
@@ -150,7 +161,8 @@ const BranchSwitcher = ({
   const handleNext = () => {
     if (hasNext) {
       setSwitchAnimation(true);
-      setTimeout(() => {
+      if (switchTimeoutRef.current) clearTimeout(switchTimeoutRef.current);
+      switchTimeoutRef.current = setTimeout(() => {
         onBranchChange(currentBranchIndex + 1);
         setSwitchAnimation(false);
       }, 150);
@@ -160,7 +172,8 @@ const BranchSwitcher = ({
   const handleDirectSwitch = (index) => {
     if (index !== currentBranchIndex) {
       setSwitchAnimation(true);
-      setTimeout(() => {
+      if (switchTimeoutRef.current) clearTimeout(switchTimeoutRef.current);
+      switchTimeoutRef.current = setTimeout(() => {
         onBranchChange(index);
         setSwitchAnimation(false);
         setIsExpanded(false);
@@ -195,12 +208,12 @@ const BranchSwitcher = ({
             title={t('timeline.branch.previousBranch')}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M10 12l-4-4 4-4v8z"/>
+              <path d="M10 12l-4-4 4-4v8z" />
             </svg>
           </button>
 
           {/* 分支信息区域 */}
-          <div 
+          <div
             className={`branch-info ${switchAnimation ? 'switching' : ''}`}
             onClick={() => setIsExpanded(!isExpanded)}
           >
@@ -212,7 +225,7 @@ const BranchSwitcher = ({
                 {getBranchCounter()}
               </span>
             </div>
-            
+
             <div className="branch-preview">
               {getBranchPreview(currentBranch)}
             </div>
@@ -221,7 +234,7 @@ const BranchSwitcher = ({
             {availableBranches.length > 2 && (
               <div className={`expand-indicator ${isExpanded ? 'expanded' : ''}`}>
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-                  <path d="M6 8L2 4h8l-4 4z"/>
+                  <path d="M6 8L2 4h8l-4 4z" />
                 </svg>
               </div>
             )}
@@ -235,7 +248,7 @@ const BranchSwitcher = ({
             title={t('timeline.branch.nextBranch')}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M6 4l4 4-4 4V4z"/>
+              <path d="M6 4l4 4-4 4V4z" />
             </svg>
           </button>
         </div>
@@ -243,7 +256,7 @@ const BranchSwitcher = ({
 
       {/* 展开的分支列表 - 使用 Portal */}
       {isExpanded && availableBranches.length > 2 && ReactDOM.createPortal(
-        <div 
+        <div
           ref={listRef}
           className="branch-list branch-list-portal"
           style={{
@@ -268,7 +281,7 @@ const BranchSwitcher = ({
             </div>
             <div className="branch-option-preview">{t('timeline.branch.showMessagesFromAllBranches')}</div>
           </div>
-          
+
           {/* 各个分支选项 */}
           {availableBranches.map((branch, index) => (
             <div
@@ -281,7 +294,7 @@ const BranchSwitcher = ({
                   {getBranchDisplayName(branch, index)}
                 </span>
                 <span className="branch-option-count">
-                  {branch.messageCount}{t('timeline.branch.messages')}
+                  {branch.segmentCount} {t('timeline.branch.messages')} (Total {branch.messageCount})
                 </span>
               </div>
               <div className="branch-option-preview">
@@ -332,12 +345,12 @@ const MessageDetailPanel = ({
           showTabs={showTabs}
         />
       </div>
-      
+
       {/* 标记按钮 */}
       {markActions && (
         <div className="detail-actions">
           {/* 复制按钮 */}
-          <button 
+          <button
             className={`btn-secondary ${copiedMessageIndex === selectedMessageIndex ? 'copied' : ''}`}
             onClick={() => {
               const message = displayMessages.find(m => m.index === selectedMessageIndex);
@@ -348,20 +361,20 @@ const MessageDetailPanel = ({
           >
             {copiedMessageIndex === selectedMessageIndex ? `${t('timeline.actions.copied')} ✓` : `${t('timeline.actions.copyMessage')} 📋`}
           </button>
-          
-          <button 
+
+          <button
             className="btn-secondary"
             onClick={() => markActions.toggleMark(selectedMessageIndex, 'completed')}
           >
             {markActions.isMarked(selectedMessageIndex, 'completed') ? t('timeline.actions.unmarkCompleted') : t('timeline.actions.markCompleted')} ✓
           </button>
-          <button 
+          <button
             className="btn-secondary"
             onClick={() => markActions.toggleMark(selectedMessageIndex, 'important')}
           >
             {markActions.isMarked(selectedMessageIndex, 'important') ? t('timeline.actions.unmarkImportant') : t('timeline.actions.markImportant')} ⭐
           </button>
-          <button 
+          <button
             className="btn-secondary"
             onClick={() => markActions.toggleMark(selectedMessageIndex, 'deleted')}
           >
@@ -374,10 +387,10 @@ const MessageDetailPanel = ({
 };
 
 // ==================== 主时间线组件 ====================
-const ConversationTimeline = ({ 
-  data, 
-  messages, 
-  marks, 
+const ConversationTimeline = ({
+  data,
+  messages,
+  marks,
   markActions,
   format,
   conversation = null,
@@ -397,6 +410,8 @@ const ConversationTimeline = ({
   onMobileDetailChange = null // 新增:移动端详情显示状态变化回调
 }) => {
   const { t } = useI18n();
+
+
   const [selectedMessageIndex, setSelectedMessageIndex] = useState(null);
   const [activeTab, setActiveTab] = useState('content');
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
@@ -417,7 +432,7 @@ const ConversationTimeline = ({
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [renameManager] = useState(() => getRenameManager());
   const [customName, setCustomName] = useState('');
-  
+
   // 滚动相关状态
   const [isHeaderHidden, setIsHeaderHidden] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
@@ -425,17 +440,27 @@ const ConversationTimeline = ({
   const [forceUpdateCounter, setForceUpdateCounter] = useState(0); // 用于强制更新
   const leftPanelRef = React.useRef(null);
   const mobileDetailBodyRef = React.useRef(null); // 移动端详情 body 引用
-  
+
   // 消息定位相关
   const messageRefs = useRef({});
-  
+  const copiedTimeoutRef = useRef(null); // 用于清理复制提示的 setTimeout
+
+  // 清理复制提示的 setTimeout
+  useEffect(() => {
+    return () => {
+      if (copiedTimeoutRef.current) {
+        clearTimeout(copiedTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // ==================== 分支分析 ====================
-  
+
   const branchAnalysis = useMemo(() => {
     const findBranchMessages = (startUuid, msgDict, parentChildren) => {
       const branchMessages = [msgDict[startUuid]];
       const visited = new Set([startUuid]);
-      
+
       const traverse = (currentUuid) => {
         const children = parentChildren[currentUuid] || [];
         children.forEach(childUuid => {
@@ -446,33 +471,33 @@ const ConversationTimeline = ({
           }
         });
       };
-      
+
       traverse(startUuid);
       return branchMessages.sort((a, b) => a.index - b.index);
     };
-    
+
     const msgDict = {};
     const parentChildren = {};
     const branchPoints = new Map();
-    
+
     // 过滤消息
     let analysisMessages = messages;
     if (format === 'claude_full_export' && conversation?.uuid) {
-      const realConversationUuid = conversation.uuid.includes('-') ? 
+      const realConversationUuid = conversation.uuid.includes('-') ?
         conversation.uuid.split('-').slice(1).join('-') : conversation.uuid;
-      
-      analysisMessages = messages.filter(msg => 
-        msg.conversation_uuid === realConversationUuid && 
+
+      analysisMessages = messages.filter(msg =>
+        msg.conversation_uuid === realConversationUuid &&
         !msg.is_conversation_header
       );
     }
-    
+
     analysisMessages.forEach(msg => {
       const uuid = msg.uuid;
       const parentUuid = msg.parent_uuid;
-      
+
       msgDict[uuid] = msg;
-      
+
       if (parentUuid) {
         if (!parentChildren[parentUuid]) {
           parentChildren[parentUuid] = [];
@@ -480,14 +505,14 @@ const ConversationTimeline = ({
         parentChildren[parentUuid].push(uuid);
       }
     });
-    
+
     // 识别分支点
     const ROOT_UUID = '00000000-0000-4000-8000-000000000000';
-    
+
     Object.entries(parentChildren).forEach(([parentUuid, children]) => {
       if (children.length > 1) {
         let branchPoint = null;
-        
+
         if (parentUuid === ROOT_UUID) {
           // 根节点有多个子节点，创建虚拟分支点
           branchPoint = {
@@ -501,30 +526,46 @@ const ConversationTimeline = ({
         } else if (msgDict[parentUuid]) {
           branchPoint = msgDict[parentUuid];
         }
-        
+
         if (branchPoint) {
           const sortedChildren = children
             .map(uuid => msgDict[uuid])
             .filter(msg => msg)
             .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-          
+
           const branches = sortedChildren.map((childMsg, branchIndex) => {
             const branchMessages = findBranchMessages(childMsg.uuid, msgDict, parentChildren);
-            
+
+            // 计算当前片段的消息数量（直到下一个分支点或结束）
+            let segmentCount = 0;
+            let current = childMsg;
+            while (current) {
+              segmentCount++;
+              const children = parentChildren[current.uuid] || [];
+              if (children.length === 0) {
+                current = null; // 对话结束
+              } else if (children.length === 1) {
+                current = msgDict[children[0]]; // 继续当前片段
+              } else {
+                current = null; // 遇到新的分支点，片段结束
+              }
+            }
+
             return {
               branchIndex,
               startMessage: childMsg,
               messages: branchMessages,
               messageCount: branchMessages.length,
+              segmentCount: segmentCount, // 新增片段计数
               path: `branch_${branchPoint.uuid}_${branchIndex}`,
-              preview: childMsg.display_text ? 
-                (childMsg.display_text.length > 50 ? 
-                  childMsg.display_text.substring(0, 50) + '...' : 
+              preview: childMsg.display_text ?
+                (childMsg.display_text.length > 50 ?
+                  childMsg.display_text.substring(0, 50) + '...' :
                   childMsg.display_text) :
                 '...'
             };
           });
-          
+
           branchPoints.set(parentUuid, {
             branchPoint,
             branches,
@@ -533,72 +574,73 @@ const ConversationTimeline = ({
         }
       }
     });
-    
+
     return { branchPoints, msgDict, parentChildren };
   }, [messages, format, conversation]);
-  
+
   // ==================== 消息过滤和显示 ====================
-  
+
   const displayMessages = useMemo(() => {
     if (showAllBranches) return messages;
     if (branchAnalysis.branchPoints.size === 0) return messages;
-    if (branchFilters.size === 0) return messages;
+
+    // 预处理：将每个分支的消息数组转换为 Set，大幅提高 lookup 性能
+    const branchPointInfo = Array.from(branchAnalysis.branchPoints.entries()).map(([uuid, data]) => {
+      const selectedIndex = branchFilters.get(uuid) ?? 0; // 默认选择第一个分支
+      const branches = data.branches.map(b => ({
+        index: b.branchIndex,
+        messageUuids: new Set(b.messages.map(m => m.uuid))
+      }));
+      return {
+        uuid,
+        index: data.branchPoint.index,
+        selectedIndex,
+        selectedBranchUuids: branches[selectedIndex]?.messageUuids || new Set(),
+        allBranchUuids: new Set(branches.flatMap(b => Array.from(b.messageUuids)))
+      };
+    });
 
     const visibleMessages = [];
-    
+
     for (const msg of messages) {
       let shouldShow = true;
-      
-      for (const [branchPointUuid, selectedBranchIndex] of branchFilters.entries()) {
-        const branchData = branchAnalysis.branchPoints.get(branchPointUuid);
-        if (!branchData) continue;
-        
-        const branchPoint = branchData.branchPoint;
-        const selectedBranch = branchData.branches[selectedBranchIndex];
-        
-        // 对于根分支点，所有消息都受影响；对于普通分支点，只影响其后的消息
-        const isRootBranch = branchPoint.index === -1;
-        
-        if (isRootBranch || msg.index > branchPoint.index) {
-          const belongsToSelectedBranch = selectedBranch.messages.some(
-            branchMsg => branchMsg.uuid === msg.uuid
-          );
-          
-          if (!belongsToSelectedBranch) {
-            const belongsToAnyBranch = branchData.branches.some(
-              branch => branch.messages.some(branchMsg => branchMsg.uuid === msg.uuid)
-            );
-            
-            if (belongsToAnyBranch) {
+
+      for (const info of branchPointInfo) {
+        // 对于普通分支点，只影响其后的消息；对于根分支点(index: -1)，影响所有消息
+        if (info.index === -1 || msg.index > info.index) {
+          // 如果消息属于该分支点的任何一个分支
+          if (info.allBranchUuids.has(msg.uuid)) {
+            // 但如果不属于当前选中的分支
+            if (!info.selectedBranchUuids.has(msg.uuid)) {
               shouldShow = false;
               break;
             }
           }
         }
       }
-      
+
       if (shouldShow) visibleMessages.push(msg);
     }
-    
+
     return visibleMessages;
   }, [messages, branchFilters, branchAnalysis, showAllBranches, forceUpdateCounter]);
-  
+
   // ==================== 事件处理函数 ====================
-  
+
   const handleBranchSwitch = useCallback((branchPointUuid, newBranchIndex) => {
     console.log(`[分支切换] 切换分支点 ${branchPointUuid} 到分支 ${newBranchIndex}`);
-    
+
     // 总是设置为false,确保不是"显示所有分支"模式
     setShowAllBranches(false);
-    
+
     setBranchFilters(prev => {
       const newFilters = new Map(prev);
-      
+
       // 即使是相同的分支索引,也要重新设置以触发更新
       newFilters.set(branchPointUuid, newBranchIndex);
-      
+
       console.log(`[分支切换] 更新分支过滤器:`, Array.from(newFilters.entries()));
-      
+
       // 通知父组件分支状态变化
       if (onBranchStateChange) {
         onBranchStateChange({
@@ -606,10 +648,10 @@ const ConversationTimeline = ({
           currentBranchIndexes: newFilters
         });
       }
-      
+
       return newFilters;
     });
-    
+
     // 强制触发消息列表更新
     setForceUpdateCounter(prev => prev + 1);
   }, [onBranchStateChange]);
@@ -617,9 +659,9 @@ const ConversationTimeline = ({
   const handleShowAllBranches = useCallback(() => {
     const newShowAllBranches = !showAllBranches;
     setShowAllBranches(newShowAllBranches);
-    
+
     console.log(`[分支切换] ${newShowAllBranches ? '显示所有分支' : '隐藏分支'}`);
-    
+
     // 通知父组件分支状态变化
     if (onBranchStateChange) {
       onBranchStateChange({
@@ -627,7 +669,7 @@ const ConversationTimeline = ({
         currentBranchIndexes: newShowAllBranches ? new Map() : branchFilters
       });
     }
-    
+
     if (newShowAllBranches) {
       setBranchFilters(new Map());
       // 自动启用排序模式
@@ -642,13 +684,14 @@ const ConversationTimeline = ({
       }
       setSortingEnabled(false);
     }
-    
+
     // 强制触发消息列表更新
     setForceUpdateCounter(prev => prev + 1);
   }, [showAllBranches, branchFilters, onBranchStateChange, sortActions, sortingEnabled, hasCustomSort]);
-  
+
   // ==================== 状态和副作用 ====================
-  
+
+
   // 重置分支状态 - 当对话切换时
   useEffect(() => {
     // 当对话改变时，重置分支过滤器和显示模式
@@ -659,16 +702,19 @@ const ConversationTimeline = ({
     setSelectedMessageIndex(null);
     // 强制更新消息列表
     setForceUpdateCounter(prev => prev + 1);
+
+    // 注意：不在这里调用 initContext，上下文应该在加载新文件时清空
+    // 这样用户在同一个文件的不同对话/分支间切换时，上下文会累积
   }, [conversation?.uuid]);
-  
+
   // 消息定位 - 监听 scrollToMessage 事件
   useEffect(() => {
     const handleScrollToMessage = (event) => {
       const { messageIndex, messageId, messageUuid, highlight, fileIndex, conversationUuid } = event.detail;
-      
+
       console.log(`[消息定位] 开始定位 - fileIndex: ${fileIndex}, messageUuid: ${messageUuid}, messageIndex: ${messageIndex}`);
       console.log(`[消息定位] 当前消息总数: ${messages.length}, 显示消息数: ${displayMessages.length}`);
-      
+
       // 如果消息列表为空，等待并重试
       if (messages.length === 0) {
         console.log(`[消息定位] 消息列表为空，等待加载后重试...`);
@@ -688,11 +734,11 @@ const ConversationTimeline = ({
         }, 200);
         return;
       }
-      
+
       // 首先尝试通过messageUuid或messageId找到消息
       let targetMessage = null;
       let targetMessageIndex = messageIndex;
-      
+
       // 优先使用messageUuid
       if (messageUuid) {
         targetMessage = messages.find(msg => msg.uuid === messageUuid);
@@ -700,28 +746,28 @@ const ConversationTimeline = ({
           // 尝试在所有消息中查找(包括子消息)
           targetMessage = messages.find(msg => {
             // 检查消息的各种可能的UUID字段
-            return msg.uuid === messageUuid || 
-                   msg.message_uuid === messageUuid ||
-                   msg.id === messageUuid;
+            return msg.uuid === messageUuid ||
+              msg.message_uuid === messageUuid ||
+              msg.id === messageUuid;
           });
         }
       }
-      
+
       // 如果没有找到,尝试使用messageId
       if (!targetMessage && messageId) {
         // messageId格式可能是: fileUuid_msgUuid或file-xxx_msgUuid
         const parts = messageId.split('_');
         if (parts.length >= 2) {
           const msgUuid = parts.slice(1).join('_'); // 处理可能包含下划线的uuid
-          
+
           // 通过uuid在原始messages中查找
-          targetMessage = messages.find(msg => 
-            msg.uuid === msgUuid || 
+          targetMessage = messages.find(msg =>
+            msg.uuid === msgUuid ||
             msg.uuid === messageId ||
             msg.message_uuid === msgUuid
           );
         }
-        
+
         if (!targetMessage) {
           // 尝试直接用messageId查找
           targetMessage = messages.find(msg => {
@@ -731,17 +777,17 @@ const ConversationTimeline = ({
           });
         }
       }
-      
+
       // 如果还没找到,通过index查找
       if (!targetMessage && messageIndex !== undefined && messageIndex !== null) {
         targetMessage = messages.find(msg => msg.index === messageIndex);
-        
+
         // 如果index也找不到,可能是相对索引
         if (!targetMessage && messages[messageIndex]) {
           targetMessage = messages[messageIndex];
         }
       }
-      
+
       if (!targetMessage) {
         console.warn(`[消息定位] 未找到目标消息`);
         console.warn(`  - messageUuid: ${messageUuid}`);
@@ -749,12 +795,12 @@ const ConversationTimeline = ({
         console.warn(`  - messageIndex: ${messageIndex}`);
         console.warn(`  - 第一条消息UUID: ${messages[0]?.uuid}`);
         console.warn(`  - 最后一条消息UUID: ${messages[messages.length - 1]?.uuid}`);
-        
+
         // 尝试显示所有分支后再次定位
         if (branchAnalysis.branchPoints.size > 0 && !showAllBranches) {
           console.log(`[消息定位] 尝试显示所有分支后定位...`);
           handleShowAllBranches();
-          
+
           // 延迟后重试
           setTimeout(() => {
             window.dispatchEvent(new CustomEvent('scrollToMessage', { detail: event.detail }));
@@ -762,23 +808,23 @@ const ConversationTimeline = ({
         }
         return;
       }
-      
+
       // 更新targetMessageIndex为实际的index
       targetMessageIndex = targetMessage.index;
       console.log(`[消息定位] 找到目标消息 - index: ${targetMessageIndex}, uuid: ${targetMessage.uuid}`);
-      
+
       // 检查消息是否在当前显示的消息中
       const isMessageVisible = displayMessages.some(msg => msg.uuid === targetMessage.uuid);
-      
+
       if (!isMessageVisible && branchAnalysis.branchPoints.size > 0 && !showAllBranches) {
         // 消息不在当前分支,需要切换分支
         console.log(`[消息定位] 消息不在当前分支,尝试切换分支...`);
-        
+
         // 查找包含该消息的分支
         let foundBranch = false;
         let targetBranchPoint = null;
         let targetBranchIndex = null;
-        
+
         for (const [branchPointUuid, branchData] of branchAnalysis.branchPoints) {
           for (let branchIndex = 0; branchIndex < branchData.branches.length; branchIndex++) {
             const branch = branchData.branches[branchIndex];
@@ -793,19 +839,19 @@ const ConversationTimeline = ({
           }
           if (foundBranch) break;
         }
-        
+
         if (foundBranch && targetBranchPoint !== null) {
           // 不要先调用handleBranchSwitch，直接构建完整的分支路径
           // 从目标消息开始向上追溯，找到所有需要设置的分支点
           const messagePath = [];
           let currentMsg = targetMessage;
           const visitedUuids = new Set();
-          
+
           // 构建消息路径
           while (currentMsg && !visitedUuids.has(currentMsg.uuid)) {
             visitedUuids.add(currentMsg.uuid);
             messagePath.unshift(currentMsg);
-            
+
             // 找到父消息
             if (currentMsg.parent_uuid) {
               currentMsg = messages.find(m => m.uuid === currentMsg.parent_uuid);
@@ -813,21 +859,21 @@ const ConversationTimeline = ({
               break;
             }
           }
-          
+
           console.log(`[消息定位] 构建消息路径，长度: ${messagePath.length}`);
-          
+
           // 创建新的分支过滤器
           const newBranchFilters = new Map();
-          
+
           // 遍历所有分支点，确定正确的分支选择
           for (const [branchPointUuid, branchData] of branchAnalysis.branchPoints) {
             let selectedBranchIndex = 0;
-            
+
             // 检查消息路径是否经过这个分支点的某个分支
             for (let bIdx = 0; bIdx < branchData.branches.length; bIdx++) {
               const branch = branchData.branches[bIdx];
               // 检查路径中是否有消息在这个分支中
-              if (messagePath.some(pathMsg => 
+              if (messagePath.some(pathMsg =>
                 branch.messages.some(branchMsg => branchMsg.uuid === pathMsg.uuid)
               )) {
                 selectedBranchIndex = bIdx;
@@ -835,17 +881,17 @@ const ConversationTimeline = ({
                 break;
               }
             }
-            
+
             newBranchFilters.set(branchPointUuid, selectedBranchIndex);
           }
-          
+
           console.log(`[消息定位] 批量更新分支过滤器:`, Array.from(newBranchFilters.entries()));
-          
+
           // 批量更新所有分支过滤器
           setBranchFilters(newBranchFilters);
           setShowAllBranches(false);
           setForceUpdateCounter(prev => prev + 1);
-          
+
           // 通知父组件
           if (onBranchStateChange) {
             onBranchStateChange({
@@ -853,7 +899,7 @@ const ConversationTimeline = ({
               currentBranchIndexes: newBranchFilters
             });
           }
-          
+
           // 延迟执行定位,等待DOM更新
           setTimeout(() => {
             const messageEl = messageRefs.current[targetMessageIndex];
@@ -862,9 +908,9 @@ const ConversationTimeline = ({
                 behavior: 'smooth',
                 block: 'center'
               });
-              
+
               setSelectedMessageIndex(targetMessageIndex);
-              
+
               if (highlight) {
                 messageEl.classList.add('highlight-from-search');
                 setTimeout(() => {
@@ -891,7 +937,7 @@ const ConversationTimeline = ({
           console.warn(`[消息定位] 未找到包含该消息的分支,显示所有分支`);
           // 如果没找到分支,显示所有分支
           handleShowAllBranches();
-          
+
           // 延迟执行定位
           setTimeout(() => {
             const messageEl = messageRefs.current[targetMessageIndex];
@@ -900,9 +946,9 @@ const ConversationTimeline = ({
                 behavior: 'smooth',
                 block: 'center'
               });
-              
+
               setSelectedMessageIndex(targetMessageIndex);
-              
+
               if (highlight) {
                 messageEl.classList.add('highlight-from-search');
                 setTimeout(() => {
@@ -926,9 +972,9 @@ const ConversationTimeline = ({
                 behavior: 'smooth',
                 block: 'center'
               });
-              
+
               setSelectedMessageIndex(targetMessageIndex);
-              
+
               if (highlight) {
                 el.classList.add('highlight-from-search');
                 setTimeout(() => {
@@ -941,16 +987,16 @@ const ConversationTimeline = ({
           }, 200);
           return;
         }
-        
+
         // 滚动到视图中心
         messageEl.scrollIntoView({
           behavior: 'smooth',
           block: 'center'
         });
-        
+
         // 设置选中状态
         setSelectedMessageIndex(targetMessageIndex);
-        
+
         // 添加高亮效果
         if (highlight) {
           messageEl.classList.add('highlight-from-search');
@@ -960,11 +1006,11 @@ const ConversationTimeline = ({
         }
       }
     };
-    
+
     window.addEventListener('scrollToMessage', handleScrollToMessage);
     return () => window.removeEventListener('scrollToMessage', handleScrollToMessage);
   }, [messages, displayMessages, branchAnalysis, handleBranchSwitch, handleShowAllBranches, showAllBranches]);
-  
+
   // 同步外部分支状态
   useEffect(() => {
     if (branchState) {
@@ -974,14 +1020,15 @@ const ConversationTimeline = ({
       }
     }
   }, [branchState]);
-  
+
   // 新增：当 displayMessages 更改时通知父组件
   useEffect(() => {
     if (onDisplayMessagesChange) {
       onDisplayMessagesChange(displayMessages);
     }
   }, [displayMessages, onDisplayMessagesChange]);
-  
+
+
   // 初始化自定义名称
   useEffect(() => {
     if (conversation?.uuid) {
@@ -989,7 +1036,7 @@ const ConversationTimeline = ({
       setCustomName(savedName);
     }
   }, [conversation, renameManager]);
-  
+
   useEffect(() => {
     const handleResize = () => {
       const newIsDesktop = window.innerWidth >= 1024;
@@ -999,11 +1046,11 @@ const ConversationTimeline = ({
         setShowMobileDetail(false);
       }
     };
-    
+
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-  
+
   useEffect(() => {
     if (branchAnalysis.branchPoints.size > 0 && branchFilters.size === 0 && !showAllBranches) {
       const initialFilters = new Map();
@@ -1024,26 +1071,26 @@ const ConversationTimeline = ({
   useEffect(() => {
     setSortingEnabled(enableSorting);
   }, [enableSorting]);
-  
+
   // 滚动监听器 - 智能顶栏隐藏/显示
   useEffect(() => {
     if (!isDesktop || !leftPanelRef.current) return;
-    
+
     const leftPanel = leftPanelRef.current;
     let ticking = false;
     const SCROLL_THRESHOLD = 10; // 最小滚动距离
     const HIDE_THRESHOLD = 100; // 开始隐藏的滚动距离
-    
+
     const handleScroll = () => {
       if (!ticking) {
         requestAnimationFrame(() => {
           const currentScrollY = leftPanel.scrollTop;
           const deltaY = currentScrollY - lastScrollY;
-          
+
           // 检测滚动方向
           if (Math.abs(deltaY) > SCROLL_THRESHOLD) {
             const newDirection = deltaY > 0 ? 'down' : 'up';
-            
+
             // 向下滚动且超过阈值时隐藏顶栏
             if (newDirection === 'down' && currentScrollY > HIDE_THRESHOLD && !isHeaderHidden) {
               setIsHeaderHidden(true);
@@ -1054,23 +1101,23 @@ const ConversationTimeline = ({
               setIsHeaderHidden(false);
               setScrollDirection('up');
             }
-            
+
             setLastScrollY(currentScrollY);
           }
-          
+
           ticking = false;
         });
         ticking = true;
       }
     };
-    
+
     leftPanel.addEventListener('scroll', handleScroll, { passive: true });
-    
+
     return () => {
       leftPanel.removeEventListener('scroll', handleScroll);
     };
   }, [isDesktop, lastScrollY, isHeaderHidden]);
-  
+
   // 重置滚动状态 - 当数据改变时
   useEffect(() => {
     setIsHeaderHidden(false);
@@ -1080,10 +1127,11 @@ const ConversationTimeline = ({
       leftPanelRef.current.scrollTop = 0;
     }
   }, [conversation?.uuid, messages.length]);
-  
+
   const handleMessageSelect = (messageIndex) => {
     setSelectedMessageIndex(messageIndex);
     setActiveTab('content'); // 重置到内容标签
+
     if (!isDesktop) {
       // 移动端:显示移动端详情 modal
       setShowMobileDetail(true);
@@ -1134,18 +1182,18 @@ const ConversationTimeline = ({
       mobileDetailBodyRef.current.scrollTop = 0;
     }
   }, [selectedMessageIndex, showMobileDetail]);
-  
+
   const handleNavigateMessage = (direction) => {
     const currentIndex = displayMessages.findIndex(m => m.index === selectedMessageIndex);
     if (currentIndex === -1) return;
-    
+
     const newIndex = direction === 'prev' ? currentIndex - 1 : currentIndex + 1;
     if (newIndex >= 0 && newIndex < displayMessages.length) {
       setSelectedMessageIndex(displayMessages[newIndex].index);
       setActiveTab('content');
     }
   };
-  
+
   const handleCopyMessage = async (message, messageIndex) => {
     const success = await copyMessage(message, {
       messages: {
@@ -1163,7 +1211,8 @@ const ConversationTimeline = ({
     });
     if (success) {
       setCopiedMessageIndex(messageIndex);
-      setTimeout(() => setCopiedMessageIndex(null), 2000);
+      if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
+      copiedTimeoutRef.current = setTimeout(() => setCopiedMessageIndex(null), 2000);
     }
   };
 
@@ -1178,12 +1227,12 @@ const ConversationTimeline = ({
       setSortingEnabled(false);
     }
   };
-  
+
   // 重命名处理
   const handleOpenRename = () => {
     setShowRenameDialog(true);
   };
-  
+
   const handleSaveRename = (newName) => {
     if (conversation?.uuid) {
       renameManager.setRename(conversation.uuid, newName);
@@ -1195,7 +1244,7 @@ const ConversationTimeline = ({
       }
     }
   };
-  
+
   const handleCancelRename = () => {
     setShowRenameDialog(false);
   };
@@ -1356,10 +1405,10 @@ const ConversationTimeline = ({
   }, [messages, displayMessages, branchAnalysis, showAllBranches, onBranchStateChange]);
 
   // ==================== 工具函数 ====================
-  
+
   const getLastUpdatedTime = () => {
     if (!displayMessages || displayMessages.length === 0) return t('timeline.conversation.unknownTime');
-    
+
     const lastMessage = displayMessages[displayMessages.length - 1];
     if (lastMessage?.timestamp) {
       return DateTimeUtils.formatDateTime(lastMessage.timestamp);
@@ -1369,13 +1418,13 @@ const ConversationTimeline = ({
 
   const getConversationInfo = () => {
     const lastUpdated = getLastUpdatedTime();
-    
+
     if (conversation) {
       const platformName = PlatformUtils.getPlatformName(data?.meta_info?.platform);
-      
+
       // 使用自定义名称或原始名称
       const displayName = customName || conversation.name || t('timeline.conversation.unnamedConversation');
-      
+
       return {
         name: displayName,
         originalName: conversation.name, // 保留原始名称用于重命名对话框
@@ -1388,14 +1437,14 @@ const ConversationTimeline = ({
         uuid: conversation.uuid
       };
     }
-    
+
     if (!data) return null;
-    
+
     const metaInfo = data.meta_info || {};
     const platformName = PlatformUtils.getPlatformName(
       metaInfo.platform || (format === 'gemini_notebooklm' ? 'gemini' : 'claude')
     );
-    
+
     return {
       name: metaInfo.title || t('timeline.conversation.unknownConversation'),
       originalName: metaInfo.title,
@@ -1413,46 +1462,46 @@ const ConversationTimeline = ({
   };
 
   const getPlatformAvatarClass = (sender, platform) => {
-  if (sender === 'human') return 'human';
-  
-  // 优先根据format判断，因为format更准确
-  if (format === 'jsonl_chat') return 'assistant platform-jsonl_chat';
-  if (format === 'chatgpt') return 'assistant platform-chatgpt';
-  if (format === 'grok') return 'assistant platform-grok';
-  if (format === 'gemini_notebooklm') {
-    const platformLower = platform?.toLowerCase() || '';
+    if (sender === 'human') return 'human';
+
+    // 优先根据format判断，因为format更准确
+    if (format === 'jsonl_chat') return 'assistant platform-jsonl_chat';
+    if (format === 'chatgpt') return 'assistant platform-chatgpt';
+    if (format === 'grok') return 'assistant platform-grok';
+    if (format === 'gemini_notebooklm') {
+      const platformLower = platform?.toLowerCase() || '';
+      if (platformLower.includes('notebooklm')) return 'assistant platform-notebooklm';
+      return 'assistant platform-gemini';
+    }
+
+    // 兼容性：也检查platform字段
+    const platformLower = platform?.toLowerCase() || 'claude';
+    if (platformLower.includes('jsonl')) return 'assistant platform-jsonl_chat';
+    if (platformLower.includes('chatgpt')) return 'assistant platform-chatgpt';
+    if (platformLower.includes('grok')) return 'assistant platform-grok';
+    if (platformLower.includes('gemini')) return 'assistant platform-gemini';
+    if (platformLower.includes('ai studio') || platformLower.includes('aistudio')) return 'assistant platform-aistudio';
     if (platformLower.includes('notebooklm')) return 'assistant platform-notebooklm';
-    return 'assistant platform-gemini';
-  }
-  
-  // 兼容性：也检查platform字段
-  const platformLower = platform?.toLowerCase() || 'claude';
-  if (platformLower.includes('jsonl')) return 'assistant platform-jsonl_chat';
-  if (platformLower.includes('chatgpt')) return 'assistant platform-chatgpt';
-  if (platformLower.includes('grok')) return 'assistant platform-grok';
-  if (platformLower.includes('gemini')) return 'assistant platform-gemini';
-  if (platformLower.includes('ai studio') || platformLower.includes('aistudio')) return 'assistant platform-aistudio';
-  if (platformLower.includes('notebooklm')) return 'assistant platform-notebooklm';
-  return 'assistant platform-claude';
-};
-  
+    return 'assistant platform-claude';
+  };
+
   const getFilePreview = (direction) => {
     if (!files || files.length <= 1 || currentFileIndex === null || format === 'claude_full_export') {
       return null;
     }
-    
+
     const targetIndex = direction === 'prev' ? currentFileIndex - 1 : currentFileIndex + 1;
     if (targetIndex < 0 || targetIndex >= files.length) return null;
-    
+
     return {
       file: files[targetIndex],
       index: targetIndex,
       direction
     };
   };
-  
+
   // ==================== 渲染 ====================
-  
+
   const conversationInfo = getConversationInfo();
   const platformClass = PlatformUtils.getPlatformClass(conversationInfo?.platform);
   const prevFilePreview = getFilePreview('prev');
@@ -1465,7 +1514,7 @@ const ConversationTimeline = ({
         <div className="timeline-left-panel" ref={leftPanelRef}>
           {/* 文件切换预览 - 顶部 */}
           {prevFilePreview && isDesktop && (
-            <div 
+            <div
               className="file-preview file-preview-top"
               onClick={() => onFileSwitch && onFileSwitch(prevFilePreview.index)}
             >
@@ -1476,19 +1525,19 @@ const ConversationTimeline = ({
               </div>
             </div>
           )}
-          
+
           {/* 对话信息卡片 */}
           {conversationInfo && (
             <div className={`conversation-info-card ${isHeaderHidden ? 'hidden' : ''}`}>
               <h2>
-                {conversationInfo.name} 
+                {conversationInfo.name}
                 {conversationInfo.is_starred && ' ⭐'}
                 {/* 重命名按钮 - 替代platform-badge */}
-                <button 
+                <button
                   className="rename-btn"
                   onClick={handleOpenRename}
                   title={t('rename.action')}
-                  style={{ 
+                  style={{
                     marginLeft: '8px',
                     padding: '2px 6px',
                     fontSize: '14px',
@@ -1565,14 +1614,14 @@ const ConversationTimeline = ({
                   <span className="info-value">{conversationInfo.updated_at}</span>
                 </div>
               </div>
-              
+
               {/* 分支和排序控制 */}
               <div className="timeline-control-panel" style={{ marginTop: '12px' }}>
                 {/* 分支控制 - 改进版:排序按钮在同一行 */}
                 {branchAnalysis.branchPoints.size > 0 && (
                   <div className="branch-control" style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <button 
+                      <button
                         className="btn-secondary small"
                         onClick={handleShowAllBranches}
                         title={showAllBranches ? t('timeline.branch.showSelectedOnly') : t('timeline.branch.showAllBranches')}
@@ -1581,7 +1630,7 @@ const ConversationTimeline = ({
                       </button>
                       {/* 排序按钮移到这里 */}
                       {showAllBranches && sortActions && (
-                        <button 
+                        <button
                           className="btn-secondary small"
                           onClick={handleToggleSort}
                           disabled={searchQuery !== ''}
@@ -1599,18 +1648,18 @@ const ConversationTimeline = ({
                     )}
                   </div>
                 )}
-                
+
                 {/* 无分支时的排序控制 */}
                 {branchAnalysis.branchPoints.size === 0 && sortActions && (
-                  <div className="sort-control" style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
+                  <div className="sort-control" style={{
+                    display: 'flex',
+                    alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '8px 0'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span>🔀 {t('timeline.branch.noBranches')}</span>
-                      <button 
+                      <span>🔀 {t('timeline.branch.noBranches')}</span>
+                      <button
                         className="btn-secondary small"
                         onClick={handleToggleSort}
                         disabled={searchQuery !== ''}
@@ -1633,7 +1682,7 @@ const ConversationTimeline = ({
           {/* 时间线 */}
           <div className="timeline">
             <div className="timeline-line"></div>
-            
+
             {/* 根分支切换器（第一条消息就有分支的情况） */}
             {(() => {
               const ROOT_UUID = '00000000-0000-4000-8000-000000000000';
@@ -1660,23 +1709,23 @@ const ConversationTimeline = ({
               }
               return null;
             })()}
-            
+
             {displayMessages.map((msg, index) => {
               const branchData = branchAnalysis.branchPoints.get(msg.uuid);
-              const shouldShowBranchSwitcher = branchData && 
-                branchData.branches.length > 1 && 
+              const shouldShowBranchSwitcher = branchData &&
+                branchData.branches.length > 1 &&
                 !showAllBranches;
-              
+
               return (
                 <React.Fragment key={msg.uuid || index}>
                   {/* 消息项 */}
-                  <div 
+                  <div
                     className="timeline-message"
                     ref={(el) => { if (el) messageRefs.current[msg.index] = el; }}
                   >
                     <div className={`timeline-dot ${msg.sender === 'human' ? 'human' : 'assistant'}`}></div>
-                    
-                    <div 
+
+                    <div
                       className={`timeline-content ${selectedMessageIndex === msg.index ? 'selected' : ''}`}
                       onClick={() => handleMessageSelect(msg.index)}
                     >
@@ -1684,10 +1733,10 @@ const ConversationTimeline = ({
                         <div className="timeline-sender">
                           <div className={`timeline-avatar ${getPlatformAvatarClass(msg.sender, conversationInfo?.platform)}`}>
                             {msg.sender === 'human' ? '👤' : (
-                              <PlatformIcon 
-                                platform={conversationInfo?.platform?.toLowerCase() || 'claude'} 
+                              <PlatformIcon
+                                platform={conversationInfo?.platform?.toLowerCase() || 'claude'}
                                 format={format}
-                                size={20} 
+                                size={20}
                                 style={{ backgroundColor: 'transparent' }}
                               />
                             )}
@@ -1704,38 +1753,38 @@ const ConversationTimeline = ({
                             </div>
                           </div>
                         </div>
-                        
+
                         <div className="timeline-actions">
-                          {sortingEnabled && sortActions && 
-                           (branchAnalysis.branchPoints.size === 0 || showAllBranches) && (
-                            <div className="sort-controls">
-                              <button 
-                                className="sort-btn"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  sortActions.moveMessage(index, 'up');
-                                }}
-                                disabled={index === 0}
-                                title={t('timeline.actions.moveUp')}
-                              >
-                                ↑
-                              </button>
-                              <button 
-                                className="sort-btn"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  sortActions.moveMessage(index, 'down');
-                                }}
-                                disabled={index === displayMessages.length - 1}
-                                title={t('timeline.actions.moveDown')}
-                              >
-                                ↓
-                              </button>
-                            </div>
-                          )}
+                          {sortingEnabled && sortActions &&
+                            (branchAnalysis.branchPoints.size === 0 || showAllBranches) && (
+                              <div className="sort-controls">
+                                <button
+                                  className="sort-btn"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    sortActions.moveMessage(index, 'up');
+                                  }}
+                                  disabled={index === 0}
+                                  title={t('timeline.actions.moveUp')}
+                                >
+                                  ↑
+                                </button>
+                                <button
+                                  className="sort-btn"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    sortActions.moveMessage(index, 'down');
+                                  }}
+                                  disabled={index === displayMessages.length - 1}
+                                  title={t('timeline.actions.moveDown')}
+                                >
+                                  ↓
+                                </button>
+                              </div>
+                            )}
                         </div>
                       </div>
-                      
+
                       <div className="timeline-body">
                         <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
@@ -1763,7 +1812,7 @@ const ConversationTimeline = ({
                           {TextUtils.getPreview(msg.display_text)}
                         </ReactMarkdown>
                       </div>
-                      
+
                       {/* 消息标签和标记 */}
                       <div className="timeline-footer">
                         {/* 思考过程 - 仅助手消息显示 */}
@@ -1833,7 +1882,7 @@ const ConversationTimeline = ({
                             <span>{msg.citations.length}{t('timeline.tags.citations')}</span>
                           </div>
                         )}
-                        
+
                         {/* 标记状态 */}
                         {isMarked(msg.index, 'completed') && (
                           <div className="timeline-tag completed">
@@ -1856,7 +1905,7 @@ const ConversationTimeline = ({
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* 分支切换器 */}
                   {shouldShowBranchSwitcher && (
                     <BranchSwitcher
@@ -1874,10 +1923,10 @@ const ConversationTimeline = ({
               );
             })}
           </div>
-          
+
           {/* 文件切换预览 - 底部 */}
           {nextFilePreview && isDesktop && (
-            <div 
+            <div
               className="file-preview file-preview-bottom"
               onClick={() => onFileSwitch && onFileSwitch(nextFilePreview.index)}
             >
@@ -1889,7 +1938,7 @@ const ConversationTimeline = ({
             </div>
           )}
         </div>
-        
+
         {/* 右侧消息详情 - 仅PC端 */}
         {isDesktop && (
           <div className="timeline-right-panel">
@@ -1918,11 +1967,11 @@ const ConversationTimeline = ({
         const currentMessageIndex = displayMessages.findIndex(m => m.index === selectedMessageIndex);
         const isFirstMessage = currentMessageIndex === 0;
         const isLastMessage = currentMessageIndex === displayMessages.length - 1;
-        
+
         // 获取当前消息,检查是否有特殊标签页
         const currentMessage = displayMessages.find(m => m.index === selectedMessageIndex);
         const availableTabs = [{ id: 'content', label: t('messageDetail.tabs.content') }];
-        
+
         if (currentMessage) {
           // 人类消息的处理
           if (currentMessage.sender === 'human') {
@@ -1945,7 +1994,7 @@ const ConversationTimeline = ({
             }
           }
         }
-        
+
         return (
           <div className="mobile-message-detail-modal" onClick={handleCloseMobileDetail}>
             <div className="mobile-detail-content" onClick={(e) => e.stopPropagation()}>
@@ -1956,7 +2005,7 @@ const ConversationTimeline = ({
                   <span className="message-number">
                     #{currentMessageIndex + 1}
                   </span>
-                  <button 
+                  <button
                     className="nav-btn"
                     onClick={() => handleNavigateMessage('prev')}
                     disabled={isFirstMessage}
@@ -1964,7 +2013,7 @@ const ConversationTimeline = ({
                   >
                     ←
                   </button>
-                  <button 
+                  <button
                     className="nav-btn"
                     onClick={() => handleNavigateMessage('next')}
                     disabled={isLastMessage}
@@ -1973,7 +2022,7 @@ const ConversationTimeline = ({
                     →
                   </button>
                 </div>
-                
+
                 {/* 中间:标签页 */}
                 <div className="mobile-header-tabs">
                   {availableTabs.map(tab => (
@@ -1986,11 +2035,11 @@ const ConversationTimeline = ({
                     </button>
                   ))}
                 </div>
-                
+
                 {/* 右侧:设置和关闭按钮 */}
                 <div className="mobile-header-right">
                   {onShowSettings && (
-                    <button 
+                    <button
                       className="action-btn"
                       onClick={onShowSettings}
                       title={t('app.navbar.settings')}
@@ -1998,8 +2047,8 @@ const ConversationTimeline = ({
                       ⚙️
                     </button>
                   )}
-                  <button 
-                    className="close-btn" 
+                  <button
+                    className="close-btn"
                     onClick={handleCloseMobileDetail}
                   >
                     ×
@@ -2027,7 +2076,7 @@ const ConversationTimeline = ({
           </div>
         );
       })()}
-      
+
       {/* 重命名对话框 */}
       <RenameDialog
         isOpen={showRenameDialog}
