@@ -1,7 +1,7 @@
 /* =================== App全局主布局样式 =================== */
 
-/* Chrome 扩展侧边栏样式 */
-@media all {
+/* Chrome 扩展侧边栏样式 - 仅在桌面端生效 */
+@media (min-width: 1024px) {
   :root {
     /* 强制设置侧边栏宽度 */
     width: 100% !important;
@@ -828,30 +828,6 @@
   margin-top: 8px;
 }
 
-/* 底部按钮栏 - 位于左侧导航下方 */
-.settings-panel-ubuntu .settings-footer {
-  padding: 16px 8px;
-  border-top: 1px solid var(--border-color);
-  flex-shrink: 0;
-}
-
-.settings-panel-ubuntu .settings-footer .btn-primary {
-  width: 100%;
-  padding: 10px 24px;
-  background: var(--accent-color);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.settings-panel-ubuntu .settings-footer .btn-primary:hover {
-  background: var(--accent-color-hover);
-}
-
 /* 移动端适配 */
 @media (max-width: 768px) {
   .settings-panel-ubuntu {
@@ -865,23 +841,14 @@
     flex-direction: column;
   }
 
-  .settings-panel-ubuntu .settings-sidebar {
+  .settings-panel-ubuntu .settings-nav {
     width: 100%;
     flex-direction: row;
     border-right: none;
     border-bottom: 1px solid var(--border-color);
-  }
-
-  .settings-panel-ubuntu .settings-nav {
-    flex: 1;
-    flex-direction: row;
-    border-bottom: none;
     padding: 8px;
     overflow-x: auto;
-  }
-
-  .settings-panel-ubuntu .settings-footer {
-    display: none;
+    flex-shrink: 0;
   }
 
   .settings-panel-ubuntu .nav-item {
