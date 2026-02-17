@@ -6,12 +6,20 @@ import { useI18n } from '../index.js';
 const FullExportCardFilter = ({
   filters,
   availableProjects,
+  availableOrganizations = [],
   filterStats,
   onFilterChange,
   onReset,
   onClearAllMarks,
+  onExportProject,
+  onImportProject,
+  onRestoreStars,
   operatedCount = 0,
-  className = ""
+  disabled = false,
+  className = "",
+  sortField = 'created_at',
+  sortOrder = 'desc',
+  onSortChange = null
 }) => {
   const { t } = useI18n();
   const [isMobile, setIsMobile] = useState(false);
@@ -56,7 +64,7 @@ const FullExportCardFilter = ({
   };
 
   return (
-    <div className={`conversation-filter ${className}`}>
+    <div className={`conversation-filter ${disabled ? 'disabled' : ''} ${className}`} style={disabled ? { opacity: 0.6, pointerEvents: 'none' } : {}}>
       {/* Filter panel */}
       <div className="filter-panel">
         {/* Filter header and reset button */}
@@ -67,21 +75,68 @@ const FullExportCardFilter = ({
             {filterStats.hasActiveFilters && (
               <span className="filter-badge">{filterStats.activeFilterCount}</span>
             )}
+            {disabled && <span style={{ marginLeft: '8px', fontSize: '0.8em', color: '#666' }}>({t('common.loading') || 'Loading...'})</span>}
           </div>
-          <div className="filter-actions" style={{ display: 'flex', gap: '8px' }}>
-            {filterStats.hasActiveFilters && (
-              <button 
+          <div className="filter-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            {onExportProject && (
+              <button
                 className="btn-secondary small"
-                onClick={onReset}
-                title={t('filter.actions.clearAllFilters')}
+                onClick={onExportProject}
+                disabled={disabled}
+                title={t('filter.actions.exportProjectTitle')}
               >
-                ✕ {t('filter.actions.clearFilters')}
+                💾 {t('filter.actions.exportProject')}
+              </button>
+            )}
+            {onImportProject && (
+              <button
+                className="btn-secondary small"
+                onClick={onImportProject}
+                disabled={disabled}
+                title={t('filter.actions.importProjectTitle')}
+              >
+                📁 {t('filter.actions.importProject')}
+              </button>
+            )}
+            {filters.starred === 'starred' ? (
+              <>
+                {onRestoreStars && (
+                  <button
+                    className="btn-secondary small"
+                    onClick={() => {
+                      onRestoreStars();
+                      onFilterChange('starred', 'all');
+                    }}
+                    disabled={disabled}
+                    title={t('app.navbar.restoreStars')}
+                  >
+                    ⭐ {t('app.navbar.restoreStars')}
+                  </button>
+                )}
+                <button
+                  className="btn-secondary small"
+                  onClick={onReset}
+                  disabled={disabled}
+                  title={t('filter.actions.clearAllFilters')}
+                >
+                  ✕ {t('filter.actions.clearFilters')}
+                </button>
+              </>
+            ) : (
+              <button
+                className="btn-secondary small"
+                onClick={() => onFilterChange('starred', 'starred')}
+                disabled={disabled}
+                title={t('filter.starred.label')}
+              >
+                ☆ {t('filter.starred.starred')}
               </button>
             )}
             {onClearAllMarks && operatedCount > 0 && (
-              <button 
+              <button
                 className="btn-secondary small"
                 onClick={onClearAllMarks}
+                disabled={disabled}
                 title={t('filter.actions.clearAllMarksTitle', { count: operatedCount })}
               >
                 🔄 {t('filter.actions.clearAllMarks')}
@@ -100,6 +155,7 @@ const FullExportCardFilter = ({
               placeholder={t('filter.search.placeholder')}
               value={filters.name}
               onChange={(e) => onFilterChange('name', e.target.value)}
+              disabled={disabled}
             />
           </div>
 
@@ -110,6 +166,7 @@ const FullExportCardFilter = ({
               className="filter-select"
               value={filters.dateRange}
               onChange={(e) => onFilterChange('dateRange', e.target.value)}
+              disabled={disabled}
             >
               <option value="all">{t('filter.timeRange.all')}</option>
               <option value="today">{t('filter.timeRange.today')}</option>
@@ -131,17 +188,19 @@ const FullExportCardFilter = ({
                   onChange={(e) => handleStartDateChange(e.target.value)}
                   title={t('filter.dateRange.startDate')}
                   placeholder={t('filter.dateRange.startDate')}
+                  disabled={disabled}
                 />
                 {!isMobile && (
                   <span className="date-separator">{t('filter.dateRange.to')}</span>
                 )}
                 <input
                   type="date"
-                  className="filter-input date-input"  
+                  className="filter-input date-input"
                   value={formatDate(filters.customDateEnd)}
                   onChange={(e) => handleEndDateChange(e.target.value)}
                   title={t('filter.dateRange.endDate')}
                   placeholder={t('filter.dateRange.endDate')}
+                  disabled={disabled}
                 />
               </div>
             </div>
@@ -154,6 +213,7 @@ const FullExportCardFilter = ({
               className="filter-select"
               value={filters.project}
               onChange={(e) => onFilterChange('project', e.target.value)}
+              disabled={disabled}
             >
               <option value="all">{t('filter.project.all')}</option>
               <option value="no_project">📄 {t('filter.project.none')}</option>
@@ -165,17 +225,22 @@ const FullExportCardFilter = ({
             </select>
           </div>
 
-          {/* Star filter */}
+          {/* Organization filter */}
           <div className="filter-section">
-            <label className="filter-label">{t('filter.starred.label')}</label>
+            <label className="filter-label">{t('filter.organization.label')}</label>
             <select
               className="filter-select"
-              value={filters.starred}
-              onChange={(e) => onFilterChange('starred', e.target.value)}
+              value={filters.organization || 'all'}
+              onChange={(e) => onFilterChange('organization', e.target.value)}
+              disabled={disabled}
             >
-              <option value="all">{t('filter.starred.all')}</option>
-              <option value="starred">⭐ {t('filter.starred.starred')}</option>
-              <option value="unstarred">○ {t('filter.starred.unstarred')}</option>
+              <option value="all">{t('filter.organization.all')}</option>
+              <option value="no_organization">📄 {t('filter.organization.none')}</option>
+              {availableOrganizations.map(org => (
+                <option key={org.id} value={org.id}>
+                  🏢 {org.name}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -186,12 +251,38 @@ const FullExportCardFilter = ({
               className="filter-select"
               value={filters.operated || 'all'}
               onChange={(e) => onFilterChange('operated', e.target.value)}
+              disabled={disabled}
             >
               <option value="all">{t('filter.operated.all')}</option>
               <option value="operated">✏️ {t('filter.operated.hasOperations')}</option>
               <option value="unoperated">○ {t('filter.operated.noOperations')}</option>
             </select>
           </div>
+
+          {/* Sort field */}
+          {onSortChange && (
+            <div className="filter-section">
+              <label className="filter-label">{t('filter.sort.label')}</label>
+              <select
+                className="filter-select"
+                value={`${sortField}:${sortOrder}`}
+                onChange={(e) => {
+                  const [field, order] = e.target.value.split(':');
+                  onSortChange(field, order);
+                }}
+                disabled={disabled}
+              >
+                <option value="created_at:desc">{t('filter.sort.createdAt')} ↓</option>
+                <option value="created_at:asc">{t('filter.sort.createdAt')} ↑</option>
+                <option value="name:asc">{t('filter.sort.name')} ↑</option>
+                <option value="name:desc">{t('filter.sort.name')} ↓</option>
+                <option value="messageCount:desc">{t('filter.sort.messageCount')} ↓</option>
+                <option value="messageCount:asc">{t('filter.sort.messageCount')} ↑</option>
+                <option value="size:desc">{t('filter.sort.size')} ↓</option>
+                <option value="size:asc">{t('filter.sort.size')} ↑</option>
+              </select>
+            </div>
+          )}
         </div>
 
         {/* Filter statistics */}

@@ -12,6 +12,7 @@ import copilotIcon from '../assets/icons/Copilot.svg';
 // 平台图标映射
 const PLATFORM_ICONS = {
   claude: claudeIcon,
+  claude_code: claudeIcon,
   gemini: geminiIcon,
   notebooklm: notebooklmIcon,
   jsonl_chat: sillyTavernIcon,
@@ -45,6 +46,9 @@ const PlatformIcon = React.memo(({ platform, format, size = 16, style = {} }) =>
     }
     if (format === 'copilot' || platform === 'copilot') {
       return 'copilot';
+    }
+    if (format === 'claude_code' || platform === 'claude_code') {
+      return 'claude_code';
     }
     return 'claude'; // 默认为claude
   };

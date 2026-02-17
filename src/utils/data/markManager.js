@@ -129,7 +129,7 @@ export const getFileMarks = (fileUuid) => {
 /**
  * 获取所有文件的标记统计
  */
-export const getAllMarksStats = (files, processedData, currentFileIndex, generateFileCardUuid, generateConversationCardUuid) => {
+export const getAllMarksStats = (files, processedData, currentFileIndex, generateFileCardUuid) => {
   const stats = {
     completed: 0,
     important: 0,
@@ -146,20 +146,6 @@ export const getAllMarksStats = (files, processedData, currentFileIndex, generat
     stats.important += marks.important.size;
     stats.deleted += marks.deleted.size;
   });
-  
-  // 统计对话标记（claude_full_export格式）
-  if (currentFileIndex !== null && processedData?.format === 'claude_full_export') {
-    const conversations = processedData.views?.conversationList || [];
-    
-    conversations.forEach(conv => {
-      const convUuid = generateConversationCardUuid(currentFileIndex, conv.uuid, files[currentFileIndex]);
-      const marks = getFileMarks(convUuid);
-      
-      stats.completed += marks.completed.size;
-      stats.important += marks.important.size;
-      stats.deleted += marks.deleted.size;
-    });
-  }
   
   stats.total = stats.completed + stats.important + stats.deleted;
   return stats;

@@ -116,16 +116,20 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
     }
   });
 
+  // 使用 ref 保存 onClose，避免 useEffect 因 onClose 变化而重复执行
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+
   // 浏览器回退支持
   useEffect(() => {
     if (!isOpen) return;
     window.history.pushState({ view: 'settings-panel' }, '');
 
-    const handlePopState = () => onClose();
+    const handlePopState = () => onCloseRef.current();
     window.addEventListener('popstate', handlePopState);
 
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   // 初始化设置
   useEffect(() => {
@@ -275,7 +279,7 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
         {/* 顶部标题栏 */}
         <div className="settings-header">
           <h2>{t('settings.title')}</h2>
-          <button className="close-btn" onClick={onClose}>×</button>
+          <button className="close-btn" onClick={handleBackClick}>×</button>
         </div>
 
         {/* 双栏布局 */}
@@ -907,7 +911,7 @@ const AboutSection = () => {
       {/* 应用信息 */}
       <SettingsSection title={t('settings.about.title')}>
         <SettingItem label={t('settings.about.appName')} description={t('settings.about.appDescription')} static={true} />
-        <SettingItem label={t('settings.about.version')} description={'v1.7.3'} static={true} />
+        <SettingItem label={t('settings.about.version')} description={'v1.7.4'} static={true} />
         <SettingItem label={t('settings.about.github')} description={t('settings.about.githubDescription')}>
           <a
             href="https://github.com/Yalums/lyra-exporter"

@@ -12,9 +12,30 @@ export class DataProcessor {
    * 生成原始对话列表
    * 注意：claude_full_export格式已废弃，此方法保留以兼容旧数据
    */
-  static getRawConversations(viewMode, processedData, currentFileIndex, files) {
-    // claude_full_export已废弃，返回空数组
-    return [];
+  static getRawConversations(viewMode, processedData, currentFileIndex, files, fileMetadata = {}) {
+    if (viewMode !== 'conversations' || !files || files.length === 0) {
+      return [];
+    }
+
+    // 从所有文件的元数据中提取对话信息
+    const conversations = files.map((file, fileIndex) => {
+      const metadata = fileMetadata[file.name] || {};
+
+      return {
+        uuid: generateFileCardUuid(fileIndex, file),
+        name: metadata.title || file.name.replace('.json', ''),
+        created_at: metadata.created_at,
+        updated_at: metadata.updated_at,
+        model: metadata.model,
+        project: metadata.project || null,
+        organization_id: metadata.organization_id || null,
+        is_starred: metadata.is_starred || false,
+        fileIndex: fileIndex,
+        format: metadata.format
+      };
+    });
+
+    return conversations;
   }
 
   /**
@@ -65,7 +86,10 @@ export class DataProcessor {
         summary: format !== 'unknown' ?
           t('fileCard.messageSummary', { count: messageCount }) :
           t('fileCard.clickToLoad'),
-        size: file.size
+        size: file.size,
+        project: fileData?.meta_info?.project || metadata.project || null,
+        project_uuid: fileData?.meta_info?.project_uuid || metadata.project_uuid || null,
+        organization_id: fileData?.meta_info?.organization_id || metadata.organization_id || null
       };
     });
   }
@@ -74,7 +98,8 @@ export class DataProcessor {
    * 获取时间线消息
    */
   static getTimelineMessages(viewMode, selectedFileIndex, currentFileIndex, processedData, selectedConversationUuid) {
-    if (viewMode !== 'timeline') {
+    // 支持 timeline 和 whiteboard 视图模式
+    if (viewMode !== 'timeline' && viewMode !== 'whiteboard') {
       return [];
     }
 
@@ -96,7 +121,8 @@ export class DataProcessor {
     const { viewMode, selectedFileIndex, selectedConversationUuid, processedData, files, currentFileIndex, fileMetadata, starActions } = params;
     const renameManager = getRenameManager();
 
-    if (viewMode === 'timeline' && selectedFileIndex !== null) {
+    // 支持 timeline 和 whiteboard 视图模式
+    if ((viewMode === 'timeline' || viewMode === 'whiteboard') && selectedFileIndex !== null) {
       const dataSource = selectedFileIndex === currentFileIndex ? processedData : null;
 
       if (!dataSource) return null;

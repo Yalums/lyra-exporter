@@ -1,5 +1,5 @@
 // utils/data/starManager.js
-// 星标系统管理（仅用于claude_full_export格式）
+// 星标系统管理
 
 import StorageManager from '../storageManager';
 

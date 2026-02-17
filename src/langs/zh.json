@@ -690,7 +690,11 @@
       "clearFilters": "清除筛选",
       "clearAllFilters": "清除所有筛选条件",
       "clearAllMarks": "清除所有标记",
-      "clearAllMarksTitle": "清除所有文件的标记（{{count}}个有操作）"
+      "clearAllMarksTitle": "清除所有文件的标记（{{count}}个有操作）",
+      "exportProject": "导出项目",
+      "exportProjectTitle": "保存当前文件列表为项目配置",
+      "importProject": "导入项目",
+      "importProjectTitle": "从项目配置文件加载文件列表"
     },
     "search": {
       "label": "搜索对话",
@@ -715,6 +719,11 @@
       "all": "所有项目",
       "none": "无项目"
     },
+    "organization": {
+      "label": "账号",
+      "all": "所有账号",
+      "none": "无账号"
+    },
     "starred": {
       "label": "星标状态",
       "all": "全部",
@@ -731,6 +740,15 @@
       "showing": "显示",
       "conversations": "个对话",
       "activeFilters": "{{count}}个活动筛选条件"
+    },
+    "sort": {
+      "label": "排序方式",
+      "createdAt": "创建时间",
+      "name": "名称",
+      "messageCount": "消息条数",
+      "size": "文件大小",
+      "asc": "正序",
+      "desc": "倒序"
     }
   },
   "rename": {
@@ -1037,5 +1055,69 @@
       "toolCall": "调用工具",
       "thinking": "思考中..."
     }
+  },
+  "whiteboard": {
+    "title": "画布",
+    "resetLayout": "重置布局",
+    "resetView": "重置视图",
+    "mobileWarning": "画布视图建议在桌面端使用",
+    "addCard": "添加卡片",
+    "removeCard": "移除",
+    "connectMode": "连线",
+    "newCanvas": "新建画布",
+    "renameCanvas": "重命名",
+    "deleteCanvas": "删除",
+    "deleteCanvasConfirm": "确定删除该画布及其所有卡片？",
+    "hints": {
+      "drag": "拖拽",
+      "dragDesc": "移动卡片",
+      "click": "点击",
+      "select": "选中",
+      "dblclick": "双击",
+      "detail": "详情",
+      "wheel": "滚轮",
+      "zoom": "缩放",
+      "canvasDrag": "空白拖拽",
+      "pan": "平移"
+    },
+    "canvas": {
+      "defaultName": "画布 {{num}}",
+      "empty": "画布为空。点击「添加卡片」开始。",
+      "switchedTo": "已切换到 {{name}}"
+    },
+    "cardPicker": {
+      "title": "添加卡片",
+      "selectFile": "选择对话",
+      "search": "搜索消息…",
+      "addToCanvas": "添加",
+      "addAll": "全部添加",
+      "noFiles": "未加载文件",
+      "noMessages": "未找到消息",
+      "branchPoints": "个分支点",
+      "showByBranch": "按分支显示",
+      "showAll": "显示全部",
+      "alreadyAdded": "已添加",
+      "addCard": "添加到画布"
+    },
+    "connection": {
+      "delete": "删除连线",
+      "selectStart": "点击卡片开始连线",
+      "selectEnd": "点击另一张卡片完成连线",
+      "cancel": "取消"
+    },
+    "aiPanel": {
+      "title": "AI 分析",
+      "analyze": "分析选中卡片",
+      "noSelection": "Shift+点击卡片进行多选",
+      "analyzing": "分析中...",
+      "selectedCards": "已选 {{count}} 张",
+      "noApiKey": "请先在设置中配置 AI Chat API 密钥",
+      "noResponse": "未收到响应"
+    }
+  },
+  "cardGrid": {
+    "viewMode": "视图模式",
+    "timelineMode": "时间线",
+    "whiteboardMode": "白板"
   }
 }

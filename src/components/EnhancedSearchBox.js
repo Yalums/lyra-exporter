@@ -10,6 +10,7 @@ import { useI18n } from '../index.js';
 export default function EnhancedSearchBox({
   onSearch,
   onExpand,
+  disabled = false,
   className = ''
 }) {
   const { t } = useI18n();
@@ -44,7 +45,7 @@ export default function EnhancedSearchBox({
   }, []);
 
   return (
-    <div className={`enhanced-search-box ${className}`}>
+    <div className={`enhanced-search-box ${disabled ? 'disabled' : ''} ${className}`}>
       <div className="search-container">
         <div className="search-input-group">
           <input
@@ -55,6 +56,7 @@ export default function EnhancedSearchBox({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
+            disabled={disabled}
             style={{ paddingLeft: '16px' }}
           />
           {query && (

@@ -29,6 +29,9 @@
 /* 7. 消息详情样式 */
 @import './message-detail.css';
 
+/* 7.5. 白板视图样式 */
+@import './whiteboard.css';
+
 /* 8. 筛选器和设置面板样式 */
 @import './filters-settings.css';
 

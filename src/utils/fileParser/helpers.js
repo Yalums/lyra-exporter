@@ -13,6 +13,7 @@ export const PARSER_CONFIG = {
     aistudio: 'Google AI Studio',
     claude: 'Claude',
     grok: 'Grok',
+    claude_code: 'Claude Code',
     jsonl_chat: 'SillyTavern',
     chatgpt: 'ChatGPT'
   },
@@ -23,6 +24,7 @@ export const PARSER_CONFIG = {
     aistudio: 'platform-gemini',
     notebooklm: 'platform-notebooklm',
     grok: 'platform-grok',
+    claude_code: 'platform-claude',
     jsonl_chat: 'platform-jsonl',
     chatgpt: 'platform-chatgpt'
   },
@@ -213,6 +215,8 @@ export const FileUtils = {
     switch (format) {
       case 'claude':
         return PlatformUtils.getModelDisplay(model);
+      case 'claude_code':
+        return 'Claude Code';
       case 'claude_conversations':
         return isChinese ? '对话列表' : 'Conversation List';
       case 'claude_full_export':
@@ -258,23 +262,85 @@ export const TextUtils = {
 };
 
 // ==================== 文件解析专用函数 ====================
+
+// 修复常见的 JSON 格式问题（Claude Code JSONL 中 signature 字段被剥离后导致的结构损坏）
+const repairJSON = (str) => {
+  // 1. 修复 ,, → , （字段被移除后残留的双逗号）
+  let r = str.replace(/,,+/g, ',');
+  // 2. 修复 ,} 和 ,] （末尾逗号）
+  r = r.replace(/,\s*\}/g, '}').replace(/,\s*\]/g, ']');
+  // 3. 修复 content 数组中 thinking 块缺失的 }] 闭合括号
+  //    原因：signature 字段被剥离时连带移除了 }],"，导致 stop_reason 等消息级字段
+  //    泄漏到 content item 内部
+  r = r.replace(/([^}\]]),\s*"stop_reason"/g, '$1}],"stop_reason"');
+  return r;
+};
+
 export const parseJSONL = (text) => {
   if (!text) return [];
-  return text.split('\n')
-    .filter(line => line.trim())
-    .map((line, index) => {
+
+  // 防御性预处理：去除 BOM、统一换行符
+  let cleaned = text;
+  if (cleaned.charCodeAt(0) === 0xFEFF) {
+    cleaned = cleaned.slice(1);
+  }
+  cleaned = cleaned.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  const lines = cleaned.split('\n');
+  const results = [];
+  let buffer = '';
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line.trim()) continue;
+
+    buffer = buffer ? buffer + '\n' + line : line;
+
+    try {
+      const parsed = JSON.parse(buffer);
+      results.push(parsed);
+      buffer = '';
+    } catch (e) {
+      // 尝试修复常见的 JSON 格式问题后重新解析
       try {
-        return JSON.parse(line);
-      } catch (e) {
-        console.warn('[JSONL Parser] 行解析失败:', {
-          line: line.substring(0, 100) + '...',
-          error: e.message,
-          lineNumber: index
-        });
-        return null;
+        const repaired = repairJSON(buffer);
+        if (repaired !== buffer) {
+          const parsed = JSON.parse(repaired);
+          results.push(parsed);
+          buffer = '';
+          continue;
+        }
+      } catch (_) {
+        // 修复也失败，继续累积下一行
       }
-    })
-    .filter(Boolean);
+      // JSON 不完整，继续累积下一行（处理跨行的 JSONL 条目）
+      // 安全限制：单条目超过 10MB 则放弃
+      if (buffer.length > 10 * 1024 * 1024) {
+        console.warn('[JSONL Parser] 跳过过大的条目');
+        buffer = '';
+      }
+    }
+  }
+
+  // 尝试解析剩余 buffer
+  if (buffer.trim()) {
+    try {
+      results.push(JSON.parse(buffer));
+    } catch (e) {
+      try {
+        const repaired = repairJSON(buffer);
+        if (repaired !== buffer) {
+          results.push(JSON.parse(repaired));
+        } else {
+          console.warn('[JSONL Parser] 末尾未完成的条目被跳过:', e.message);
+        }
+      } catch (_) {
+        console.warn('[JSONL Parser] 末尾未完成的条目被跳过:', e.message);
+      }
+    }
+  }
+
+  return results;
 };
 
 export const parseTimestamp = (timestampStr) => {

@@ -6,6 +6,7 @@ import { extractClaudeData, detectClaudeBranches } from './claudeParser.js';
 import { extractChatGPTData, detectChatGPTBranches } from './chatgptParser.js';
 import { extractGrokData, detectGrokBranches } from './grokParser.js';
 import { extractGeminiData, extractCopilotData, extractMergedJSONLData, mergeJSONLFiles, detectOtherBranches } from './otherParsers.js';
+import { extractClaudeCodeData, detectClaudeCodeBranches, isClaudeCodeFormat } from './claudeCodeParser.js';
 
 // 导入工具函数
 import {
@@ -23,6 +24,11 @@ import {
 export const detectFileFormat = (jsonData) => {
   // JSONL格式检测
   if (Array.isArray(jsonData) && jsonData.length > 0) {
+    // Claude Code JSONL 格式
+    if (isClaudeCodeFormat(jsonData)) {
+      return 'claude_code';
+    }
+    // SillyTavern JSONL 格式
     const first = jsonData[0];
     if (first && typeof first === 'object' &&
         (first.mes || first.swipes || first.chat_metadata)) {
@@ -76,13 +82,15 @@ export const extractChatData = (jsonData, fileName = '') => {
   const format = detectFileFormat(jsonData);
 
   if (format === 'unknown') {
-    throw new Error('[Parser] 无法识别文件格式。支持的格式：Claude, ChatGPT, Grok, Copilot, Gemini, NotebookLM, JSONL');
+    throw new Error('[Parser] 无法识别文件格式。支持的格式：Claude, Claude Code, ChatGPT, Grok, Copilot, Gemini, NotebookLM, JSONL');
   }
 
   try {
     switch (format) {
       case 'claude':
         return extractClaudeData(jsonData);
+      case 'claude_code':
+        return extractClaudeCodeData(jsonData, fileName);
       case 'grok':
         return extractGrokData(jsonData);
       case 'copilot':
@@ -111,6 +119,8 @@ export const detectBranches = (processedData) => {
   switch (processedData.format) {
     case 'claude':
       return detectClaudeBranches(processedData);
+    case 'claude_code':
+      return detectClaudeCodeBranches(processedData);
     case 'chatgpt':
       return detectChatGPTBranches(processedData);
     case 'grok':

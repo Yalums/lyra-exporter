@@ -379,7 +379,11 @@
       "clearFilters": "Clear filters",
       "clearAllFilters": "Clear all filter conditions",
       "clearAllMarks": "Clear all marks",
-      "clearAllMarksTitle": "Clear marks from all files ({{count}} with operations)"
+      "clearAllMarksTitle": "Clear marks from all files ({{count}} with operations)",
+      "exportProject": "Export Project",
+      "exportProjectTitle": "Save current file list as project config",
+      "importProject": "Import Project",
+      "importProjectTitle": "Load file list from project config"
     },
     "search": {
       "label": "Search conversations",
@@ -404,6 +408,11 @@
       "all": "All projects",
       "none": "No project"
     },
+    "organization": {
+      "label": "Account",
+      "all": "All accounts",
+      "none": "No account"
+    },
     "starred": {
       "label": "Star status",
       "all": "All",
@@ -420,6 +429,15 @@
       "showing": "Showing",
       "conversations": "conversations",
       "activeFilters": "{{count}} active filters"
+    },
+    "sort": {
+      "label": "Sort by",
+      "createdAt": "Created time",
+      "name": "Name",
+      "messageCount": "Message count",
+      "size": "File size",
+      "asc": "Asc",
+      "desc": "Desc"
     }
   },
   "settings": {
@@ -985,5 +1003,69 @@
       "toolCall": "Tool Call",
       "thinking": "Thinking..."
     }
+  },
+  "whiteboard": {
+    "title": "Canvas",
+    "resetLayout": "Reset",
+    "resetView": "Reset View",
+    "mobileWarning": "Canvas view works best on desktop",
+    "addCard": "Add Card",
+    "removeCard": "Remove",
+    "connectMode": "Connect",
+    "newCanvas": "New Canvas",
+    "renameCanvas": "Rename",
+    "deleteCanvas": "Delete",
+    "deleteCanvasConfirm": "Delete this canvas and all its cards?",
+    "hints": {
+      "drag": "Drag",
+      "dragDesc": "move cards",
+      "click": "Click",
+      "select": "select",
+      "dblclick": "Double-click",
+      "detail": "details",
+      "wheel": "Wheel",
+      "zoom": "zoom",
+      "canvasDrag": "Canvas drag",
+      "pan": "pan"
+    },
+    "canvas": {
+      "defaultName": "Canvas {{num}}",
+      "empty": "Canvas is empty. Click \"Add Card\" to get started.",
+      "switchedTo": "Switched to {{name}}"
+    },
+    "cardPicker": {
+      "title": "Add Cards",
+      "selectFile": "Select conversation",
+      "search": "Search messages...",
+      "addToCanvas": "Add",
+      "addAll": "Add All",
+      "noFiles": "No files loaded",
+      "noMessages": "No messages found",
+      "branchPoints": "branch points",
+      "showByBranch": "By Branch",
+      "showAll": "Show All",
+      "alreadyAdded": "Already added",
+      "addCard": "Add to canvas"
+    },
+    "connection": {
+      "delete": "Delete Connection",
+      "selectStart": "Click a card to start connection",
+      "selectEnd": "Click another card to connect",
+      "cancel": "Cancel"
+    },
+    "aiPanel": {
+      "title": "AI Analysis",
+      "analyze": "Analyze Selected",
+      "noSelection": "Shift+Click cards to select",
+      "analyzing": "Analyzing...",
+      "selectedCards": "{{count}} cards selected",
+      "noApiKey": "Please configure AI Chat API key in Settings",
+      "noResponse": "No response received"
+    }
+  },
+  "cardGrid": {
+    "viewMode": "View Mode",
+    "timelineMode": "Timeline",
+    "whiteboardMode": "Whiteboard"
   }
 }

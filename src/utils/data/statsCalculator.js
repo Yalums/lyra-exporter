@@ -69,7 +69,7 @@ export class StatsCalculator {
     const conversationCards = allCards.filter(card => card.type === 'conversation');
 
     if (conversationCards.length > 0) {
-      // 对话网格模式（已废弃claude_full_export，但保留兼容）
+      // 对话网格模式
       const starStats = shouldUseStarSystem && starActions ?
         starActions.getStarStats(conversationCards) :
         { totalStarred: 0 };
@@ -155,9 +155,7 @@ export class StatsCalculator {
       markManagerRef,
       starManagerRef,
       shouldUseStarSystem,
-      currentConversation,
-      processedData,
-      currentFileIndex
+      currentConversation
     } = params;
 
     const markStats = markManagerRef?.current ? markManagerRef.current.getStats() : {

@@ -186,13 +186,13 @@ const MessageDetail = ({
       }
     } else {
       // 助手消息：思考过程
-      if (format === 'claude' || format === 'claude_full_export' || format === 'jsonl_chat' || format === 'chatgpt' || format === 'grok' || !format) {
+      if (format === 'claude' || format === 'claude_code' || format === 'jsonl_chat' || format === 'chatgpt' || format === 'grok' || !format) {
         if (currentMessage.thinking) {
           baseTabs.push({ id: 'thinking', label: t('messageDetail.tabs.thinking') });
         }
       }
       // 助手消息：制品
-      if (format === 'claude' || format === 'claude_full_export' || !format) {
+      if (format === 'claude' || format === 'claude_code' || !format) {
         if (currentMessage.artifacts && currentMessage.artifacts.length > 0) {
           baseTabs.push({ id: 'artifacts', label: 'Artifacts' });
         }
@@ -802,7 +802,7 @@ const MessageDetail = ({
         );
 
       case 'thinking':
-        if (format !== 'claude' && format !== 'claude_full_export' && format !== 'chatgpt' && format !== 'jsonl_chat' && format !== 'grok' && format) {
+        if (format !== 'claude' && format !== 'claude_code' && format !== 'chatgpt' && format !== 'jsonl_chat' && format !== 'grok' && format) {
           return <div className="placeholder">{t('messageDetail.placeholder.formatNotSupported.thinking')}</div>;
         }
         return (
@@ -829,7 +829,7 @@ const MessageDetail = ({
         );
 
       case 'artifacts':
-        if (format !== 'claude' && format !== 'claude_full_export' && format) {
+        if (format !== 'claude' && format !== 'claude_code' && format) {
           return <div className="placeholder">{t('messageDetail.placeholder.formatNotSupported.artifacts')}</div>;
         }
         return (

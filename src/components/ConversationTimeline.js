@@ -1,7 +1,6 @@
 // components/ConversationTimeline.js
 // 增强版时间线组件,整合了分支切换功能、排序控制、复制功能和重命名功能
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import ReactDOM from 'react-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import MessageDetail from './MessageDetail';
@@ -13,6 +12,8 @@ import { getRenameManager } from '../utils/renameManager';
 import StorageManager from '../utils/storageManager';
 // AI Chat 上下文桥接
 import { useContextBridge } from '../ai-chat';
+import BranchSwitcher from './shared/BranchSwitcher';
+import { analyzeBranches, filterDisplayMessages, ROOT_UUID } from '../utils/branchAnalysis';
 
 // ==================== 重命名对话框组件 ====================
 const RenameDialog = ({
@@ -86,229 +87,6 @@ const RenameDialog = ({
         </div>
       </div>
     </div>
-  );
-};
-
-// ==================== 分支切换器组件(内嵌) ====================
-const BranchSwitcher = ({
-  branchPoint,
-  availableBranches,
-  currentBranchIndex,
-  onBranchChange,
-  onShowAllBranches,
-  showAllMode = false,
-  className = ""
-}) => {
-  const { t } = useI18n();
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [switchAnimation, setSwitchAnimation] = useState(false);
-  const [listPosition, setListPosition] = useState({ top: 0, left: 0, width: 0 });
-  const switcherRef = useRef(null);
-  const listRef = useRef(null);
-  const switchTimeoutRef = useRef(null); // 用于清理 setTimeout
-
-  // 清理 setTimeout
-  useEffect(() => {
-    return () => {
-      if (switchTimeoutRef.current) {
-        clearTimeout(switchTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const currentBranch = availableBranches[currentBranchIndex];
-  const hasPrevious = currentBranchIndex > 0;
-  const hasNext = currentBranchIndex < availableBranches.length - 1;
-
-  // 计算弹出列表位置
-  useEffect(() => {
-    if (isExpanded && switcherRef.current) {
-      const rect = switcherRef.current.getBoundingClientRect();
-      setListPosition({
-        top: rect.bottom + 8,
-        left: rect.left,
-        width: rect.width
-      });
-    }
-  }, [isExpanded]);
-
-  // 点击外部关闭
-  useEffect(() => {
-    if (!isExpanded) return;
-
-    const handleClickOutside = (e) => {
-      // 检查是否点击了切换器或列表
-      const clickedSwitcher = switcherRef.current && switcherRef.current.contains(e.target);
-      const clickedList = listRef.current && listRef.current.contains(e.target);
-
-      if (!clickedSwitcher && !clickedList) {
-        setIsExpanded(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isExpanded]);
-
-  const handlePrevious = () => {
-    if (hasPrevious) {
-      setSwitchAnimation(true);
-      if (switchTimeoutRef.current) clearTimeout(switchTimeoutRef.current);
-      switchTimeoutRef.current = setTimeout(() => {
-        onBranchChange(currentBranchIndex - 1);
-        setSwitchAnimation(false);
-      }, 150);
-    }
-  };
-
-  const handleNext = () => {
-    if (hasNext) {
-      setSwitchAnimation(true);
-      if (switchTimeoutRef.current) clearTimeout(switchTimeoutRef.current);
-      switchTimeoutRef.current = setTimeout(() => {
-        onBranchChange(currentBranchIndex + 1);
-        setSwitchAnimation(false);
-      }, 150);
-    }
-  };
-
-  const handleDirectSwitch = (index) => {
-    if (index !== currentBranchIndex) {
-      setSwitchAnimation(true);
-      if (switchTimeoutRef.current) clearTimeout(switchTimeoutRef.current);
-      switchTimeoutRef.current = setTimeout(() => {
-        onBranchChange(index);
-        setSwitchAnimation(false);
-        setIsExpanded(false);
-      }, 150);
-    }
-  };
-
-  const getBranchDisplayName = (branch, index) => {
-    return index === 0 ? t('timeline.branch.mainBranch') : t('timeline.branch.branch') + ` ${index}`;
-  };
-
-  const getBranchPreview = (branch) => {
-    return branch?.preview || '...';
-  };
-
-  const getBranchCounter = () => {
-    if (showAllMode) return `${t('timeline.branch.all')}/${availableBranches.length}`;
-    return `${currentBranchIndex + 1}/${availableBranches.length}`;
-  };
-
-  if (!showAllMode && !currentBranch) return null;
-
-  return (
-    <>
-      <div className={`branch-switcher ${className}`} ref={switcherRef}>
-        <div className="branch-switcher-main">
-          {/* 左箭头 */}
-          <button
-            className={`branch-arrow branch-arrow-left ${!hasPrevious ? 'disabled' : ''}`}
-            onClick={handlePrevious}
-            disabled={!hasPrevious}
-            title={t('timeline.branch.previousBranch')}
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M10 12l-4-4 4-4v8z" />
-            </svg>
-          </button>
-
-          {/* 分支信息区域 */}
-          <div
-            className={`branch-info ${switchAnimation ? 'switching' : ''}`}
-            onClick={() => setIsExpanded(!isExpanded)}
-          >
-            <div className="branch-info-main">
-              <span className="branch-name">
-                {getBranchDisplayName(currentBranch, currentBranchIndex)}
-              </span>
-              <span className="branch-counter">
-                {getBranchCounter()}
-              </span>
-            </div>
-
-            <div className="branch-preview">
-              {getBranchPreview(currentBranch)}
-            </div>
-
-            {/* 展开指示器 */}
-            {availableBranches.length > 2 && (
-              <div className={`expand-indicator ${isExpanded ? 'expanded' : ''}`}>
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-                  <path d="M6 8L2 4h8l-4 4z" />
-                </svg>
-              </div>
-            )}
-          </div>
-
-          {/* 右箭头 */}
-          <button
-            className={`branch-arrow branch-arrow-right ${!hasNext ? 'disabled' : ''}`}
-            onClick={handleNext}
-            disabled={!hasNext}
-            title={t('timeline.branch.nextBranch')}
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M6 4l4 4-4 4V4z" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      {/* 展开的分支列表 - 使用 Portal */}
-      {isExpanded && availableBranches.length > 2 && ReactDOM.createPortal(
-        <div
-          ref={listRef}
-          className="branch-list branch-list-portal"
-          style={{
-            position: 'fixed',
-            top: `${listPosition.top}px`,
-            left: `${listPosition.left}px`,
-            width: `${listPosition.width}px`,
-            zIndex: 99999
-          }}
-        >
-          {/* 显示全部分支选项 */}
-          <div
-            className={`branch-option ${showAllMode ? 'active' : ''}`}
-            onClick={() => {
-              if (onShowAllBranches) onShowAllBranches();
-              setIsExpanded(false);
-            }}
-          >
-            <div className="branch-option-header">
-              <span className="branch-option-name">{t('timeline.branch.showAllBranches')}</span>
-              <span className="branch-option-count">{t('timeline.branch.allMessages')}</span>
-            </div>
-            <div className="branch-option-preview">{t('timeline.branch.showMessagesFromAllBranches')}</div>
-          </div>
-
-          {/* 各个分支选项 */}
-          {availableBranches.map((branch, index) => (
-            <div
-              key={`${branchPoint.uuid}-branch-${index}`}
-              className={`branch-option ${!showAllMode && index === currentBranchIndex ? 'active' : ''}`}
-              onClick={() => handleDirectSwitch(index)}
-            >
-              <div className="branch-option-header">
-                <span className="branch-option-name">
-                  {getBranchDisplayName(branch, index)}
-                </span>
-                <span className="branch-option-count">
-                  {branch.segmentCount} {t('timeline.branch.messages')} (Total {branch.messageCount})
-                </span>
-              </div>
-              <div className="branch-option-preview">
-                {getBranchPreview(branch)}
-              </div>
-            </div>
-          ))}
-        </div>,
-        document.body
-      )}
-    </>
   );
 };
 
@@ -474,174 +252,14 @@ const ConversationTimeline = ({
 
   // ==================== 分支分析 ====================
 
-  const branchAnalysis = useMemo(() => {
-    const findBranchMessages = (startUuid, msgDict, parentChildren) => {
-      const branchMessages = [msgDict[startUuid]];
-      const visited = new Set([startUuid]);
-
-      const traverse = (currentUuid) => {
-        const children = parentChildren[currentUuid] || [];
-        children.forEach(childUuid => {
-          if (!visited.has(childUuid) && msgDict[childUuid]) {
-            visited.add(childUuid);
-            branchMessages.push(msgDict[childUuid]);
-            traverse(childUuid);
-          }
-        });
-      };
-
-      traverse(startUuid);
-      return branchMessages.sort((a, b) => a.index - b.index);
-    };
-
-    const msgDict = {};
-    const parentChildren = {};
-    const branchPoints = new Map();
-
-    // 过滤消息
-    let analysisMessages = messages;
-    if (format === 'claude_full_export' && conversation?.uuid) {
-      const realConversationUuid = conversation.uuid.includes('-') ?
-        conversation.uuid.split('-').slice(1).join('-') : conversation.uuid;
-
-      analysisMessages = messages.filter(msg =>
-        msg.conversation_uuid === realConversationUuid &&
-        !msg.is_conversation_header
-      );
-    }
-
-    analysisMessages.forEach(msg => {
-      const uuid = msg.uuid;
-      const parentUuid = msg.parent_uuid;
-
-      msgDict[uuid] = msg;
-
-      if (parentUuid) {
-        if (!parentChildren[parentUuid]) {
-          parentChildren[parentUuid] = [];
-        }
-        parentChildren[parentUuid].push(uuid);
-      }
-    });
-
-    // 识别分支点
-    const ROOT_UUID = '00000000-0000-4000-8000-000000000000';
-
-    Object.entries(parentChildren).forEach(([parentUuid, children]) => {
-      if (children.length > 1) {
-        let branchPoint = null;
-
-        if (parentUuid === ROOT_UUID) {
-          // 根节点有多个子节点，创建虚拟分支点
-          branchPoint = {
-            uuid: ROOT_UUID,
-            index: -1, // 使用-1表示这是根分支点
-            display_text: '对话起始点',
-            sender: 'system',
-            sender_label: '系统',
-            timestamp: '对话开始'
-          };
-        } else if (msgDict[parentUuid]) {
-          branchPoint = msgDict[parentUuid];
-        }
-
-        if (branchPoint) {
-          const sortedChildren = children
-            .map(uuid => msgDict[uuid])
-            .filter(msg => msg)
-            .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-
-          const branches = sortedChildren.map((childMsg, branchIndex) => {
-            const branchMessages = findBranchMessages(childMsg.uuid, msgDict, parentChildren);
-
-            // 计算当前片段的消息数量（直到下一个分支点或结束）
-            let segmentCount = 0;
-            let current = childMsg;
-            while (current) {
-              segmentCount++;
-              const children = parentChildren[current.uuid] || [];
-              if (children.length === 0) {
-                current = null; // 对话结束
-              } else if (children.length === 1) {
-                current = msgDict[children[0]]; // 继续当前片段
-              } else {
-                current = null; // 遇到新的分支点，片段结束
-              }
-            }
-
-            return {
-              branchIndex,
-              startMessage: childMsg,
-              messages: branchMessages,
-              messageCount: branchMessages.length,
-              segmentCount: segmentCount, // 新增片段计数
-              path: `branch_${branchPoint.uuid}_${branchIndex}`,
-              preview: childMsg.display_text ?
-                (childMsg.display_text.length > 50 ?
-                  childMsg.display_text.substring(0, 50) + '...' :
-                  childMsg.display_text) :
-                '...'
-            };
-          });
-
-          branchPoints.set(parentUuid, {
-            branchPoint,
-            branches,
-            currentBranchIndex: 0
-          });
-        }
-      }
-    });
-
-    return { branchPoints, msgDict, parentChildren };
-  }, [messages, format, conversation]);
+  const branchAnalysis = useMemo(() => analyzeBranches(messages), [messages, format, conversation]);
 
   // ==================== 消息过滤和显示 ====================
 
-  const displayMessages = useMemo(() => {
-    if (showAllBranches) return messages;
-    if (branchAnalysis.branchPoints.size === 0) return messages;
-
-    // 预处理：将每个分支的消息数组转换为 Set，大幅提高 lookup 性能
-    const branchPointInfo = Array.from(branchAnalysis.branchPoints.entries()).map(([uuid, data]) => {
-      const selectedIndex = branchFilters.get(uuid) ?? 0; // 默认选择第一个分支
-      const branches = data.branches.map(b => ({
-        index: b.branchIndex,
-        messageUuids: new Set(b.messages.map(m => m.uuid))
-      }));
-      return {
-        uuid,
-        index: data.branchPoint.index,
-        selectedIndex,
-        selectedBranchUuids: branches[selectedIndex]?.messageUuids || new Set(),
-        allBranchUuids: new Set(branches.flatMap(b => Array.from(b.messageUuids)))
-      };
-    });
-
-    const visibleMessages = [];
-
-    for (const msg of messages) {
-      let shouldShow = true;
-
-      for (const info of branchPointInfo) {
-        // 对于普通分支点，只影响其后的消息；对于根分支点(index: -1)，影响所有消息
-        if (info.index === -1 || msg.index > info.index) {
-          // 如果消息属于该分支点的任何一个分支
-          if (info.allBranchUuids.has(msg.uuid)) {
-            // 但如果不属于当前选中的分支
-            if (!info.selectedBranchUuids.has(msg.uuid)) {
-              shouldShow = false;
-              break;
-            }
-          }
-        }
-      }
-
-      if (shouldShow) visibleMessages.push(msg);
-    }
-
-    return visibleMessages;
-  }, [messages, branchFilters, branchAnalysis, showAllBranches, forceUpdateCounter]);
+  const displayMessages = useMemo(() =>
+    filterDisplayMessages(messages, branchFilters, branchAnalysis, showAllBranches),
+    [messages, branchFilters, branchAnalysis, showAllBranches, forceUpdateCounter]
+  );
 
   // ==================== 事件处理函数 ====================
 
@@ -1142,6 +760,23 @@ const ConversationTimeline = ({
     }
   }, [conversation, renameManager]);
 
+  // 关闭移动端详情并清理 history 记录
+  const closeMobileDetailAndCleanHistory = useCallback(() => {
+    setShowMobileDetail(prev => {
+      if (prev) {
+        // 如果当前 history state 是 detail，需要后退以清理
+        if (window.history.state && window.history.state.view === 'detail') {
+          window.history.back();
+        }
+        if (onHideNavbar) {
+          onHideNavbar(false);
+        }
+        return false;
+      }
+      return prev;
+    });
+  }, [onHideNavbar]);
+
   // 监听窗口大小变化（仅在自动模式下）
   useEffect(() => {
     const handleResize = () => {
@@ -1151,14 +786,14 @@ const ConversationTimeline = ({
         setIsDesktop(newIsDesktop);
         // 如果切换到桌面端,关闭移动端详情
         if (newIsDesktop) {
-          setShowMobileDetail(false);
+          closeMobileDetailAndCleanHistory();
         }
       }
     };
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [deviceMode]);
+  }, [deviceMode, closeMobileDetailAndCleanHistory]);
 
   // 监听设备模式变化事件
   useEffect(() => {
@@ -1173,20 +808,20 @@ const ConversationTimeline = ({
       } else if (newMode === 'desktop') {
         setIsDesktop(true);
         // 切换到桌面端时关闭移动端详情
-        setShowMobileDetail(false);
+        closeMobileDetailAndCleanHistory();
       } else {
         // auto 模式：根据当前窗口大小判断
         const newIsDesktop = window.innerWidth >= 1024;
         setIsDesktop(newIsDesktop);
         if (newIsDesktop) {
-          setShowMobileDetail(false);
+          closeMobileDetailAndCleanHistory();
         }
       }
     };
 
     window.addEventListener('deviceModeChange', handleDeviceModeChange);
     return () => window.removeEventListener('deviceModeChange', handleDeviceModeChange);
-  }, []);
+  }, [closeMobileDetailAndCleanHistory]);
 
   useEffect(() => {
     if (branchAnalysis.branchPoints.size > 0 && branchFilters.size === 0 && !showAllBranches) {
@@ -1775,7 +1410,7 @@ const ConversationTimeline = ({
   };
 
   const getFilePreview = (direction) => {
-    if (!files || files.length <= 1 || currentFileIndex === null || format === 'claude_full_export') {
+    if (!files || files.length <= 1 || currentFileIndex === null) {
       return null;
     }
 
@@ -1974,7 +1609,6 @@ const ConversationTimeline = ({
 
             {/* 根分支切换器（第一条消息就有分支的情况） */}
             {(() => {
-              const ROOT_UUID = '00000000-0000-4000-8000-000000000000';
               const rootBranchData = branchAnalysis.branchPoints.get(ROOT_UUID);
               if (rootBranchData && rootBranchData.branches.length > 1 && !showAllBranches) {
                 return (
@@ -2270,13 +1904,13 @@ const ConversationTimeline = ({
           } else {
             // 助手消息的处理
             // Claude格式和JSONL格式都支持思考过程
-            if (format === 'claude' || format === 'claude_full_export' || format === 'jsonl_chat' || !format) {
+            if (format === 'claude' || format === 'jsonl_chat' || !format) {
               if (currentMessage.thinking) {
                 availableTabs.push({ id: 'thinking', label: t('messageDetail.tabs.thinking') });
               }
             }
             // 只有Claude格式支持Artifacts
-            if (format === 'claude' || format === 'claude_full_export' || !format) {
+            if (format === 'claude' || !format) {
               if (currentMessage.artifacts && currentMessage.artifacts.length > 0) {
                 availableTabs.push({ id: 'artifacts', label: 'Artifacts' });
               }

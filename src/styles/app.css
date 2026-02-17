@@ -155,14 +155,16 @@
 .navbar-left .enhanced-search-box .search-container {
   background: var(--bg-primary);
   border: 1px solid var(--border-primary);
-  padding: 4px 8px;
+  padding: 2px 8px;
   margin: 0;
+  position: relative;
 }
 
 .navbar-left .enhanced-search-box .search-input {
   background: transparent;
   border: none;
-  padding: 6px 32px 6px 32px;
+  padding: 3px 64px 3px 16px;
+  font-size: 13px;
 }
 
 .navbar-left .enhanced-search-box .search-input:focus {
@@ -283,6 +285,17 @@
 
 .view-content {
   min-height: 400px;
+}
+
+/* Whiteboard view needs full height */
+.content-area:has(.whiteboard-view) {
+  padding: 0;
+  overflow: hidden;
+}
+
+.view-content:has(.whiteboard-view) {
+  height: 100%;
+  min-height: 0;
 }
 
 /* 统计面板 */

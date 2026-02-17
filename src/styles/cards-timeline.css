@@ -89,6 +89,15 @@
   filter: drop-shadow(0 0 3px rgba(241, 224, 90, 0.5));
 }
 
+/* 深色主题下未星标图标显示为白色描边 */
+[data-theme="dark"] .star-btn:not(.starred) {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+[data-theme="dark"] .star-btn:not(.starred):hover {
+  color: rgba(255, 255, 255, 1);
+}
+
 /* 关闭按钮 */
 .file-close-btn {
   width: 20px;

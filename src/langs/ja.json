@@ -472,6 +472,15 @@
       "showing": "表示中",
       "conversations": "個の会話",
       "activeFilters": "{{count}}個のアクティブフィルター"
+    },
+    "sort": {
+      "label": "並び順",
+      "createdAt": "作成日時",
+      "name": "名前",
+      "messageCount": "メッセージ数",
+      "size": "ファイルサイズ",
+      "asc": "昇順",
+      "desc": "降順"
     }
   },
   "rename": {
@@ -793,5 +802,69 @@
       "score": "{{score}}%",
       "preview": "プレビュー"
     }
+  },
+  "whiteboard": {
+    "title": "キャンバス",
+    "resetLayout": "リセット",
+    "resetView": "ビューリセット",
+    "mobileWarning": "キャンバスはデスクトップでの使用を推奨します",
+    "addCard": "カード追加",
+    "removeCard": "削除",
+    "connectMode": "接続",
+    "newCanvas": "新しいキャンバス",
+    "renameCanvas": "名前変更",
+    "deleteCanvas": "削除",
+    "deleteCanvasConfirm": "このキャンバスとすべてのカードを削除しますか？",
+    "hints": {
+      "drag": "ドラッグ",
+      "dragDesc": "カード移動",
+      "click": "クリック",
+      "select": "選択",
+      "dblclick": "ダブルクリック",
+      "detail": "詳細",
+      "wheel": "ホイール",
+      "zoom": "ズーム",
+      "canvasDrag": "キャンバスドラッグ",
+      "pan": "パン"
+    },
+    "canvas": {
+      "defaultName": "キャンバス {{num}}",
+      "empty": "キャンバスは空です。「カード追加」をクリックして始めましょう。",
+      "switchedTo": "{{name}}に切り替えました"
+    },
+    "cardPicker": {
+      "title": "カード追加",
+      "selectFile": "会話を選択",
+      "search": "メッセージを検索...",
+      "addToCanvas": "追加",
+      "addAll": "すべて追加",
+      "noFiles": "ファイルが読み込まれていません",
+      "noMessages": "メッセージが見つかりません",
+      "branchPoints": "個の分岐点",
+      "showByBranch": "分岐別",
+      "showAll": "すべて表示",
+      "alreadyAdded": "追加済み",
+      "addCard": "キャンバスに追加"
+    },
+    "connection": {
+      "delete": "接続を削除",
+      "selectStart": "カードをクリックして接続を開始",
+      "selectEnd": "別のカードをクリックして接続",
+      "cancel": "キャンセル"
+    },
+    "aiPanel": {
+      "title": "AI分析",
+      "analyze": "選択を分析",
+      "noSelection": "Shift+クリックでカードを選択",
+      "analyzing": "分析中...",
+      "selectedCards": "{{count}}枚選択",
+      "noApiKey": "設定でAI Chat APIキーを設定してください",
+      "noResponse": "応答がありません"
+    }
+  },
+  "cardGrid": {
+    "viewMode": "表示モード",
+    "timelineMode": "タイムライン",
+    "whiteboardMode": "ホワイトボード"
   }
 }

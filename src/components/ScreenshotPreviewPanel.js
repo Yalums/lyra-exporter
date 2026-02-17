@@ -35,6 +35,10 @@ const ScreenshotPreviewPanel = ({
   const [touchEndY, setTouchEndY] = useState(null);
   const panelRef = useRef(null);
 
+  // 使用 ref 保存 onClose，避免 useEffect 因 onClose 变化而重复执行
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+
   // 浏览器回退支持
   useEffect(() => {
     if (!isOpen) return;
@@ -43,7 +47,7 @@ const ScreenshotPreviewPanel = ({
     window.history.pushState({ view: 'screenshot-preview' }, '');
 
     const handlePopState = () => {
-      onClose();
+      onCloseRef.current();
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -51,7 +55,7 @@ const ScreenshotPreviewPanel = ({
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   // 手势处理
   const minSwipeDistance = 50;
@@ -209,7 +213,7 @@ const ScreenshotPreviewPanel = ({
       setTimeout(() => {
         setIsGenerating(false);
         setProgress({ current: 0, total: 0 });
-        onClose();
+        handleBackClick();
       }, 500);
     } catch (error) {
       console.error('导出失败:', error);
@@ -234,7 +238,7 @@ const ScreenshotPreviewPanel = ({
         {/* 头部 */}
         <div className="screenshot-preview-header">
           <h2>{t('screenshot.previewTitle')}</h2>
-          <button className="close-btn" onClick={onClose}>
+          <button className="close-btn" onClick={handleBackClick}>
             ×
           </button>
         </div>
@@ -327,7 +331,7 @@ const ScreenshotPreviewPanel = ({
           </div>
 
           <div className="footer-right">
-            <button className="btn-secondary" onClick={onClose}>
+            <button className="btn-secondary" onClick={handleBackClick}>
               {t('common.cancel')}
             </button>
             <button

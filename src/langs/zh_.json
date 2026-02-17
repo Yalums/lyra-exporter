@@ -789,5 +789,69 @@
         "score": "{{score}}%",
         "preview": "預覽"
       }
+    },
+  "whiteboard": {
+    "title": "畫布",
+    "resetLayout": "重置佈局",
+    "resetView": "重置視圖",
+    "mobileWarning": "畫布視圖建議在桌面端使用",
+    "addCard": "新增卡片",
+    "removeCard": "移除",
+    "connectMode": "連線",
+    "newCanvas": "新建畫布",
+    "renameCanvas": "重新命名",
+    "deleteCanvas": "刪除",
+    "deleteCanvasConfirm": "確定刪除該畫布及其所有卡片？",
+    "hints": {
+      "drag": "拖曳",
+      "dragDesc": "移動卡片",
+      "click": "點擊",
+      "select": "選中",
+      "dblclick": "雙擊",
+      "detail": "詳情",
+      "wheel": "滾輪",
+      "zoom": "縮放",
+      "canvasDrag": "空白拖曳",
+      "pan": "平移"
+    },
+    "canvas": {
+      "defaultName": "畫布 {{num}}",
+      "empty": "畫布為空。點擊「新增卡片」開始。",
+      "switchedTo": "已切換到 {{name}}"
+    },
+    "cardPicker": {
+      "title": "新增卡片",
+      "selectFile": "選擇對話",
+      "search": "搜尋訊息…",
+      "addToCanvas": "新增",
+      "addAll": "全部新增",
+      "noFiles": "未載入檔案",
+      "noMessages": "未找到訊息",
+      "branchPoints": "個分支點",
+      "showByBranch": "按分支顯示",
+      "showAll": "顯示全部",
+      "alreadyAdded": "已新增",
+      "addCard": "新增至畫布"
+    },
+    "connection": {
+      "delete": "刪除連線",
+      "selectStart": "點擊卡片開始連線",
+      "selectEnd": "點擊另一張卡片完成連線",
+      "cancel": "取消"
+    },
+    "aiPanel": {
+      "title": "AI 分析",
+      "analyze": "分析選中卡片",
+      "noSelection": "Shift+點擊卡片進行多選",
+      "analyzing": "分析中...",
+      "selectedCards": "已選 {{count}} 張",
+      "noApiKey": "請先在設定中配置 AI Chat API 密鑰",
+      "noResponse": "未收到回應"
     }
+  },
+  "cardGrid": {
+    "viewMode": "視圖模式",
+    "timelineMode": "時間線",
+    "whiteboardMode": "白板"
+  }
 }

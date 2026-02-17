@@ -39,6 +39,12 @@
   border-color: var(--border-secondary);
 }
 
+.btn-secondary.active {
+  background: var(--accent-primary);
+  color: white;
+  border-color: var(--accent-primary);
+}
+
 .btn-primary.small, .btn-secondary.small {
   padding: 4px 12px;
   font-size: 12px;

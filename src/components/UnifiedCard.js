@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import PlatformIcon from './PlatformIcon';
+import FullExportCardFilter from './FullExportCardFilter';
 import { DateTimeUtils, FileUtils, PlatformUtils } from '../utils/fileParser';
 import { useI18n } from '../index.js';
 import { getRenameManager } from '../utils/renameManager';
@@ -79,7 +80,7 @@ export const Card = React.memo(({
       <CardHeader 
         title={item.name || t('card.unnamed')}
         isStarred={isStarred}
-        onStar={!isFile && onStar ? handleStar : null}
+        onStar={onStar ? handleStar : null}
         onRename={handleRename}
         onRemove={onRemove ? handleRemove : null}
         t={t}
@@ -250,6 +251,14 @@ function getMetaItems(item, t) {
       PlatformUtils.getModelDisplay(item.model)
   });
   
+  // 项目信息
+  if (item.project?.name) {
+    items.push({
+      icon: '📁',
+      text: item.project.name
+    });
+  }
+
   // 时间信息
   items.push({
     icon: '📅',
@@ -263,15 +272,7 @@ function getMetaItems(item, t) {
       text: FileUtils.formatFileSize(item.size)
     });
   }
-  
-  // 项目信息（仅对话类型）
-  if (item.type === 'conversation' && item.project?.name) {
-    items.push({
-      icon: '📁',
-      text: item.project.name
-    });
-  }
-  
+
   // 对话数量（文件类型且有多个对话）
   if (item.type === 'file' && item.conversationCount > 1) {
     items.push({
@@ -318,7 +319,7 @@ function getStatsItems(item, t) {
 /**
  * 卡片网格容器组件
  */
-export const CardGrid = ({ 
+export const CardGrid = ({
   items = [],
   selectedItem = null,
   starredItems = new Map(),
@@ -327,24 +328,43 @@ export const CardGrid = ({
   onItemRemove,
   onItemRename,  // 新增：重命名回调
   onAddItem,
+  filterProps = null, // 新增：筛选器属性
+  displayPreference = 'timeline', // 新增：视图模式偏好
+  onDisplayPreferenceChange = null, // 新增：视图模式切换回调
+  sortField = 'created_at', // 排序字段
+  sortOrder = 'desc', // 排序方向
+  onSortChange = null, // 排序变更回调
   className = ''
 }) => {
+  const { t } = useI18n();
+
+  // 将 sort props 合并到 filterProps 中
+  const mergedFilterProps = filterProps ? {
+    ...filterProps,
+    sortField,
+    sortOrder,
+    onSortChange
+  } : null;
+
   return (
-    <div className={`conversations-grid ${className}`}>
-      {items.map(item => (
-        <Card
-          key={item.uuid}
-          item={item}
-          isSelected={selectedItem === item.uuid || item.isCurrentFile}
-          isStarred={starredItems.has(item.uuid) ? starredItems.get(item.uuid) : (item.is_starred || false)}
-          onSelect={onItemSelect}
-          onStar={onItemStar}
-          onRemove={onItemRemove}
-          onRename={onItemRename}
-        />
-      ))}
-      
-      {onAddItem && <AddCard onClick={onAddItem} />}
+    <div className="card-grid-wrapper">
+      {mergedFilterProps && <FullExportCardFilter {...mergedFilterProps} />}
+      <div className={`conversations-grid ${className}`}>
+        {items.map(item => (
+          <Card
+            key={item.uuid}
+            item={item}
+            isSelected={selectedItem === item.uuid || item.isCurrentFile}
+            isStarred={starredItems.has(item.uuid) ? starredItems.get(item.uuid) : (item.is_starred || false)}
+            onSelect={onItemSelect}
+            onStar={onItemStar}
+            onRemove={onItemRemove}
+            onRename={onItemRename}
+          />
+        ))}
+
+        {onAddItem && <AddCard onClick={onAddItem} />}
+      </div>
     </div>
   );
 };

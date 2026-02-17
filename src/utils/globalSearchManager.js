@@ -484,7 +484,7 @@ export class GlobalSearchManager {
       
       // 查找父消息
       let foundParent = false;
-      for (const [id, msgData] of this.messageIndex.entries()) {
+      for (const [, msgData] of this.messageIndex.entries()) {
         if (msgData.message.uuid === currentUuid && msgData.message.parentUuid) {
           currentUuid = msgData.message.parentUuid;
           foundParent = true;
