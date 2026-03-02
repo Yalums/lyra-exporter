@@ -484,6 +484,7 @@ ${context}
   // 跳转到消息
   const handleResultClick = (result) => {
     if (onNavigateToMessage) {
+      // onNavigateToMessage 内部会关闭面板并管理 history 状态
       onNavigateToMessage({
         fileIndex: result.metadata.fileIndex,
         conversationUuid: result.metadata.conversationUuid,
@@ -491,7 +492,6 @@ ${context}
         messageUuid: result.metadata.messageUuid,
         highlight: true
       });
-      onClose?.();
     }
   };
 

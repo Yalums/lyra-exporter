@@ -152,6 +152,12 @@
   margin-bottom: 0;
 }
 
+/* 隐藏预览和截图中的时间线圆点 */
+.preview-container .timeline-dot,
+.screenshot-container .timeline-dot {
+  display: none;
+}
+
 .split-line {
   margin: 30px 0;
   padding: 16px;
@@ -308,12 +314,35 @@
   word-wrap: break-word;
   overflow-wrap: break-word;
   max-width: 100%;
+  white-space: normal !important; /* 覆盖 cards-timeline.css 的 pre-wrap，避免源文本换行符与 <p> 边距叠加导致段间距过大 */
 }
 
 .screenshot-container .timeline-body p,
 .preview-container .timeline-body p {
-  margin: 0.8em 0;
+  margin: 0.4em 0;
   word-break: break-word;
+}
+
+.screenshot-container .timeline-body h1,
+.screenshot-container .timeline-body h2,
+.screenshot-container .timeline-body h3,
+.screenshot-container .timeline-body h4,
+.screenshot-container .timeline-body h5,
+.screenshot-container .timeline-body h6,
+.preview-container .timeline-body h1,
+.preview-container .timeline-body h2,
+.preview-container .timeline-body h3,
+.preview-container .timeline-body h4,
+.preview-container .timeline-body h5,
+.preview-container .timeline-body h6 {
+  margin: 0.5em 0 0.3em;
+}
+
+.screenshot-container .timeline-body ul,
+.screenshot-container .timeline-body ol,
+.preview-container .timeline-body ul,
+.preview-container .timeline-body ol {
+  margin: 0.3em 0;
 }
 
 /* 表格响应式处理 */

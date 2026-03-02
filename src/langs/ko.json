@@ -611,6 +611,10 @@
       "canvas": {
         "label": "Canvas 포함",
         "description": "내보내기 시 Canvas 콘텐츠 포함"
+      },
+      "branchMarkers": {
+        "label": "브랜치 마커",
+        "description": "내보내기 시 브랜치 마커(↳ 및 🔀) 포함"
       }
     },
     "about": {

@@ -613,6 +613,10 @@
       "canvas": {
         "label": "Canvas を含める",
         "description": "エクスポート時に Canvas コンテンツを含める"
+      },
+      "branchMarkers": {
+        "label": "ブランチマーカー",
+        "description": "エクスポート時にブランチマーカー（↳ と 🔀）を含める"
       }
     },
     "about": {

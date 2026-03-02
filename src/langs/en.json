@@ -570,6 +570,10 @@
       "canvas": {
         "label": "Include Canvas",
         "description": "Include Canvas content when exporting"
+      },
+      "branchMarkers": {
+        "label": "Branch Markers",
+        "description": "Include branch markers (↳ and 🔀) when exporting"
       }
     },
     "about": {

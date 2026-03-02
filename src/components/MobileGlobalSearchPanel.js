@@ -186,6 +186,7 @@ export default function MobileGlobalSearchPanel({
     console.log('[MobileGlobalSearchPanel] 导航到消息:', result);
 
     if (onNavigateToMessage) {
+      // onNavigateToMessage 内部会关闭面板并管理 history 状态
       onNavigateToMessage({
         fileIndex: result.fileIndex,
         conversationUuid: result.conversationUuid,
@@ -195,8 +196,6 @@ export default function MobileGlobalSearchPanel({
         highlight: true
       });
     }
-
-    onClose();
   };
 
   // 清空搜索

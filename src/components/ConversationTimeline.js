@@ -1729,7 +1729,7 @@ const ConversationTimeline = ({
                             a: ({ children }) => <span>{children}</span>,
                             ul: ({ children }) => <span>{children}</span>,
                             ol: ({ children }) => <span>{children}</span>,
-                            li: ({ children }) => <span>• {children}</span>
+                            li: ({ children }) => <span style={{ whiteSpace: 'normal' }}>• {children} </span>
                           }}
                         >
                           {TextUtils.getPreview(msg.display_text)}

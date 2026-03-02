@@ -6,6 +6,18 @@ import remarkGfm from 'remark-gfm';
 import PlatformIcon from './PlatformIcon';
 import { PlatformUtils, DateTimeUtils } from '../utils/fileParser';
 
+/**
+ * 过滤图片引用标记（与 MessageDetail.js 保持一致）
+ */
+const filterImageReferences = (text) => {
+  if (!text) return '';
+  return text
+    .replace(/\[(?:图片|附件|图像|image|attachment)\d*\s*[:：]\s*[^\]]+\]/gi, '')
+    .replace(/\[(?:图片|附件|图像|image|attachment)\d+\]/gi, '')
+    .replace(/\[图片[1-5]\]/gi, '')
+    .trim();
+};
+
 const ChatBubbleScreenshot = ({
   message,
   platform = 'claude',
@@ -125,7 +137,7 @@ const ChatBubbleScreenshot = ({
                   )
                 }}
               >
-                {message.display_text || message.text || ''}
+                {filterImageReferences(message.display_text || message.text || '')}
               </ReactMarkdown>
             </div>
 

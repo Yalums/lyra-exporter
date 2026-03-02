@@ -212,7 +212,7 @@ export class MarkdownGenerator {
   const lines = [];
 
   // 标题 - 使用配置的格式
-  const branchMarker = this.getBranchMarker(msg);
+  const branchMarker = this.config.includeBranchMarkers !== false ? this.getBranchMarker(msg) : '';
   const title = this.formatMessageTitle(msg, index, branchMarker);
     lines.push(title);
 

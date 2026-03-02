@@ -1,6 +1,6 @@
 {
   "name": "lyra-exporter",
-  "version": "1.7.3",
+  "version": "1.7.5",
   "private": true,
   "homepage": ".",
   "description": "A handy tool for exporting chat conversations.",

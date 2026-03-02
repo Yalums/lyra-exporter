@@ -911,7 +911,8 @@ function App() {
       includeArtifacts: savedExportConfig.includeArtifacts !== undefined ? savedExportConfig.includeArtifacts : true,
       includeTools: savedExportConfig.includeTools || false,
       includeCitations: savedExportConfig.includeCitations || false,
-      includeAttachments: savedExportConfig.includeAttachments !== undefined ? savedExportConfig.includeAttachments : true
+      includeAttachments: savedExportConfig.includeAttachments !== undefined ? savedExportConfig.includeAttachments : true,
+      includeBranchMarkers: savedExportConfig.includeBranchMarkers !== undefined ? savedExportConfig.includeBranchMarkers : true
     };
   });
 
@@ -1273,7 +1274,12 @@ function App() {
     // 记录当前文件索引，用于判断是否需要切换文件
     const needFileSwitch = fileIndex !== selectedFileIndex || fileIndex !== currentFileIndex;
 
-    // 切换到时间线视图
+    // 关闭可能打开的面板（ActionPanel / MobileSearchPanel 等）
+    // 直接关闭而不使用 history.back()，避免 popstate 重置导航状态
+    setShowActionPanel(false);
+    setInitialSearchQuery('');
+
+    // 切换到时间线视图（非白板）
     setViewMode('timeline');
 
     // 切换文件（如果需要）
@@ -1287,19 +1293,19 @@ function App() {
       setSelectedFileIndex(fileIndex);
     }
 
-    // 设置对话UUID
+    // 设置对话UUID - 使用 parseUuid 正确提取原始对话UUID
+    let realConversationUuid = null;
     if (conversationUuid) {
-      // 如果是完整导出格式，需要提取真实的对话UUID
-      let realConversationUuid = conversationUuid;
-      if (conversationUuid.startsWith('file-')) {
-        // 从 file-xxx_uuid 格式中提取UUID
-        const parts = conversationUuid.split('_');
-        if (parts.length > 1) {
-          realConversationUuid = parts.slice(1).join('_');
-        }
-      }
+      const parsed = parseUuid(conversationUuid);
+      realConversationUuid = parsed.conversationUuid;
       setSelectedConversationUuid(realConversationUuid);
     }
+
+    // 替换当前 history 状态为 timeline，避免 popstate 回退到 conversations
+    window.history.replaceState(
+      { view: 'timeline', fileIndex, convUuid: realConversationUuid },
+      ''
+    );
 
     // 通知ConversationTimeline滚动到消息，传递messageId和messageUuid
     // 根据不同情况设置不同延迟

@@ -135,6 +135,7 @@ export const screenshotExportManager = {
 
       root.render(
         <div
+          className="screenshot-container"
           ref={async (ref) => {
             if (ref) {
               // 等待渲染完成和图片加载
@@ -162,6 +163,7 @@ export const screenshotExportManager = {
               message={msg}
               platform={platform}
               format={format}
+              showTags={false}
               exportOptions={exportOptions || {}}
             />
           ))}
@@ -257,6 +259,7 @@ export const screenshotExportManager = {
               message={msg}
               platform={platform}
               format={format}
+              showTags={false}
               exportOptions={exportOptions || {}}
             />
           ))}

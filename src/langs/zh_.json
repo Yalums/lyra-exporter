@@ -606,6 +606,10 @@
       "canvas": {
         "label": "包含 Canvas",
         "description": "匯出時包含 Canvas 內容"
+      },
+      "branchMarkers": {
+        "label": "分支標識符",
+        "description": "匯出時包含分支標記（↳ 和 🔀）"
       }
     },
     "about": {

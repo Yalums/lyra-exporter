@@ -40,7 +40,8 @@ const ExportConfigManager = {
       includeCanvas: true,
       includeTools: false,
       includeCitations: false,
-      includeAttachments: true
+      includeAttachments: true,
+      includeBranchMarkers: true
     });
   },
 
@@ -230,7 +231,7 @@ const SettingsPanel = ({ isOpen, onClose, exportOptions, setExportOptions }) => 
     ExportConfigManager.saveConfig(newOptions);
     setSettings(prev => ({ ...prev, exportOptions: newOptions }));
 
-    if (setExportOptions && ['includeTimestamps', 'includeThinking', 'includeArtifacts', 'includeCanvas', 'includeTools', 'includeCitations', 'includeAttachments'].includes(option)) {
+    if (setExportOptions && ['includeTimestamps', 'includeThinking', 'includeArtifacts', 'includeCanvas', 'includeTools', 'includeCitations', 'includeAttachments', 'includeBranchMarkers'].includes(option)) {
       setExportOptions(prev => ({ ...prev, [option]: value }));
     }
   };
@@ -573,6 +574,7 @@ const ExportSettings = ({ settings, onExportOptionChange }) => {
         <CheckboxSetting label={t('settings.exportContent.tools.label')} description={t('settings.exportContent.tools.description')} checked={settings.exportOptions.includeTools} onChange={(c) => onExportOptionChange('includeTools', c)} />
         <CheckboxSetting label={t('settings.exportContent.citations.label')} description={t('settings.exportContent.citations.description')} checked={settings.exportOptions.includeCitations} onChange={(c) => onExportOptionChange('includeCitations', c)} />
         <CheckboxSetting label={t('settings.exportContent.attachments.label')} description={t('settings.exportContent.attachments.description')} checked={settings.exportOptions.includeAttachments} onChange={(c) => onExportOptionChange('includeAttachments', c)} />
+        <CheckboxSetting label={t('settings.exportContent.branchMarkers.label')} description={t('settings.exportContent.branchMarkers.description')} checked={settings.exportOptions.includeBranchMarkers} onChange={(c) => onExportOptionChange('includeBranchMarkers', c)} />
       </SettingsSection>
     </div>
   );

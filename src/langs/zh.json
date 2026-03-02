@@ -408,6 +408,10 @@
       "attachments": {
         "label": "附件信息",
         "description": "用户上传的文件及其预览信息"
+      },
+      "branchMarkers": {
+        "label": "分支标识符",
+        "description": "导出时包含分支标记（↳ 和 🔀）"
       }
     },
     "about": {

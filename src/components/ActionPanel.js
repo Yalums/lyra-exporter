@@ -440,6 +440,8 @@ const GlobalSearchSection = ({ onNavigateToMessage, onClose, initialQuery = '' }
   // 处理结果点击
   const handleResultClick = (result) => {
     if (onNavigateToMessage) {
+      // onNavigateToMessage 内部会关闭 ActionPanel 并管理 history 状态
+      // 不需要再调用 onClose()，避免 history.back() 触发 popstate 重置导航
       onNavigateToMessage({
         fileIndex: result.fileIndex,
         conversationUuid: result.conversationUuid,
@@ -449,7 +451,6 @@ const GlobalSearchSection = ({ onNavigateToMessage, onClose, initialQuery = '' }
         highlight: true
       });
     }
-    onClose();
   };
 
   // 清空搜索
@@ -848,6 +849,7 @@ const SemanticSearchSection = ({
   // 跳转到消息
   const handleResultClick = (result) => {
     if (onNavigateToMessage) {
+      // onNavigateToMessage 内部会关闭 ActionPanel 并管理 history 状态
       onNavigateToMessage({
         fileIndex: result.metadata.fileIndex,
         conversationUuid: result.metadata.conversationUuid,
@@ -855,7 +857,6 @@ const SemanticSearchSection = ({
         messageUuid: result.metadata.messageUuid,
         highlight: true
       });
-      onClose?.();
     }
   };
 
