@@ -1,0 +1,52 @@
+{
+  "manifest_version": 3,
+  "name": "Loominary",
+  "version": "0.1",
+  "description": "Conversations shouldn't just live in a scroll bar. Browse and search your Claude conversation history, visually. Loominary gives your Claude conversations a home — a visual timeline that preserves messages, images, artifacts, and thinking process, stored entirely on your device.",
+  "author": "ClaudeAI, Laumss",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": [
+    "storage",
+    "activeTab",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://claude.ai/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://claude.ai/*"
+      ],
+      "js": [
+        "fflate.min.js",
+        "content.js"
+      ],
+      "css": [
+        "styles.css"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "action": {
+    "default_title": "Open Loominary",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "injected.js"
+      ],
+      "matches": [
+        "https://claude.ai/*"
+      ]
+    }
+  ]
+}

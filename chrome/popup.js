@@ -1,0 +1,241 @@
+// popup.js — Loominary extension settings popup
+
+const STORAGE_KEY = 'loominary_export_config';
+const LANG_KEY = 'loominary_lang';
+
+const DEFAULTS = {
+  // 格式
+  includeNumbering: true,
+  numberingFormat: 'numeric',
+  senderFormat: 'default',
+  humanLabel: 'Human',
+  assistantLabel: 'Claude',
+  includeHeaderPrefix: true,
+  headerLevel: 2,
+  thinkingFormat: 'codeblock',
+  // 内容
+  includeTimestamps: false,
+  includeThinking: false,
+  includeArtifacts: true,
+  includeCanvas: true,
+  includeTools: false,
+  includeCitations: false,
+  includeAttachments: true,
+  includeBranchMarkers: true,
+  // 外观
+  theme: 'dark'
+};
+
+const I18N = {
+  zh: {
+    saved: '已保存',
+    sectionAppearance: '外观',
+    theme: '主题',
+    themeDark: '🌙 深色',
+    themeLight: '☀️ 浅色',
+    sectionFormat: '导出格式',
+    numbering: '序号',
+    numberingNone: '无',
+    senderLabel: '发送者标签',
+    senderDefault: '默认（用户 / AI）',
+    headerPrefix: '标题前缀',
+    headerNone: '无',
+    thinkingFormat: '思考过程格式',
+    thinkingCodeblock: '代码块',
+    thinkingXml: 'XML 标签',
+    thinkingEmoji: '表情符号',
+    sectionContent: '导出内容',
+    sectionContentDesc: '控制导出的 Markdown 文件中包含哪些内容',
+    timestamps: '时间戳',
+    timestampsDesc: '包含消息的发送时间',
+    thinking: '思考过程',
+    thinkingDesc: 'Claude 的内部思考过程',
+    artifacts: 'Artifacts',
+    artifactsDesc: '代码、文档等生成内容',
+    tools: '工具使用',
+    toolsDesc: '搜索、计算等工具调用记录',
+    citations: '引用来源',
+    citationsDesc: '网页链接等引用信息',
+    attachments: '附件信息',
+    attachmentsDesc: '用户上传的文件及其预览信息',
+    branchMarkers: '分支标识符',
+    branchMarkersDesc: '导出时包含分支标记（↳ 和 🔀）'
+  },
+  en: {
+    saved: 'Saved',
+    sectionAppearance: 'Appearance',
+    theme: 'Theme',
+    themeDark: '🌙 Dark',
+    themeLight: '☀️ Light',
+    sectionFormat: 'Export Format',
+    numbering: 'Numbering',
+    numberingNone: 'None',
+    senderLabel: 'Sender Label',
+    senderDefault: 'Default (User / AI)',
+    headerPrefix: 'Header Prefix',
+    headerNone: 'None',
+    thinkingFormat: 'Thinking Format',
+    thinkingCodeblock: 'Code Block',
+    thinkingXml: 'XML Tags',
+    thinkingEmoji: 'Emoji',
+    sectionContent: 'Export Content',
+    sectionContentDesc: 'Control what is included in the exported Markdown file',
+    timestamps: 'Timestamps',
+    timestampsDesc: 'Include message send time',
+    thinking: 'Thinking',
+    thinkingDesc: "Claude's internal thinking process",
+    artifacts: 'Artifacts',
+    artifactsDesc: 'Code, documents, and other generated content',
+    tools: 'Tool Usage',
+    toolsDesc: 'Search, calculation, and other tool call records',
+    citations: 'Citations',
+    citationsDesc: 'Web links and reference information',
+    attachments: 'Attachments',
+    attachmentsDesc: 'Uploaded files and their preview info',
+    branchMarkers: 'Branch Markers',
+    branchMarkersDesc: 'Include branch markers (↳ and 🔀) in export'
+  }
+};
+
+let config = { ...DEFAULTS };
+let currentLang = 'zh';
+let saveTimer = null;
+
+// ── i18n ──
+function t(key) {
+  return (I18N[currentLang] && I18N[currentLang][key]) || (I18N.zh[key]) || key;
+}
+
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    el.textContent = t(key);
+  });
+  refreshThemeBtn();
+}
+
+// ── 保存提示 ──
+function showSaved() {
+  const hint = document.getElementById('savedHint');
+  hint.textContent = t('saved');
+  hint.classList.add('visible');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => hint.classList.remove('visible'), 1500);
+}
+
+// ── 保存到 chrome.storage.local ──
+function saveConfig() {
+  chrome.storage.local.set({ [STORAGE_KEY]: config }, showSaved);
+}
+
+// ── 更新主题按钮文字 ──
+function refreshThemeBtn() {
+  const btn = document.getElementById('themeToggle');
+  btn.textContent = config.theme === 'dark' ? t('themeDark') : t('themeLight');
+}
+
+// ── 将 config 填入 UI ──
+function loadUI() {
+  applyI18n();
+
+  // 序号
+  document.getElementById('numbering').value =
+    config.includeNumbering ? config.numberingFormat : 'none';
+
+  // 发送者
+  document.getElementById('senderFormat').value = config.senderFormat || 'default';
+
+  // 标题前缀
+  document.getElementById('headerPrefix').value =
+    config.includeHeaderPrefix ? String(config.headerLevel) : 'none';
+
+  // 思考格式
+  document.getElementById('thinkingFormat').value = config.thinkingFormat || 'codeblock';
+
+  // 复选框
+  const checkboxIds = [
+    'includeTimestamps', 'includeThinking', 'includeArtifacts',
+    'includeTools', 'includeCitations', 'includeAttachments', 'includeBranchMarkers'
+  ];
+  checkboxIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.checked = config[id] !== undefined ? !!config[id] : !!DEFAULTS[id];
+  });
+}
+
+// ── 绑定事件 ──
+function bindEvents() {
+  // 主题切换
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    config.theme = config.theme === 'dark' ? 'light' : 'dark';
+    refreshThemeBtn();
+    saveConfig();
+  });
+
+  // 序号
+  document.getElementById('numbering').addEventListener('change', e => {
+    const v = e.target.value;
+    if (v === 'none') {
+      config.includeNumbering = false;
+    } else {
+      config.includeNumbering = true;
+      config.numberingFormat = v;
+    }
+    saveConfig();
+  });
+
+  // 发送者标签
+  document.getElementById('senderFormat').addEventListener('change', e => {
+    config.senderFormat = e.target.value;
+    if (e.target.value === 'human-assistant') {
+      config.humanLabel = 'Human';
+      config.assistantLabel = 'Assistant';
+    } else {
+      config.humanLabel = 'Human';
+      config.assistantLabel = 'Claude';
+    }
+    saveConfig();
+  });
+
+  // 标题前缀
+  document.getElementById('headerPrefix').addEventListener('change', e => {
+    const v = e.target.value;
+    if (v === 'none') {
+      config.includeHeaderPrefix = false;
+    } else {
+      config.includeHeaderPrefix = true;
+      config.headerLevel = parseInt(v, 10);
+    }
+    saveConfig();
+  });
+
+  // 思考过程格式
+  document.getElementById('thinkingFormat').addEventListener('change', e => {
+    config.thinkingFormat = e.target.value;
+    saveConfig();
+  });
+
+  // 复选框
+  const checkboxIds = [
+    'includeTimestamps', 'includeThinking', 'includeArtifacts',
+    'includeTools', 'includeCitations', 'includeAttachments', 'includeBranchMarkers'
+  ];
+  checkboxIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('change', e => {
+        config[id] = e.target.checked;
+        saveConfig();
+      });
+    }
+  });
+}
+
+// ── 初始化：从 storage 读取语言和配置，再渲染 ──
+chrome.storage.local.get([STORAGE_KEY, LANG_KEY], result => {
+  config = { ...DEFAULTS, ...(result[STORAGE_KEY] || {}) };
+  currentLang = result[LANG_KEY] || (navigator.language.startsWith('zh') ? 'zh' : 'en');
+  document.documentElement.lang = currentLang === 'zh' ? 'zh' : 'en';
+  loadUI();
+  bindEvents();
+});
