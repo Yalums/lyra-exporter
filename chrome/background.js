@@ -96,23 +96,28 @@ async function handleDownload(options) {
 
 async function handleOpenTab(data) {
     try {
-        console.log('[Loominary Background] Received data to open tab:', data?.filename);
-        console.log('[Loominary Background] content type:', typeof data?.content);
-        console.log('[Loominary Background] content length:', typeof data?.content === 'string' ? data.content.length : JSON.stringify(data?.content)?.length);
+        const label = data?.files ? `[${data.files.length} files]` : data?.filename;
+        console.log('[Loominary Background] Received data to open tab:', label);
 
-        // 将数据存储到 chrome.storage.local
+        // Support both single-file { content, filename } and multi-file { files: [...] }
+        if (!data?.files) {
+            console.log('[Loominary Background] content type:', typeof data?.content);
+            console.log('[Loominary Background] content length:', typeof data?.content === 'string' ? data.content.length : JSON.stringify(data?.content)?.length);
+        }
+
+        // Store as-is, preserving whatever format was sent
         await chrome.storage.local.set({
-            loominary_pending_data: {
-                content: data.content,
-                filename: data.filename,
-                timestamp: Date.now()
-            }
+            loominary_pending_data: { ...data, timestamp: Date.now() }
         });
 
-        // 验证存储是否成功
+        // Verify storage
         const verify = await chrome.storage.local.get(['loominary_pending_data']);
-        console.log('[Loominary Background] Storage verify - content type:', typeof verify.loominary_pending_data?.content);
-        console.log('[Loominary Background] Storage verify - content length:', typeof verify.loominary_pending_data?.content === 'string' ? verify.loominary_pending_data.content.length : 'not string');
+        if (verify.loominary_pending_data?.files) {
+            console.log('[Loominary Background] Storage verify - files count:', verify.loominary_pending_data.files.length);
+        } else {
+            console.log('[Loominary Background] Storage verify - content type:', typeof verify.loominary_pending_data?.content);
+            console.log('[Loominary Background] Storage verify - content length:', typeof verify.loominary_pending_data?.content === 'string' ? verify.loominary_pending_data.content.length : 'not string');
+        }
         console.log('[Loominary Background] Data stored successfully');
 
         // 打开新 Tab

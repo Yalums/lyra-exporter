@@ -59,7 +59,15 @@ const I18N = {
     attachments: '附件信息',
     attachmentsDesc: '用户上传的文件及其预览信息',
     branchMarkers: '分支标识符',
-    branchMarkersDesc: '导出时包含分支标记（↳ 和 🔀）'
+    branchMarkersDesc: '导出时包含分支标记（↳ 和 🔀）',
+    sectionST: 'SillyTavern',
+    sectionSTDesc: '在 SillyTavern 标签页中打开此弹窗，可直接导出当前对话',
+    stExport: '导出当前 ST 对话',
+    stExporting: '导出中…',
+    stNoST: '当前标签页未检测到 SillyTavern',
+    stNoChat: '当前没有打开的对话',
+    stOk: '已发送，正在打开查看器…',
+    stError: '导出失败：'
   },
   en: {
     saved: 'Saved',
@@ -93,7 +101,15 @@ const I18N = {
     attachments: 'Attachments',
     attachmentsDesc: 'Uploaded files and their preview info',
     branchMarkers: 'Branch Markers',
-    branchMarkersDesc: 'Include branch markers (↳ and 🔀) in export'
+    branchMarkersDesc: 'Include branch markers (↳ and 🔀) in export',
+    sectionST: 'SillyTavern',
+    sectionSTDesc: 'Open this popup while on a SillyTavern tab to export the current chat',
+    stExport: 'Export current ST chat',
+    stExporting: 'Exporting…',
+    stNoST: 'SillyTavern not detected on current tab',
+    stNoChat: 'No chat is currently open',
+    stOk: 'Sent — opening viewer…',
+    stError: 'Export failed: '
   }
 };
 
@@ -227,6 +243,135 @@ function bindEvents() {
         config[id] = e.target.checked;
         saveConfig();
       });
+    }
+  });
+
+  // SillyTavern 导出
+  const stBtn = document.getElementById('stExportBtn');
+  const stStatus = document.getElementById('stStatus');
+
+  stBtn.addEventListener('click', async () => {
+    stStatus.className = 'st-status';
+    stStatus.textContent = '';
+    stBtn.disabled = true;
+    stBtn.textContent = t('stExporting');
+
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+      // Inject into the active tab via scripting API (activeTab permission covers this)
+      // world: 'MAIN' is required to access window.SillyTavern set by the page's JS
+      const results = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        world: 'MAIN',
+        func: async () => {
+          if (!window.SillyTavern?.getContext) return { error: 'noST' };
+          try {
+            const ctx = window.SillyTavern.getContext();
+            const { chat, characters, characterId, chatId, name1, name2, chatMetadata } = ctx;
+            if (!chat || chat.length === 0) return { error: 'noChat' };
+            const charName = (characters && characterId !== undefined)
+              ? (characters[characterId]?.name || 'Unknown') : 'Unknown';
+            const avatarUrl = (characters && characterId !== undefined)
+              ? (characters[characterId]?.avatar || '') : '';
+            const origin = window.location.origin;
+            // Fetch CSRF token from ST server (same as ST's own getRequestHeaders)
+            let csrfToken = '';
+            try {
+              const tokenResp = await fetch(`${origin}/csrf-token`);
+              if (tokenResp.ok) {
+                const tokenData = await tokenResp.json();
+                csrfToken = tokenData.token || '';
+              }
+            } catch (e) { /* no CSRF token, proceed anyway */ }
+            const headers = { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken };
+            // main_chat points to the IMMEDIATE parent, not the root.
+            // Strip branch/checkpoint suffixes to find the root chat name.
+            const mainChatName = chatMetadata?.main_chat || chatId;
+            let rootName = mainChatName;
+            // Strip trailing " - Branch #N" / " - Checkpoint #N" (may be chained)
+            rootName = rootName.replace(/( - (Branch|Checkpoint) #\d+)+$/i, '');
+            // Strip leading "Branch #N - " (old ST naming convention)
+            rootName = rootName.replace(/^(Branch #\d+ - )+/i, '');
+            console.log('[Loominary] mainChatName:', mainChatName, '→ rootName:', rootName);
+
+            // Fetch all related branch files from ST's local API
+            let allFiles = [];
+            try {
+              const resp = await fetch(`${origin}/api/characters/chats`, {
+                method: 'POST', headers,
+                body: JSON.stringify({ avatar_url: avatarUrl, simple: true })
+              });
+              console.log('[Loominary] /api/characters/chats status:', resp.status, 'avatarUrl:', avatarUrl, 'rootName:', rootName);
+              if (resp.ok) {
+                const allChats = await resp.json();
+                console.log('[Loominary] allChats file_ids:', allChats.map(c => c.file_id));
+                const related = allChats.filter(c => {
+                  const fid = c.file_id;
+                  // Exact match with root
+                  if (fid === rootName) return true;
+                  // New naming: "rootName - Branch #N" or "rootName - Checkpoint #N"
+                  if (fid.startsWith(rootName + ' - Branch #') || fid.startsWith(rootName + ' - Checkpoint #')) return true;
+                  // Old naming: "Branch #N - rootName"
+                  if (fid.startsWith('Branch #') && fid.endsWith(' - ' + rootName)) return true;
+                  return false;
+                });
+                console.log('[Loominary] related files:', related.map(c => c.file_id));
+                for (const f of related) {
+                  try {
+                    const chatResp = await fetch(`${origin}/api/chats/get`, {
+                      method: 'POST', headers,
+                      body: JSON.stringify({ avatar_url: avatarUrl, file_name: f.file_id })
+                    });
+                    if (chatResp.ok) {
+                      const messages = await chatResp.json();
+                      allFiles.push({
+                        content: messages.map(m => JSON.stringify(m)).join('\n'),
+                        filename: f.file_name
+                      });
+                    }
+                  } catch (e) { /* skip individual file errors */ }
+                }
+              }
+            } catch (e) { /* ST API unavailable, fall through to current chat */ }
+
+            // Fallback: export only the currently displayed branch
+            if (allFiles.length === 0) {
+              const meta = { chat_metadata: chatMetadata, user_name: name1 || 'User', character_name: charName };
+              const safeChar = charName.replace(/[<>:"/\\|?*]/g, '_');
+              const safeChatId = (chatId || 'export').replace(/[<>:"/\\|?*]/g, '_');
+              allFiles = [{
+                content: [JSON.stringify(meta), ...chat.map(m => JSON.stringify(m))].join('\n'),
+                filename: `${safeChar} - ${safeChatId}.jsonl`
+              }];
+            }
+            return { files: allFiles };
+          } catch (e) {
+            return { error: e.message };
+          }
+        }
+      });
+
+      const payload = results?.[0]?.result;
+      if (!payload) throw new Error(t('stNoST'));
+      if (payload.error === 'noST') throw new Error(t('stNoST'));
+      if (payload.error === 'noChat') throw new Error(t('stNoChat'));
+      if (payload.error) throw new Error(t('stError') + payload.error);
+
+      const { files } = payload;
+      chrome.runtime.sendMessage({
+        type: 'LOOMINARY_OPEN_SIDEPANEL',
+        data: files.length === 1 ? files[0] : { files }
+      });
+
+      stStatus.className = 'st-status ok';
+      stStatus.textContent = t('stOk');
+    } catch (err) {
+      stStatus.className = 'st-status error';
+      stStatus.textContent = err.message || String(err);
+    } finally {
+      stBtn.disabled = false;
+      stBtn.textContent = t('stExport');
     }
   });
 }

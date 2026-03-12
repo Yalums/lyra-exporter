@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Loominary",
-  "version": "0.1",
+  "version": "0.2",
   "description": "Conversations shouldn't just live in a scroll bar. Browse and search your Claude conversation history, visually. Loominary gives your Claude conversations a home — a visual timeline that preserves messages, images, artifacts, and thinking process, stored entirely on your device.",
   "author": "ClaudeAI, Laumss",
   "icons": {
@@ -12,7 +12,8 @@
   "permissions": [
     "storage",
     "activeTab",
-    "tabs"
+    "tabs",
+    "scripting"
   ],
   "host_permissions": [
     "https://claude.ai/*"
