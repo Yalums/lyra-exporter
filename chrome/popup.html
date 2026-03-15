@@ -114,6 +114,35 @@
       </div>
     </label>
 
+    <!-- Claude 附加信息 -->
+    <div class="section-title">Claude 附加信息</div>
+    <p class="section-desc">导出 Markdown 时附加的上下文（仅 Claude）</p>
+
+    <label class="checkbox-row">
+      <input type="checkbox" id="includeProjectInfo">
+      <div class="checkbox-text">
+        <span class="checkbox-label">项目信息</span>
+        <span class="checkbox-desc">包含 Project 指令、记忆与知识库文件</span>
+      </div>
+    </label>
+    <label class="checkbox-row">
+      <input type="checkbox" id="includeUserMemory">
+      <div class="checkbox-text">
+        <span class="checkbox-label">用户记忆</span>
+        <span class="checkbox-desc">包含用户偏好设置与全局记忆</span>
+      </div>
+    </label>
+
+    <!-- 全部导出模式 -->
+    <div class="section-title" data-i18n="sectionExportAll">全部导出</div>
+    <div class="setting-row">
+      <span class="setting-label" data-i18n="exportAllMode">导出方式</span>
+      <select id="exportAllMode">
+        <option value="zip" data-i18n="exportAllZip">下载压缩包</option>
+        <option value="app" data-i18n="exportAllApp">打开应用（开发中）</option>
+      </select>
+    </div>
+
     <!-- SillyTavern 导出 -->
     <div class="section-title" data-i18n="sectionST">SillyTavern</div>
     <p class="section-desc" data-i18n="sectionSTDesc">在 SillyTavern 标签页中打开此弹窗，可直接导出当前对话</p>

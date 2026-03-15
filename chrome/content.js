@@ -1,7 +1,7 @@
 // ============================================================
 // Loominary - Content Script
 // Version: 0.1
-// Built: 2026-03-12T16:31:31.537025
+// Built: 2026-03-15T20:38:44.136902
 // ============================================================
 
 (function() {
@@ -315,7 +315,7 @@ function GM_xmlhttpRequest(options) {
             sanitizeFilename: (name) => {
                 if (!name) return 'unnamed';
                 return name
-                    .replace(/[<>:"/\\|?*\x00-\x1F]/g, '') // 移除非法字符
+                    .replace(/[<>:"\/\\|?*\x00-\x1F]/g, '') // 移除非法字符
                     .replace(/[\u0080-\uFFFF]/g, (c) => { // 移除非ASCII字符（保留中文）
                         const code = c.charCodeAt(0);
                         return (code >= 0x4e00 && code <= 0x9fa5) ? c : '';
@@ -600,7 +600,7 @@ function GM_xmlhttpRequest(options) {
     }
     // #endplatform
         const Communicator = {
-            open: async (jsonData, filename) => {
+            open: async (jsonData, filename, extraData) => {
                 try {
                     // 检测是否在 Chrome 扩展环境中
                     const isExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id;
@@ -609,11 +609,20 @@ function GM_xmlhttpRequest(options) {
                         // Chrome 扩展模式：通过 runtime messaging 发送数据
                         const defaultFilename = filename || `${State.currentPlatform}_export_${new Date().toISOString().slice(0,10)}.json`;
 
+                        // 保存 baseUrl/userId 供 React App 后续代理请求使用
+                        if (State.capturedUserId) {
+                            chrome.storage.local.set({ loominary_browse_context: {
+                                baseUrl: window.location.origin,
+                                userId: State.capturedUserId
+                            }});
+                        }
+
                         chrome.runtime.sendMessage({
                             type: 'LOOMINARY_OPEN_SIDEPANEL',
                             data: {
                                 content: jsonData,
-                                filename: defaultFilename
+                                filename: defaultFilename,
+                                ...extraData
                             }
                         }, (response) => {
                             if (chrome.runtime.lastError) {
@@ -654,7 +663,8 @@ function GM_xmlhttpRequest(options) {
                                     source: 'loominary-fetch-script',
                                     data: {
                                         content: jsonData,
-                                        filename: filename || `${State.currentPlatform}_export_${new Date().toISOString().slice(0,10)}.json`
+                                        filename: filename || `${State.currentPlatform}_export_${new Date().toISOString().slice(0,10)}.json`,
+                                        ...extraData
                                     }
                                 };
                                 exporterWindow.postMessage(dataToSend, Config.EXPORTER_ORIGIN);
@@ -783,9 +793,62 @@ const ClaudeHandler = {
                         if (meta.project_uuid) data.project_uuid = meta.project_uuid;
                         if (meta.project) data.project = meta.project;
                     }
+
+                    // 扩展模式：根据 popup 配置附带 exportContext（project 信息 / 用户记忆）
+                    let exportContext;
+                    const isExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id;
+                    if (isExtension) {
+                        const exportCfg = await new Promise(resolve => {
+                            chrome.storage.local.get(['loominary_export_config'], r => resolve(r.loominary_export_config || {}));
+                        });
+                        const ctx = {};
+                        const projectUuid = data.project_uuid;
+
+                        if (exportCfg.includeProjectInfo && projectUuid) {
+                            const [detail, memory, files] = await Promise.all([
+                                ClaudeHandler.getProjectDetail(projectUuid),
+                                ClaudeHandler.getProjectMemory(projectUuid),
+                                ClaudeHandler.getProjectFiles(projectUuid)
+                            ]);
+                            const knowledgeFiles = [];
+                            if (files && files.length > 0) {
+                                const fileResults = await Promise.allSettled(
+                                    files.map(f => ClaudeHandler.getProjectFileContent(projectUuid, f.uuid)
+                                        .then(content => ({ name: f.file_name || f.uuid, content })))
+                                );
+                                for (const r of fileResults) {
+                                    if (r.status === 'fulfilled' && r.value.content) {
+                                        const c = r.value.content;
+                                        knowledgeFiles.push({ name: r.value.name, content: typeof c === 'string' ? c : JSON.stringify(c) });
+                                    }
+                                }
+                            }
+                            ctx.projectInfo = {
+                                name: detail?.name || data.project?.name || '',
+                                description: detail?.description || '',
+                                instructions: detail?.prompt_template || '',
+                                memory: memory?.memory || '',
+                                knowledgeFiles
+                            };
+                        }
+
+                        if (exportCfg.includeUserMemory) {
+                            const [profile, globalMem] = await Promise.all([
+                                ClaudeHandler.getUserProfile(),
+                                ClaudeHandler.getGlobalMemory()
+                            ]);
+                            ctx.userMemory = {
+                                preferences: profile?.conversation_preferences || '',
+                                memories: globalMem?.memory || ''
+                            };
+                        }
+
+                        if (Object.keys(ctx).length) exportContext = ctx;
+                    }
+
                     const jsonString = JSON.stringify(data, null, 2);
                     const filename = `claude_${data.name || 'conversation'}_${uuid.substring(0, 8)}.json`;
-                    await Communicator.open(jsonString, filename);
+                    await Communicator.open(jsonString, filename, exportContext ? { exportContext } : undefined);
                 } catch (error) {
                     ErrorHandler.handle(error, 'Preview conversation', {
                         userMessage: `${i18n.t('loadFailed')} ${error.message}`
@@ -801,11 +864,10 @@ const ClaudeHandler = {
                 const uuid = ClaudeHandler.getCurrentUUID();
                 if (!uuid) { alert(i18n.t('uuidNotFound')); return; }
                 if (!await ClaudeHandler.ensureUserId()) return;
-                const filename = prompt(i18n.t('enterFilename'), Utils.sanitizeFilename(`claude_${uuid.substring(0, 8)}`));
-                if (!filename?.trim()) return;
                 const original = btn.innerHTML;
                 Utils.setButtonLoading(btn, i18n.t('exporting'));
                 try {
+                    const isExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id;
                     const includeImages = document.getElementById(Config.IMAGE_SWITCH_ID)?.checked || false;
                     const [data, meta] = await Promise.all([
                         ClaudeHandler.getConversation(uuid, includeImages),
@@ -816,9 +878,72 @@ const ClaudeHandler = {
                         if (meta.project_uuid) data.project_uuid = meta.project_uuid;
                         if (meta.project) data.project = meta.project;
                     }
-                    Utils.downloadJSON(JSON.stringify(data, null, 2), `${filename.trim()}.json`);
+
+                    if (!isExtension) {
+                        // Userscript 模式：回退为原来的下载 JSON 行为
+                        const filename = prompt(i18n.t('enterFilename'), Utils.sanitizeFilename(`claude_${uuid.substring(0, 8)}`));
+                        if (!filename?.trim()) return;
+                        Utils.downloadJSON(JSON.stringify(data, null, 2), `${filename.trim()}.json`);
+                        return;
+                    }
+
+                    // 扩展模式：读取 popup 导出配置，生成 Markdown
+                    const exportCfg = await new Promise(resolve => {
+                        chrome.storage.local.get(['loominary_export_config'], r => resolve(r.loominary_export_config || {}));
+                    });
+                    const includeProjectInfo = !!exportCfg.includeProjectInfo;
+                    const includeUserMemory = !!exportCfg.includeUserMemory;
+
+                    // 收集附加上下文
+                    const exportContext = {};
+                    const projectUuid = data.project_uuid;
+
+                    if (includeProjectInfo && projectUuid) {
+                        const [detail, memory, files] = await Promise.all([
+                            ClaudeHandler.getProjectDetail(projectUuid),
+                            ClaudeHandler.getProjectMemory(projectUuid),
+                            ClaudeHandler.getProjectFiles(projectUuid)
+                        ]);
+                        const knowledgeFiles = [];
+                        if (files && files.length > 0) {
+                            const fileResults = await Promise.allSettled(
+                                files.map(f => ClaudeHandler.getProjectFileContent(projectUuid, f.uuid)
+                                    .then(content => ({ name: f.file_name || f.uuid, content })))
+                            );
+                            for (const r of fileResults) {
+                                if (r.status === 'fulfilled' && r.value.content) {
+                                    knowledgeFiles.push({ name: r.value.name, content: typeof r.value.content === 'string' ? r.value.content : JSON.stringify(r.value.content) });
+                                }
+                            }
+                        }
+                        exportContext.projectInfo = {
+                            name: detail?.name || data.project?.name || '',
+                            description: detail?.description || '',
+                            instructions: detail?.prompt_template || '',
+                            memory: memory?.memory || '',
+                            knowledgeFiles
+                        };
+                    }
+
+                    if (includeUserMemory) {
+                        const [profile, globalMem] = await Promise.all([
+                            ClaudeHandler.getUserProfile(),
+                            ClaudeHandler.getGlobalMemory()
+                        ]);
+                        exportContext.userMemory = {
+                            preferences: profile?.conversation_preferences || '',
+                            memories: globalMem?.memory || ''
+                        };
+                    }
+
+                    const title = data.name || uuid.substring(0, 8);
+                    const filename = `claude_${Utils.sanitizeFilename(title)}_${uuid.substring(0, 8)}`;
+                    await Communicator.open(JSON.stringify(data, null, 2), `${filename}.json`, {
+                        action: 'export_markdown',
+                        exportContext: Object.keys(exportContext).length ? exportContext : undefined
+                    });
                 } catch (error) {
-                    ErrorHandler.handle(error, 'Export conversation');
+                    ErrorHandler.handle(error, 'Export conversation markdown');
                 } finally {
                     Utils.restoreButton(btn, original);
                 }
@@ -826,7 +951,9 @@ const ClaudeHandler = {
         ));
         controlsArea.appendChild(Utils.createButton(
             `${zipIcon} ${i18n.t('exportAllConversations')}`,
-            (btn) => ClaudeHandler.exportAll(btn, controlsArea)
+            async (btn) => {
+                return ClaudeHandler.exportAll(btn, controlsArea);
+            }
         ));
     },
     getCurrentUUID: () => window.location.pathname.match(/\/chat\/([a-zA-Z0-9-]+)/)?.[1],
@@ -1020,15 +1147,20 @@ const ClaudeHandler = {
         }
     },
     exportAll: async (btn, controlsArea) => {
-        if (typeof fflate === 'undefined' || typeof fflate.zip !== 'function' || typeof fflate.strToU8 !== 'function') {
-            const errorMsg = i18n.currentLang === 'zh'
-                ? '批量导出功能需要压缩库支持。\n\n由于当前平台的安全策略限制,该功能暂时不可用。\n建议使用"导出当前"功能单个导出对话。'
-                : 'Batch export requires compression library.\n\nThis feature is currently unavailable due to platform security policies.\nPlease use "Export" button to export conversations individually.';
-            alert(errorMsg);
-            return;
-        }
         const userId = await ClaudeHandler.ensureUserId();
         if (!userId) return;
+
+        // 检查扩展模式下的导出模式配置
+        const isExtensionMode = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id;
+        let exportAllMode = 'zip';
+        if (isExtensionMode) {
+            try {
+                const exportCfg = await new Promise(resolve =>
+                    chrome.storage.local.get(['loominary_export_config'], r => resolve(r.loominary_export_config || {}))
+                );
+                exportAllMode = exportCfg.exportAllMode || 'zip';
+            } catch (e) {}
+        }
 
         const original = btn.innerHTML;
         Utils.setButtonLoading(btn, i18n.t('detectingConversations'));
@@ -1045,6 +1177,35 @@ const ClaudeHandler = {
 
         const totalCount = allConvs.length;
         Utils.restoreButton(btn, original);
+
+        // app 模式：发送对话列表元数据到 React App
+        if (exportAllMode === 'app') {
+            const conversations = allConvs.map(conv => ({
+                uuid: conv.uuid,
+                name: conv.name || conv.uuid,
+                created_at: conv.created_at || null,
+                updated_at: conv.updated_at || null,
+                project_uuid: conv.project_uuid || null,
+                project: conv.project || null,
+            }));
+            const baseUrl = ClaudeHandler.getBaseUrl();
+            await Communicator.open(null, 'browse_all', {
+                action: 'browse_all',
+                conversations,
+                userId,
+                baseUrl
+            });
+            return;
+        }
+
+        // zip 模式：检查压缩库
+        if (typeof fflate === 'undefined' || typeof fflate.zip !== 'function' || typeof fflate.strToU8 !== 'function') {
+            const errorMsg = i18n.currentLang === 'zh'
+                ? '批量导出功能需要压缩库支持。\n\n由于当前平台的安全策略限制,该功能暂时不可用。\n建议使用"导出当前"功能单个导出对话。'
+                : 'Batch export requires compression library.\n\nThis feature is currently unavailable due to platform security policies.\nPlease use "Export" button to export conversations individually.';
+            alert(errorMsg);
+            return;
+        }
 
         const promptMsg = `${i18n.t('foundConversations')} ${totalCount} ${i18n.t('conversations')}\n\n${i18n.t('selectExportCount')}`;
         const userInput = prompt(promptMsg, totalCount.toString());
@@ -1072,6 +1233,19 @@ const ClaudeHandler = {
 
         const accountInfo = await ClaudeHandler.getAccountInfo();
         const accountName = Utils.sanitizeFilename(accountInfo?.display_name || accountInfo?.full_name || 'claude');
+
+        // 读取 popup 导出配置
+        let includeProjectInfo = true, includeUserMemory = true;
+        const isExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id;
+        if (isExtension) {
+            try {
+                const exportCfg = await new Promise(resolve =>
+                    chrome.storage.local.get(['loominary_export_config'], r => resolve(r.loominary_export_config || {}))
+                );
+                includeProjectInfo = exportCfg.includeProjectInfo !== false;
+                includeUserMemory = exportCfg.includeUserMemory !== false;
+            } catch (e) {}
+        }
 
         try {
             const includeImages = document.getElementById(Config.IMAGE_SWITCH_ID)?.checked || false;
@@ -1105,9 +1279,11 @@ const ClaudeHandler = {
                 }
             }
 
+            if (includeProjectInfo || includeUserMemory) {
             progress.textContent = i18n.currentLang === 'zh' ? '正在获取项目数据...' : 'Fetching project data...';
             const projectsMeta = { exported_at: new Date().toISOString(), organization_id: userId, user_instructions: null, global_memory: null, projects: [] };
 
+            if (includeUserMemory) {
             try {
                 const profile = await ClaudeHandler.getUserProfile();
                 if (profile?.conversation_preferences) projectsMeta.user_instructions = profile.conversation_preferences;
@@ -1117,7 +1293,9 @@ const ClaudeHandler = {
                 const globalMem = await ClaudeHandler.getGlobalMemory();
                 if (globalMem) projectsMeta.global_memory = globalMem;
             } catch (e) {}
+            }
 
+            if (includeProjectInfo) {
             try {
                 const projects = await ClaudeHandler.getAllProjects();
                 if (projects && Array.isArray(projects)) {
@@ -1167,8 +1345,10 @@ const ClaudeHandler = {
                     }
                 }
             } catch (e) {}
+            } // end includeProjectInfo
 
             zipEntries[`projects/${userId}_projects.json`] = fflate.strToU8(JSON.stringify(projectsMeta, null, 2));
+            } // end includeProjectInfo || includeUserMemory
 
             progress.textContent = `${i18n.t('compressing')}…`;
 

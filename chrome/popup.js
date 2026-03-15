@@ -22,6 +22,11 @@ const DEFAULTS = {
   includeCitations: false,
   includeAttachments: true,
   includeBranchMarkers: true,
+  // Claude 附加信息
+  includeProjectInfo: false,
+  includeUserMemory: false,
+  // 全部导出
+  exportAllMode: 'zip',
   // 外观
   theme: 'dark'
 };
@@ -60,6 +65,10 @@ const I18N = {
     attachmentsDesc: '用户上传的文件及其预览信息',
     branchMarkers: '分支标识符',
     branchMarkersDesc: '导出时包含分支标记（↳ 和 🔀）',
+    sectionExportAll: '全部导出',
+    exportAllMode: '导出方式',
+    exportAllZip: '下载压缩包',
+    exportAllApp: '打开应用（开发中）',
     sectionST: 'SillyTavern',
     sectionSTDesc: '在 SillyTavern 标签页中打开此弹窗，可直接导出当前对话',
     stExport: '导出当前 ST 对话',
@@ -102,6 +111,10 @@ const I18N = {
     attachmentsDesc: 'Uploaded files and their preview info',
     branchMarkers: 'Branch Markers',
     branchMarkersDesc: 'Include branch markers (↳ and 🔀) in export',
+    sectionExportAll: 'Export All',
+    exportAllMode: 'Export Mode',
+    exportAllZip: 'Download ZIP',
+    exportAllApp: 'Open App (WIP)',
     sectionST: 'SillyTavern',
     sectionSTDesc: 'Open this popup while on a SillyTavern tab to export the current chat',
     stExport: 'Export current ST chat',
@@ -168,10 +181,14 @@ function loadUI() {
   // 思考格式
   document.getElementById('thinkingFormat').value = config.thinkingFormat || 'codeblock';
 
+  // 全部导出模式
+  document.getElementById('exportAllMode').value = config.exportAllMode || 'zip';
+
   // 复选框
   const checkboxIds = [
     'includeTimestamps', 'includeThinking', 'includeArtifacts',
-    'includeTools', 'includeCitations', 'includeAttachments', 'includeBranchMarkers'
+    'includeTools', 'includeCitations', 'includeAttachments', 'includeBranchMarkers',
+    'includeProjectInfo', 'includeUserMemory'
   ];
   checkboxIds.forEach(id => {
     const el = document.getElementById(id);
@@ -231,10 +248,17 @@ function bindEvents() {
     saveConfig();
   });
 
+  // 全部导出模式
+  document.getElementById('exportAllMode').addEventListener('change', e => {
+    config.exportAllMode = e.target.value;
+    saveConfig();
+  });
+
   // 复选框
   const checkboxIds = [
     'includeTimestamps', 'includeThinking', 'includeArtifacts',
-    'includeTools', 'includeCitations', 'includeAttachments', 'includeBranchMarkers'
+    'includeTools', 'includeCitations', 'includeAttachments', 'includeBranchMarkers',
+    'includeProjectInfo', 'includeUserMemory'
   ];
   checkboxIds.forEach(id => {
     const el = document.getElementById(id);
