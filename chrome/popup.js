@@ -298,6 +298,86 @@ function bindEvents() {
               ? (characters[characterId]?.name || 'Unknown') : 'Unknown';
             const avatarUrl = (characters && characterId !== undefined)
               ? (characters[characterId]?.avatar || '') : '';
+
+            // Extract rich character/world/persona context
+            let stContext = null;
+            const char = (characters && characterId !== undefined) ? characters[characterId] : null;
+            if (char) {
+              stContext = {
+                character: {
+                  name:                      char.name || '',
+                  description:               char.description || '',
+                  personality:               char.personality || '',
+                  scenario:                  char.scenario || '',
+                  system_prompt:             char.system_prompt || '',
+                  post_history_instructions: char.post_history_instructions || '',
+                  creator_notes:             char.creator_notes || '',
+                  first_mes:                 char.first_mes || '',
+                  mes_example:               char.mes_example || ''
+                },
+                characterBook: char.character_book || null,
+                worldBooks: {},
+                persona: null,
+                instructPreset: null,
+                syspromptPreset: null
+              };
+              // --- World books ---
+              // 1. Character-linked world book
+              const charWorldName = char.extensions?.world;
+              if (charWorldName) {
+                try {
+                  const wb = await ctx.loadWorldInfo(charWorldName);
+                  if (wb?.entries) stContext.worldBooks[charWorldName] = { entries: wb.entries, source: 'character' };
+                } catch (e) { /* skip if unavailable */ }
+              }
+              // 2. Chat-level world book (bound via chat metadata key "world_info")
+              const chatWorldName = chatMetadata?.world_info;
+              if (chatWorldName && chatWorldName !== charWorldName) {
+                try {
+                  const wb = await ctx.loadWorldInfo(chatWorldName);
+                  if (wb?.entries) stContext.worldBooks[chatWorldName] = { entries: wb.entries, source: 'chat' };
+                } catch (e) { /* skip if unavailable */ }
+              }
+              // 3. Global world books (activated in the World Info panel)
+              //    ST stores the list in world_info.globalSelect inside settings.json.
+              //    We fetch it from the ST settings API endpoint.
+              try {
+                const wiResp = await fetch(`${window.location.origin}/api/settings/get`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' }
+                });
+                if (wiResp.ok) {
+                  const wiData = await wiResp.json();
+                  const globalSelected = wiData?.world_info?.globalSelect || [];
+                  for (const wbName of globalSelected) {
+                    if (stContext.worldBooks[wbName]) continue; // already loaded
+                    try {
+                      const wb = await ctx.loadWorldInfo(wbName);
+                      if (wb?.entries) stContext.worldBooks[wbName] = { entries: wb.entries, source: 'global' };
+                    } catch (e) { /* skip */ }
+                  }
+                }
+              } catch (e) { /* settings API unavailable */ }
+
+              // --- Persona ---
+              const pus = ctx.powerUserSettings;
+              const pid = pus?.default_persona;
+              if (pid) {
+                const pdesc = pus?.persona_descriptions?.[pid];
+                stContext.persona = {
+                  name: pus?.personas?.[pid] || '',
+                  description: (typeof pdesc === 'string' ? pdesc : pdesc?.description) || ''
+                };
+                if (!stContext.persona.name && !stContext.persona.description) stContext.persona = null;
+              }
+              // --- Instruct preset ---
+              const instruct = pus?.instruct;
+              if (instruct?.preset) stContext.instructPreset = { name: instruct.preset, enabled: !!instruct.enabled };
+              // --- System prompt preset ---
+              //     Stored in power_user.sysprompt.name (ST 1.12+)
+              const syspromptName = pus?.sysprompt?.name;
+              if (syspromptName) stContext.syspromptPreset = { name: syspromptName, enabled: !!pus?.sysprompt?.enabled };
+            }
             const origin = window.location.origin;
             // Fetch CSRF token from ST server (same as ST's own getRequestHeaders)
             let csrfToken = '';
@@ -369,7 +449,7 @@ function bindEvents() {
                 filename: `${safeChar} - ${safeChatId}.jsonl`
               }];
             }
-            return { files: allFiles };
+            return { files: allFiles, stContext };
           } catch (e) {
             return { error: e.message };
           }
@@ -382,10 +462,13 @@ function bindEvents() {
       if (payload.error === 'noChat') throw new Error(t('stNoChat'));
       if (payload.error) throw new Error(t('stError') + payload.error);
 
-      const { files } = payload;
+      const { files, stContext } = payload;
+      const exportContext = stContext ? { stContext } : undefined;
       chrome.runtime.sendMessage({
         type: 'LOOMINARY_OPEN_SIDEPANEL',
-        data: files.length === 1 ? files[0] : { files }
+        data: files.length === 1
+          ? { ...files[0], exportContext }
+          : { files, exportContext }
       });
 
       stStatus.className = 'st-status ok';
