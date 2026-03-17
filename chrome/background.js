@@ -33,18 +33,65 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 async function handleFetch(options) {
     const { url, method = 'GET', headers = {}, body, responseType = 'json' } = options;
 
+    // 对 JSON GET 请求，优先通过页面上下文执行 fetch（同源，cookies 完整）
+    if (responseType === 'json' && method === 'GET' && !body) {
+        try {
+            const urlOrigin = new URL(url).origin;
+            const allTabs = await chrome.tabs.query({});
+            console.log('[Loominary Background] Tabs found:', allTabs.length, 'looking for:', urlOrigin);
+            const matchingTab = allTabs.find(t => t.url && t.url.startsWith(urlOrigin + '/'));
+            if (matchingTab) {
+                console.log('[Loominary Background] Using scripting.executeScript on tab:', matchingTab.id, matchingTab.url);
+                const results = await chrome.scripting.executeScript({
+                    target: { tabId: matchingTab.id },
+                    func: (fetchUrl) => fetch(fetchUrl)
+                        .then(async r => {
+                            if (!r.ok) return { success: false, status: r.status, error: `HTTP ${r.status}` };
+                            return r.json().then(data => ({ success: true, data }));
+                        })
+                        .catch(err => ({ success: false, error: err.message })),
+                    args: [url]
+                });
+                const result = results?.[0]?.result;
+                console.log('[Loominary Background] Script result:', result?.success, result?.status, result?.error);
+                if (result?.success || result?.status) return result;
+            } else {
+                console.warn('[Loominary Background] No matching tab for:', urlOrigin, '- falling through to direct fetch');
+                // 不 return，让它 fall through 到下面的直接 fetch
+            }
+        } catch (e) {
+            console.warn('[Loominary Background] executeScript failed, falling back to direct fetch:', e.message);
+        }
+    }
+
     try {
+        // Chrome background SW 有 host_permissions CORS 豁免，可以用 credentials: 'include'
+        // Firefox background script 不豁免 CORS，include + ACAO:* 会失败，需要回退到 omit
+        const isImageFetch = responseType === 'blob' || responseType === 'arraybuffer';
         const fetchOptions = {
             method,
             headers,
-            credentials: 'include'
+            credentials: isImageFetch ? 'include' : 'include'
         };
 
         if (body) {
             fetchOptions.body = body;
         }
 
-        const response = await fetch(url, fetchOptions);
+        let response;
+        try {
+            response = await fetch(url, fetchOptions);
+        } catch (e) {
+            // Firefox CORS 失败时，回退到 credentials: 'omit'
+            if (isImageFetch) {
+                fetchOptions.credentials = 'omit';
+                response = await fetch(url, fetchOptions);
+            } else {
+                throw e;
+            }
+        }
+
+        console.log('[Loominary Background] Direct fetch response:', response.status, response.headers.get('content-type'), url.substring(0, 80));
 
         let data;
         if (responseType === 'blob') {
@@ -132,10 +179,33 @@ async function handleOpenTab(data) {
 }
 
 // 扩展安装或更新时的处理
-chrome.runtime.onInstalled.addListener((details) => {
+chrome.runtime.onInstalled.addListener(async (details) => {
     if (details.reason === 'install') {
         console.log('[Loominary Extension] Installed successfully');
     } else if (details.reason === 'update') {
         console.log('[Loominary Extension] Updated to version', chrome.runtime.getManifest().version);
     }
+
+    // Firefox MV3: host_permissions 不会自动授予，检查并提示用户
+    try {
+        const manifest = chrome.runtime.getManifest();
+        const origins = manifest.host_permissions || [];
+        if (origins.length) {
+            const granted = await chrome.permissions.contains({ origins });
+            if (!granted) {
+                // 在扩展图标上显示提示，引导用户点击授权
+                chrome.action.setBadgeText({ text: '!' });
+                chrome.action.setBadgeBackgroundColor({ color: '#FF6B6B' });
+                chrome.action.setTitle({ title: 'Loominary - Click to grant permissions / 点击授予权限' });
+            }
+        }
+    } catch (e) {
+        // Chrome 中无需此操作
+    }
+});
+
+// 权限变更时清除 badge
+chrome.permissions.onAdded?.addListener(() => {
+    chrome.action.setBadgeText({ text: '' });
+    chrome.action.setTitle({ title: 'Open Loominary' });
 });

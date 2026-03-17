@@ -1,7 +1,7 @@
 // ============================================================
 // Loominary - Content Script
 // Version: 0.4
-// Built: 2026-03-16T02:51:12.894144
+// Built: 2026-03-18T00:21:32.191732
 // ============================================================
 
 (function() {
@@ -37,9 +37,72 @@ function GM_addStyle(css) {
     return style;
 }
 
+/**
+ * 通过 background service worker 代理跨域请求（绕过 content script CORS 限制）
+ * 仅用于 blob: 以外的跨域 URL（如 Gemini 图片 CDN）
+ */
+function fetchViaBackground(url, responseType) {
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage(
+            { type: 'LOOMINARY_FETCH', options: { url, responseType } },
+            (response) => {
+                if (chrome.runtime.lastError) {
+                    return reject(new Error(chrome.runtime.lastError.message));
+                }
+                if (!response || !response.success) {
+                    return reject(new Error(response?.error || 'Background fetch failed'));
+                }
+                if (responseType === 'blob') {
+                    // background 返回 data URL 字符串，转回 Blob
+                    fetch(response.data).then(r => r.blob()).then(resolve).catch(reject);
+                } else {
+                    resolve(response.data);
+                }
+            }
+        );
+    });
+}
+
+// 处理来自 background.js 的代理 fetch 请求
+// 在页面上下文中执行，确保 SameSite cookies 可随同源请求发送
+chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
+    if (request.type !== 'LOOMINARY_CONTENT_FETCH') return;
+    const { url } = request;
+    fetch(url)
+        .then(async r => {
+            if (!r.ok) return { success: false, status: r.status, error: `HTTP ${r.status}` };
+            const data = await r.json();
+            return { success: true, data };
+        })
+        .catch(err => ({ success: false, error: err.message }))
+        .then(sendResponse);
+    return true;
+});
+
 function GM_xmlhttpRequest(options) {
     const { method = 'GET', url, headers = {}, responseType, onload, onerror } = options;
 
+    // 扩展环境中，跨域 URL（非 blob:、非同域）走 background 代理，避免 CORS 错误
+    const isExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id;
+    const isCrossOrigin = url && !url.startsWith('blob:') && !url.startsWith(window.location.origin);
+
+    if (isExtension && isCrossOrigin) {
+        fetchViaBackground(url, responseType || 'blob')
+            .then(data => {
+                if (onload) {
+                    onload({ status: 200, statusText: 'OK', response: data, responseText: '' });
+                }
+            })
+            .catch(error => {
+                if (onerror) {
+                    onerror({ error: error.message, statusText: error.message });
+                }
+            });
+
+        return { abort: () => {} };
+    }
+
+    // 同域或 blob: URL：直接 fetch（content script 有权限）
     const fetchOptions = {
         method,
         headers,
@@ -88,6 +151,7 @@ function GM_xmlhttpRequest(options) {
     };
 }
 
+
         // Trusted Types support for CSP compatibility
         let trustedPolicy = null;
         if (typeof window.trustedTypes !== 'undefined' && window.trustedTypes.createPolicy) {
@@ -103,10 +167,20 @@ function GM_xmlhttpRequest(options) {
 
         function safeSetInnerHTML(element, html) {
             if (!element) return;
-            if (trustedPolicy) {
-                element.innerHTML = trustedPolicy.createHTML(html);
-            } else {
+            try {
+                if (trustedPolicy) {
+                    element.innerHTML = trustedPolicy.createHTML(html);
+                    return;
+                }
                 element.innerHTML = html;
+            } catch (e) {
+                // Trusted Types blocked innerHTML (e.g. Gemini CSP) — parse via DOMParser instead
+                try {
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                    element.replaceChildren(...doc.body.childNodes);
+                } catch (e2) {
+                    element.textContent = html;
+                }
             }
         }
 
@@ -137,6 +211,10 @@ function GM_xmlhttpRequest(options) {
                 if (host.includes('claude.ai')) {
                     console.log('[Loominary] Platform detected: claude');
                     return 'claude';
+                }
+                if (host.includes('grok.com')) {
+                    console.log('[Loominary] Platform detected: grok');
+                    return 'grok';
                 }
                 if (host.includes('gemini')) {
                     console.log('[Loominary] Platform detected: gemini');
@@ -592,34 +670,44 @@ const ClaudeHandler = {
         allConversationsTime: 0,
     },
     init: () => {
-        const script = document.createElement('script');
-        script.textContent = `
-            (function() {
-                function captureUserId(url) {
-                    const match = url.match(/\\/api\\/organizations\\/([a-f0-9-]+)\\//);
-                    if (match && match[1]) {
-                        localStorage.setItem('claudeUserId', match[1]);
-                        window.dispatchEvent(new CustomEvent('userIdCaptured', { detail: { userId: match[1] } }));
+        // 扩展模式下 injected.js 已通过 script.src 注入（符合 CSP），不需要 inline script
+        const isExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id;
+        if (!isExtension) {
+            // Userscript 模式：通过 inline script 拦截 fetch/XHR 以捕获 userId
+            const script = document.createElement('script');
+            script.textContent = `
+                (function() {
+                    function captureUserId(url) {
+                        const match = url.match(/\\/api\\/organizations\\/([a-f0-9-]+)\\//);
+                        if (match && match[1]) {
+                            localStorage.setItem('claudeUserId', match[1]);
+                            window.dispatchEvent(new CustomEvent('userIdCaptured', { detail: { userId: match[1] } }));
+                        }
                     }
-                }
-                const originalXHROpen = XMLHttpRequest.prototype.open;
-                XMLHttpRequest.prototype.open = function() {
-                    if (arguments[1]) captureUserId(arguments[1]);
-                    return originalXHROpen.apply(this, arguments);
-                };
-                const originalFetch = window.fetch;
-                window.fetch = function(resource) {
-                    const url = typeof resource === 'string' ? resource : (resource.url || '');
-                    if (url) captureUserId(url);
-                    return originalFetch.apply(this, arguments);
-                };
-            })();
-        `;
-        (document.head || document.documentElement).appendChild(script);
-        script.remove();
-        window.addEventListener('userIdCaptured', (e) => {
-            if (e.detail.userId) State.capturedUserId = e.detail.userId;
-        });
+                    const originalXHROpen = XMLHttpRequest.prototype.open;
+                    XMLHttpRequest.prototype.open = function() {
+                        if (arguments[1]) captureUserId(arguments[1]);
+                        return originalXHROpen.apply(this, arguments);
+                    };
+                    const originalFetch = window.fetch;
+                    window.fetch = function(resource) {
+                        const url = typeof resource === 'string' ? resource : (resource.url || '');
+                        if (url) captureUserId(url);
+                        return originalFetch.apply(this, arguments);
+                    };
+                })();
+            `;
+            (document.head || document.documentElement).appendChild(script);
+            script.remove();
+            // Userscript 模式：监听 inline script 触发的 CustomEvent
+            window.addEventListener('userIdCaptured', (e) => {
+                if (e.detail.userId) State.capturedUserId = e.detail.userId;
+            });
+        } else {
+            // 扩展模式：injected.js 通过 postMessage 发送 LOOMINARY_USER_ID_CAPTURED
+            // build.py 的 header 已在 content.js 顶部监听并写入 localStorage
+            // 这里直接从 localStorage 读取已捕获的 userId（延迟读取，首次使用时通过 ensureUserId 获取）
+        }
     },
     addUI: (controlsArea) => {
 
@@ -1292,12 +1380,13 @@ const VersionTracker = {
         }
 
         const url = imgElement.src;
-        if (!url || url.startsWith('data:') || url.includes('drive-thirdparty.googleusercontent.com')) return null;
+        if (!url || url.startsWith('data:') || url.includes('drive-thirdparty.googleusercontent.com')
+            || imgElement.classList.contains('new-file-icon') || imgElement.dataset.testId === 'new-file-icon') return null;
         if (VersionTracker.imageCache.has(url)) return VersionTracker.imageCache.get(url);
 
         for (let i = 1; i <= retries; i++) {
             try {
-                const imageData = await processImageElement(imgElement);
+                const imageData = await gemini_processImageElement(imgElement);
                 if (imageData) {
                     const hashKey = VersionTracker.getImageHashKey(imageData);
                     if (hashKey && VersionTracker.imagePool.has(hashKey)) {
@@ -1329,6 +1418,7 @@ const VersionTracker = {
         if (VersionTracker.isTracking) return;
         VersionTracker.isTracking = true;
         VersionTracker.resetTracker();
+        console.log('[LyraGemini] VersionTracker started, scan interval:', Config.TIMING.VERSION_SCAN_INTERVAL, 'ms');
         VersionTracker.scanInterval = setInterval(() => VersionTracker.scanOnce(), Config.TIMING.VERSION_SCAN_INTERVAL);
         VersionTracker.hrefCheckInterval = setInterval(() => {
             if (location.href !== VersionTracker.currentHref) {
@@ -1352,7 +1442,7 @@ const VersionTracker = {
             tracker.turns[turnId] = {
                 id: turnId,
                 userVersions: [], assistantVersions: [],
-                userLastText: '', assistantCommittedText: '', assistantPendingText: '', assistantPendingSince: 0,
+                userLastText: '', assistantCommittedText: '', assistantPendingText: '', assistantPendingSince: 0, assistantPendingImages: [],
                 userImages: new Map(), assistantImages: new Map()
             };
             tracker.order.push(turnId);
@@ -1402,8 +1492,11 @@ const VersionTracker = {
         if (text !== t.assistantPendingText) {
             t.assistantPendingText = text;
             t.assistantPendingSince = now;
+            if (images.length) t.assistantPendingImages = images;
             return;
         }
+        // 即使文本未变，也持续更新待处理图片（异步加载可能滞后）
+        if (images.length) t.assistantPendingImages = images;
         if (now - t.assistantPendingSince < Config.TIMING.VERSION_STABLE) return;
 
         const userVersion = t.userVersions.at(-1)?.version ?? null;
@@ -1431,7 +1524,14 @@ const VersionTracker = {
 
         try {
             const turns = document.querySelectorAll('div.conversation-turn, div.single-turn, div.conversation-container');
-            if (!turns.length) return;
+            if (!turns.length) {
+                // 每 30 秒输出一次调试信息，避免刷屏
+                if (!VersionTracker._lastDebugLog || Date.now() - VersionTracker._lastDebugLog > 30000) {
+                    VersionTracker._lastDebugLog = Date.now();
+                    console.log('[LyraGemini] scanOnce: no turns found. DOM selectors tried: div.conversation-turn, div.single-turn, div.conversation-container');
+                }
+                return;
+            }
 
             const includeImages = document.getElementById(Config.IMAGE_SWITCH_ID)?.checked || false;
 
@@ -1441,24 +1541,45 @@ const VersionTracker = {
                 let userImages = [], assistantImages = [];
 
                 if (includeImages) {
-                    const userImgEls = turn.querySelectorAll('user-query img, user-query-file-preview img, .file-preview-container img');
+                    // 排除文件类型图标（drive-thirdparty.googleusercontent.com）
+                    const userImgEls = [...turn.querySelectorAll('user-query img, user-query-file-preview img, .file-preview-container img')]
+                        .filter(img => !img.src.includes('drive-thirdparty.googleusercontent.com'));
                     // 只获取 message-content 内的图片，排除 model-thoughts
                     const modelContent = turn.querySelector('model-response message-content');
-                    const modelImgEls = modelContent?.querySelectorAll('img') || [];
+                    const modelImgEls = modelContent ? [...modelContent.querySelectorAll('img')]
+                        .filter(img => !img.src.includes('drive-thirdparty.googleusercontent.com')) : [];
 
-                    if (userImgEls.length) userImages = (await Promise.all([...userImgEls].map(i => VersionTracker.getOrFetchImage(i)))).filter(Boolean);
-                    if (modelImgEls.length) assistantImages = (await Promise.all([...modelImgEls].map(i => VersionTracker.getOrFetchImage(i)))).filter(Boolean);
+                    if (userImgEls.length) userImages = (await Promise.all(userImgEls.map(i => VersionTracker.getOrFetchImage(i)))).filter(Boolean);
+                    if (modelImgEls.length) assistantImages = (await Promise.all(modelImgEls.map(i => VersionTracker.getOrFetchImage(i)))).filter(Boolean);
                 }
 
-                VersionTracker.handleUser(id, VersionTracker.getUserText(turn), userImages);
-                VersionTracker.handleAssistant(id, VersionTracker.getAssistantText(turn), assistantImages);
+                const userText = VersionTracker.getUserText(turn);
+                const assistantText = VersionTracker.getAssistantText(turn);
+
+                // 调试日志（每 30 秒最多输出一次）
+                if (!VersionTracker._lastScanDebug || Date.now() - VersionTracker._lastScanDebug > 30000) {
+                    if (idx === 0) VersionTracker._lastScanDebug = Date.now();
+                    console.log(`[LyraGemini] Turn ${idx} id=${id}: userText=${userText.length}chars, assistantText=${assistantText.length}chars`,
+                        turn.querySelector('user-query') ? 'has-user-query' : 'no-user-query',
+                        turn.querySelector('message-content') ? 'has-message-content' : 'no-message-content',
+                        turn.querySelector('.markdown-main-panel') ? 'has-markdown-panel' : 'no-markdown-panel');
+                }
+
+                VersionTracker.handleUser(id, userText, userImages);
+                VersionTracker.handleAssistant(id, assistantText, assistantImages);
             }
         } finally {
             VersionTracker.isScanning = false;
         }
     },
 
-    getUserText: (turn) => (turn.querySelector('user-query .query-text, .query-text-line, [data-user-text]')?.innerText || '').trim(),
+    getUserText: (turn) => {
+        const el = turn.querySelector('user-query .query-text, .query-text-line, [data-user-text]');
+        if (!el) return '';
+        const clone = el.cloneNode(true);
+        clone.querySelectorAll('.cdk-visually-hidden').forEach(e => e.remove());
+        return clone.innerText.trim();
+    },
 
     getAssistantText: (turn) => {
         // 严格只从 message-content 获取内容，完全排除 model-thoughts
@@ -1473,8 +1594,8 @@ const VersionTracker = {
         }
         
         const clone = panel.cloneNode(true);
-        // 移除所有不需要的元素
-        clone.querySelectorAll('button.retry-without-tool-button, model-thoughts, .model-thoughts, .thoughts-header').forEach(b => b.remove());
+        // 移除所有不需要的元素（含 Gemini 的屏幕阅读器隐藏文本）
+        clone.querySelectorAll('button.retry-without-tool-button, model-thoughts, .model-thoughts, .thoughts-header, .cdk-visually-hidden').forEach(b => b.remove());
         
         const text = htmlToMarkdown(clone);
         // 过滤掉只有思考标题的短文本（通常小于50字符且不包含换行）
@@ -1485,9 +1606,34 @@ const VersionTracker = {
         return text;
     },
 
+    // 导出前强制提交所有待处理的 assistant 文本（忽略 VERSION_STABLE 延迟）
+    forceCommitAll: () => {
+        const { turns, order } = VersionTracker.tracker;
+        for (const id of order) {
+            const t = turns[id];
+            if (!t || !t.assistantPendingText) continue;
+            const text = t.assistantPendingText;
+            const images = t.assistantPendingImages || [];
+            const userVersion = t.userVersions.at(-1)?.version ?? null;
+            const last = t.assistantVersions.at(-1);
+            if (last?.userVersion === userVersion && last?.text === text) {
+                // 文本已提交，但图片可能尚未更新
+                if (images.length && !VersionTracker.areImageListsEqual(t.assistantImages.get(last.version) || [], images)) {
+                    t.assistantImages.set(last.version, images);
+                }
+                continue;
+            }
+            const version = t.assistantVersions.length;
+            t.assistantVersions.push({ version, type: version ? 'retry' : 'normal', userVersion, text });
+            if (images.length) t.assistantImages.set(version, images);
+            t.assistantCommittedText = text;
+        }
+    },
+
     buildVersionedData: (title) => {
         const { turns, order } = VersionTracker.tracker;
         const result = [];
+        console.log('[LyraGemini] buildVersionedData: tracked turns =', order.length, ', turnIds =', order);
 
         for (const id of order) {
             const t = turns[id];
@@ -1519,11 +1665,10 @@ VersionTracker.tracker = VersionTracker.createEmptyTracker();
 window.lyraGeminiExport = (title) => VersionTracker.buildVersionedData(title || 'Gemini Chat');
 window.lyraGeminiReset = () => VersionTracker.resetTracker();
 
-function fetchViaGM(url) {
+function gemini_fetchViaGM(url) {
     return new Promise((resolve, reject) => {
         if (typeof GM_xmlhttpRequest === 'undefined') {
-            fetch(url).then(r => r.ok ? r.blob() : Promise.reject(new Error(`Status: ${r.status}`))).then(resolve).catch(reject);
-            return;
+            return reject(new Error('GM_xmlhttpRequest not available'));
         }
         GM_xmlhttpRequest({
             method: "GET", url, responseType: "blob",
@@ -1533,10 +1678,11 @@ function fetchViaGM(url) {
     });
 }
 
-async function processImageElement(imgElement) {
+async function gemini_processImageElement(imgElement) {
     if (!imgElement) return null;
     const url = imgElement.src;
-    if (!url || url.startsWith('data:') || url.includes('drive-thirdparty.googleusercontent.com')) return null;
+    if (!url || url.startsWith('data:') || url.includes('drive-thirdparty.googleusercontent.com')
+        || imgElement.classList.contains('new-file-icon') || imgElement.dataset.testId === 'new-file-icon') return null;
 
     try {
         let base64Data, mimeType, size;
@@ -1561,7 +1707,7 @@ async function processImageElement(imgElement) {
                 size = Math.round((base64Data.length * 3) / 4);
             }
         } else {
-            const blob = await fetchViaGM(url);
+            const blob = await gemini_fetchViaGM(url);
             base64Data = await Utils.blobToBase64(blob);
             mimeType = blob.type;
             size = blob.size;
@@ -1768,7 +1914,7 @@ async function extractDataIncremental_AiStudio(includeImages = true) {
             }
             if (includeImages) {
                 const imgs = userEl.querySelectorAll('.user-prompt-container img');
-                turnData.images = (await Promise.all([...imgs].map(processImageElement))).filter(Boolean);
+                turnData.images = (await Promise.all([...imgs].map(gemini_processImageElement))).filter(Boolean);
             }
         } else if (modelEl) {
             const chunks = modelEl.querySelectorAll('ms-prompt-chunk');
@@ -1780,7 +1926,7 @@ async function extractDataIncremental_AiStudio(includeImages = true) {
                 if (cmark) {
                     const md = htmlToMarkdown(cmark);
                     if (md) texts.push(md);
-                    if (includeImages) [...cmark.querySelectorAll('img')].forEach(i => imgPromises.push(processImageElement(i)));
+                    if (includeImages) [...cmark.querySelectorAll('img')].forEach(i => imgPromises.push(gemini_processImageElement(i)));
                 }
             });
 
@@ -1799,6 +1945,8 @@ const ScraperHandler = {
     handlers: {
         gemini: {
             getTitle: () => {
+                const domTitle = document.querySelector('[data-test-id="conversation-title"]')?.textContent?.trim();
+                if (domTitle) return domTitle;
                 const input = prompt('请输入对话标题 / Enter title:', '对话');
                 return input === null ? null : (input || i18n.t('untitledChat'));
             },
@@ -1812,17 +1960,22 @@ const ScraperHandler = {
                     const messageContent = container.querySelector("message-content");
                     const modelEl = messageContent?.querySelector(".markdown-main-panel");
 
-                    const humanText = userEl?.innerText.trim() || "";
+                    let humanText = "";
+                    if (userEl) {
+                        const userClone = userEl.cloneNode(true);
+                        userClone.querySelectorAll('.cdk-visually-hidden').forEach(e => e.remove());
+                        humanText = userClone.innerText.trim();
+                    }
                     let assistantText = "";
 
                     if (modelEl) {
                         const clone = modelEl.cloneNode(true);
-                        clone.querySelectorAll('button.retry-without-tool-button, model-thoughts, .model-thoughts, .thoughts-header').forEach(b => b.remove());
+                        clone.querySelectorAll('button.retry-without-tool-button, model-thoughts, .model-thoughts, .thoughts-header, .cdk-visually-hidden').forEach(b => b.remove());
                         assistantText = htmlToMarkdown(clone);
                     } else if (messageContent) {
                         // 回退：使用整个 message-content
                         const clone = messageContent.cloneNode(true);
-                        clone.querySelectorAll('button.retry-without-tool-button, model-thoughts, .model-thoughts, .thoughts-header').forEach(b => b.remove());
+                        clone.querySelectorAll('button.retry-without-tool-button, model-thoughts, .model-thoughts, .thoughts-header, .cdk-visually-hidden').forEach(b => b.remove());
                         assistantText = htmlToMarkdown(clone);
                     }
                     
@@ -1836,8 +1989,8 @@ const ScraperHandler = {
                         const uImgs = container.querySelectorAll("user-query img, user-query-file-preview img, .file-preview-container img");
                         // 只从 message-content 获取图片
                         const mImgs = messageContent?.querySelectorAll("img") || [];
-                        userImages = (await Promise.all([...uImgs].map(processImageElement))).filter(Boolean);
-                        modelImages = (await Promise.all([...mImgs].map(processImageElement))).filter(Boolean);
+                        userImages = (await Promise.all([...uImgs].map(gemini_processImageElement))).filter(Boolean);
+                        modelImages = (await Promise.all([...mImgs].map(gemini_processImageElement))).filter(Boolean);
                     }
 
                     if (humanText || assistantText || userImages.length || modelImages.length) {
@@ -1884,8 +2037,8 @@ const ScraperHandler = {
 
                     let userImages = [], modelImages = [];
                     if (includeImages) {
-                        userImages = (await Promise.all([...turn.querySelectorAll("chat-message .from-user-container img")].map(processImageElement))).filter(Boolean);
-                        modelImages = (await Promise.all([...turn.querySelectorAll("chat-message .to-user-container img")].map(processImageElement))).filter(Boolean);
+                        userImages = (await Promise.all([...turn.querySelectorAll("chat-message .from-user-container img")].map(gemini_processImageElement))).filter(Boolean);
+                        modelImages = (await Promise.all([...turn.querySelectorAll("chat-message .to-user-container img")].map(gemini_processImageElement))).filter(Boolean);
                     }
 
                     if (question || answer || userImages.length || modelImages.length) {
@@ -1962,7 +2115,13 @@ const ScraperHandler = {
         if (!handler) throw new Error('Invalid platform handler');
 
         if (platform === 'gemini' && document.getElementById(Config.CANVAS_SWITCH_ID)?.checked) {
-            return VersionTracker.buildVersionedData(title);
+            // 导出前强制扫描一次，避免因 URL 变更重置或时序问题导致数据为空
+            VersionTracker.isScanning = false; // 防止卡死
+            await VersionTracker.scanOnce();
+            VersionTracker.forceCommitAll();
+            const versionedData = VersionTracker.buildVersionedData(title);
+            if (versionedData.conversation.length > 0) return versionedData;
+            // 版本追踪数据为空，回退到普通提取
         }
 
         const includeImages = document.getElementById(Config.IMAGE_SWITCH_ID)?.checked || false;
@@ -1994,7 +2153,7 @@ const ScraperHandler = {
         if (platform === 'gemini') {
             controlsArea.appendChild(createToggle(i18n.t('versionTracking') || '版本追踪', Config.CANVAS_SWITCH_ID, State.includeCanvas, e => {
                 State.includeCanvas = e.target.checked;
-                localStorage.setItem('lyraIncludeCanvas', State.includeCanvas);
+                localStorage.setItem('includeCanvas', State.includeCanvas);
                 e.target.checked ? VersionTracker.startTracking() : VersionTracker.stopTracking();
             }));
             if (State.includeCanvas) VersionTracker.startTracking();
@@ -2003,7 +2162,7 @@ const ScraperHandler = {
         if (platform === 'gemini' || platform === 'aistudio') {
             controlsArea.appendChild(createToggle(i18n.t('includeImages'), Config.IMAGE_SWITCH_ID, State.includeImages, e => {
                 State.includeImages = e.target.checked;
-                localStorage.setItem('lyraIncludeImages', State.includeImages);
+                localStorage.setItem('includeImages', State.includeImages);
             }));
         }
 
@@ -2056,11 +2215,577 @@ const ScraperHandler = {
 };
 
 
+    // Helper function to fetch images via GM_xmlhttpRequest (routes through background proxy in extension)
+    function grok_fetchViaGM(url, headers = {}) {
+        return new Promise((resolve, reject) => {
+            if (typeof GM_xmlhttpRequest === 'undefined') {
+                return reject(new Error('GM_xmlhttpRequest not available'));
+            }
+            GM_xmlhttpRequest({
+                method: "GET",
+                url,
+                headers,
+                responseType: "blob",
+                onload: r => {
+                    if (r.status >= 200 && r.status < 300) {
+                        resolve(r.response);
+                    } else {
+                        reject(new Error(`Status: ${r.status}`));
+                    }
+                },
+                onerror: e => reject(new Error(e.statusText || 'Network error')),
+                ontimeout: () => reject(new Error('Request timeout'))
+            });
+        });
+    }
+
+    // Fetch image URL via GM proxy and return base64 data (bypasses canvas, gets original file)
+    async function grok_fetchImageAsData(url) {
+        const blob = await grok_fetchViaGM(url);
+        const base64Data = await Utils.blobToBase64(blob);
+        let mimeType = blob.type;
+        if (!mimeType || mimeType === 'application/octet-stream' || !mimeType.startsWith('image/')) {
+            const firstBytes = base64Data.substring(0, 20);
+            if (firstBytes.startsWith('iVBORw0KGgo')) mimeType = 'image/png';
+            else if (firstBytes.startsWith('/9j/')) mimeType = 'image/jpeg';
+            else if (firstBytes.startsWith('R0lGOD')) mimeType = 'image/gif';
+            else if (firstBytes.startsWith('UklGR')) mimeType = 'image/webp';
+            else mimeType = 'image/jpeg';
+        }
+        return { type: 'image', format: mimeType, size: blob.size, data: base64Data, original_src: url };
+    }
+
+    // Process image element and return base64 data
+    async function grok_processImageElement(imgElement) {
+        if (!imgElement) return null;
+
+        const url = imgElement.src;
+        if (!url || url.startsWith('data:')) return null;
+
+        try {
+            let base64Data, mimeType, size;
+
+            if (url.startsWith('blob:')) {
+                try {
+                    const blob = await fetch(url).then(r => r.ok ? r.blob() : Promise.reject());
+                    base64Data = await Utils.blobToBase64(blob);
+                    mimeType = blob.type;
+                    size = blob.size;
+                } catch (blobError) {
+                    // Canvas fallback for blob URLs
+                    const canvas = document.createElement('canvas');
+                    canvas.width = imgElement.naturalWidth || imgElement.width;
+                    canvas.height = imgElement.naturalHeight || imgElement.height;
+                    canvas.getContext('2d').drawImage(imgElement, 0, 0);
+
+                    const isPhoto = canvas.width * canvas.height > 50000;
+                    const dataURL = isPhoto ? canvas.toDataURL('image/jpeg', 0.85) : canvas.toDataURL('image/png');
+                    mimeType = isPhoto ? 'image/jpeg' : 'image/png';
+                    base64Data = dataURL.split(',')[1];
+                    size = Math.round((base64Data.length * 3) / 4);
+                }
+            } else {
+                // Try Canvas method first (more reliable for already-loaded images)
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = imgElement.naturalWidth || imgElement.width;
+                    canvas.height = imgElement.naturalHeight || imgElement.height;
+
+                    if (canvas.width === 0 || canvas.height === 0) {
+                        throw new Error('Image not loaded or has zero dimensions');
+                    }
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(imgElement, 0, 0);
+
+                    const isPhoto = canvas.width * canvas.height > 50000;
+                    const dataURL = isPhoto ? canvas.toDataURL('image/jpeg', 0.85) : canvas.toDataURL('image/png');
+
+                    mimeType = isPhoto ? 'image/jpeg' : 'image/png';
+                    base64Data = dataURL.split(',')[1];
+                    size = Math.round((base64Data.length * 3) / 4);
+                } catch (canvasError) {
+                    // Fallback to GM_xmlhttpRequest if Canvas fails (CORS issues)
+                    console.warn('[Grok] Canvas method failed, using GM_xmlhttpRequest fallback:', canvasError.message);
+
+                    const blob = await grok_fetchViaGM(url);
+                    base64Data = await Utils.blobToBase64(blob);
+                    mimeType = blob.type;
+                    size = blob.size;
+                }
+
+                // Fix MIME type if it's octet-stream or empty
+                if (!mimeType || mimeType === 'application/octet-stream' || !mimeType.startsWith('image/')) {
+                    if (url.includes('.jpg') || url.includes('.jpeg')) {
+                        mimeType = 'image/jpeg';
+                    } else if (url.includes('.png')) {
+                        mimeType = 'image/png';
+                    } else if (url.includes('.gif')) {
+                        mimeType = 'image/gif';
+                    } else if (url.includes('.webp')) {
+                        mimeType = 'image/webp';
+                    } else {
+                        // Detect from base64 magic bytes
+                        const firstBytes = base64Data.substring(0, 20);
+                        if (firstBytes.startsWith('iVBORw0KGgo')) mimeType = 'image/png';
+                        else if (firstBytes.startsWith('/9j/')) mimeType = 'image/jpeg';
+                        else if (firstBytes.startsWith('R0lGOD')) mimeType = 'image/gif';
+                        else if (firstBytes.startsWith('UklGR')) mimeType = 'image/webp';
+                        else mimeType = 'image/png';
+                    }
+                }
+            }
+
+            return { type: 'image', format: mimeType, size, data: base64Data, original_src: url };
+        } catch (e) {
+            console.error('[Grok] Failed to process image:', e);
+            return null;
+        }
+    }
+
+    const GrokHandler = {
+        init: () => {
+            // Grok doesn't require special initialization like token capture
+            console.log('[Lyra] GrokHandler initialized');
+        },
+
+        getCurrentConversationId: () => {
+            // Grok URL: https://grok.com/{conversationId} - ID is the last segment of path
+            const pathSegments = window.location.pathname.split('/').filter(s => s);
+            const lastSegment = pathSegments[pathSegments.length - 1];
+            // Grok conversation IDs are typically UUID-like (36 chars) or similar long strings
+            if (lastSegment && lastSegment.length >= 20) {
+                return lastSegment;
+            }
+            return null;
+        },
+
+        getAllConversations: async () => {
+            try {
+                const response = await fetch('/rest/app-chat/conversations', {
+                    credentials: 'include',
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (!response.ok) throw new Error(`Failed to fetch conversations: ${response.status}`);
+                const data = await response.json();
+                return data.conversations || [];
+            } catch (error) {
+                console.error('[Lyra] Get all conversations error:', error);
+                return null;
+            }
+        },
+
+        getConversation: async (conversationId) => {
+            try {
+                // Step 1: Get all response nodes with tree structure
+                const nodeUrl = `/rest/app-chat/conversations/${conversationId}/response-node?includeThreads=true`;
+                const nodeResponse = await fetch(nodeUrl, {
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'include'
+                });
+                if (!nodeResponse.ok) throw new Error(`Failed to get response nodes: ${nodeResponse.status}`);
+                const nodeData = await nodeResponse.json();
+                const responseNodes = nodeData.responseNodes || [];
+                const responseIds = responseNodes.map(node => node.responseId);
+
+                if (!responseIds.length) {
+                    return { conversationId, responses: [], title: null, conversationTree: null };
+                }
+
+                // Step 2: Load full conversation content
+                const loadUrl = `/rest/app-chat/conversations/${conversationId}/load-responses`;
+                const loadResponse = await fetch(loadUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ responseIds })
+                });
+                if (!loadResponse.ok) throw new Error(`Failed to load responses: ${loadResponse.status}`);
+                const conversationData = await loadResponse.json();
+
+                // Step 3: Build tree structure map
+                const nodeMap = new Map();
+                responseNodes.forEach(node => {
+                    nodeMap.set(node.responseId, {
+                        responseId: node.responseId,
+                        parentResponseId: node.parentResponseId || null,
+                        childResponseIds: node.childResponseIds || [],
+                        threadId: node.threadId || null
+                    });
+                });
+
+                // Step 4: Process and structure the data
+                const processedResponses = (conversationData.responses || [])
+                    .filter(r => !r.partial)
+                    .sort((a, b) => new Date(a.createTime) - new Date(b.createTime))
+                    .map(r => {
+                        const processed = {
+                            responseId: r.responseId,
+                            sender: r.sender,
+                            createTime: r.createTime,
+                            message: r.message || ''
+                        };
+
+                        // Add tree structure information
+                        const nodeInfo = nodeMap.get(r.responseId);
+                        if (nodeInfo) {
+                            processed.parentResponseId = nodeInfo.parentResponseId;
+                            processed.childResponseIds = nodeInfo.childResponseIds;
+                            if (nodeInfo.threadId) {
+                                processed.threadId = nodeInfo.threadId;
+                            }
+                        }
+
+                        // Process citations if present
+                        if (r.sender === 'assistant' && r.cardAttachmentsJson && r.webSearchResults) {
+                            const citations = [];
+                            try {
+                                r.cardAttachmentsJson.forEach(cardStr => {
+                                    const card = JSON.parse(cardStr);
+                                    if (card.cardType === 'citation_card' && card.url) {
+                                        const searchResult = r.webSearchResults.find(sr => sr.url === card.url);
+                                        citations.push({
+                                            id: card.id,
+                                            url: card.url,
+                                            title: searchResult?.title || 'Source'
+                                        });
+                                    }
+                                });
+                            } catch (e) {
+                                console.warn('[Lyra] Failed to parse cardAttachmentsJson:', e);
+                            }
+                            if (citations.length > 0) {
+                                processed.citations = citations;
+                            }
+                            if (r.webSearchResults) {
+                                processed.webSearchResults = r.webSearchResults;
+                            }
+                        }
+
+                        // Include other potentially useful fields
+                        if (r.attachments) processed.attachments = r.attachments;
+                        if (r.cardAttachmentsJson) processed.cardAttachmentsJson = r.cardAttachmentsJson;
+                        if (r.imageAttachments) processed.imageAttachments = r.imageAttachments;
+                        if (r.fileAttachments) processed.fileAttachments = r.fileAttachments;
+
+                        return processed;
+                    });
+
+                // Try to get conversation title from list if available
+                let title = null;
+                try {
+                    const allConvs = await GrokHandler.getAllConversations();
+                    const conv = allConvs?.find(c => c.conversationId === conversationId);
+                    title = conv?.title || null;
+                } catch (e) {
+                    console.warn('[Lyra] Could not fetch title:', e);
+                }
+
+                // Step 5: Capture images from DOM if State.includeImages is true
+                if (State.includeImages) {
+                    const processedUrls = new Set();
+
+                    // Helper: resolve DOM response container to a processedResponse entry
+                    function resolveContainer(el) {
+                        const container = el.closest('[id^="response-"]');
+                        if (!container) return null;
+                        const responseId = container.id.replace('response-', '');
+                        return processedResponses.find(r => r.responseId === responseId) || null;
+                    }
+
+                    // Method 1: AI-generated images — start from the img element, walk up to find response
+                    const allGeneratedImgs = document.querySelectorAll('[data-testid="image-viewer"] img[src*="assets.grok.com"]');
+
+                    for (const img of allGeneratedImgs) {
+                        // Skip blurred background images (check both inline style and computed)
+                        const parentStyle = img.parentElement?.style;
+                        if (parentStyle && parentStyle.filter && parentStyle.filter.includes('blur')) continue;
+
+                        if (processedUrls.has(img.src)) continue;
+                        processedUrls.add(img.src);
+
+                        try {
+                            // Use GM fetch directly to get original file (bypasses canvas thumbnail capture)
+                            const imageData = await grok_fetchImageAsData(img.src);
+                            if (!imageData) continue;
+
+                            // Prefer DOM-position match; fallback to last assistant response
+                            let target = resolveContainer(img);
+                            if (!target) {
+                                const assistants = processedResponses.filter(r => r.sender === 'assistant');
+                                target = assistants[assistants.length - 1] || null;
+                            }
+
+                            if (target) {
+                                if (!target.capturedImages) target.capturedImages = [];
+                                target.capturedImages.push({ ...imageData, source: 'ai_generated' });
+                                console.log(`[Grok] Captured AI image for response ${target.responseId}`);
+                            }
+                        } catch (e) {
+                            console.error('[Grok] Failed to process AI image:', e);
+                        }
+                    }
+
+                    // Method 2: User-uploaded images — figure elements with preview-image URLs
+                    const allUserImages = document.querySelectorAll('figure img[src*="assets.grok.com"][src*="preview-image"]');
+
+                    for (const img of allUserImages) {
+                        if (processedUrls.has(img.src)) continue;
+                        processedUrls.add(img.src);
+
+                        try {
+                            // Strip /preview-image suffix to get full-size URL, fallback to thumbnail
+                            const thumbnailUrl = img.src;
+                            const fullSizeUrl = thumbnailUrl.includes('/preview-image')
+                                ? thumbnailUrl.split('/preview-image')[0]
+                                : thumbnailUrl;
+                            if (fullSizeUrl !== thumbnailUrl) processedUrls.add(fullSizeUrl);
+
+                            let imageData = null;
+                            if (fullSizeUrl !== thumbnailUrl) {
+                                try {
+                                    imageData = await grok_fetchImageAsData(fullSizeUrl);
+                                } catch (e) {
+                                    console.warn('[Grok] Full-size fetch failed, using thumbnail:', e.message);
+                                }
+                            }
+                            if (!imageData) {
+                                imageData = await grok_fetchImageAsData(thumbnailUrl);
+                            }
+                            if (!imageData) continue;
+
+                            // Prefer DOM-position match; fallback to last human with any attachments
+                            let target = resolveContainer(img);
+                            if (!target) {
+                                const humanResponses = processedResponses.filter(r =>
+                                    r.sender === 'human' &&
+                                    ((r.fileAttachments && r.fileAttachments.length > 0) ||
+                                     (r.imageAttachments && r.imageAttachments.length > 0))
+                                );
+                                target = humanResponses[humanResponses.length - 1] || null;
+                            }
+
+                            if (target) {
+                                if (!target.capturedImages) target.capturedImages = [];
+                                target.capturedImages.push({ ...imageData, source: 'user_upload' });
+                                console.log(`[Grok] Captured user-uploaded image for response ${target.responseId}`);
+                            } else {
+                                console.warn('[Grok] No matching response found for user-uploaded image');
+                            }
+                        } catch (e) {
+                            console.error('[Grok] Failed to process user image:', e);
+                        }
+                    }
+                }
+
+                return {
+                    conversationId,
+                    title,
+                    responses: processedResponses,
+                    conversationTree: {
+                        nodes: Array.from(nodeMap.values()),
+                        rootNodeId: responseNodes.find(n => !n.parentResponseId)?.responseId || null
+                    },
+                    exportTime: new Date().toISOString(),
+                    platform: 'grok'
+                };
+            } catch (error) {
+                console.error('[Lyra] Get conversation error:', error);
+                throw error;
+            }
+        },
+
+        addUI: (controls) => {
+            // Initialize includeImages to true by default for Grok if not set
+            if (localStorage.getItem('includeImages') === null) {
+                State.includeImages = true;
+                localStorage.setItem('includeImages', 'true');
+                console.log('[Grok] Initialized includeImages to true by default');
+            }
+
+            // Add "Include Images" toggle
+            const imageToggle = Utils.createToggle(
+                i18n.t('includeImages'),
+                'lyra-include-images-toggle',
+                State.includeImages
+            );
+            const imageToggleInput = imageToggle.querySelector('input');
+            imageToggleInput.addEventListener('change', (e) => {
+                State.includeImages = e.target.checked;
+                localStorage.setItem('includeImages', State.includeImages);
+                console.log('[Grok] Include images:', State.includeImages);
+            });
+            controls.appendChild(imageToggle);
+        },
+
+        addButtons: (controls) => {
+            controls.appendChild(Utils.createButton(
+                `${previewIcon} ${i18n.t('viewOnline')}`,
+                async (btn) => {
+                    const conversationId = GrokHandler.getCurrentConversationId();
+                    if (!conversationId) {
+                        alert(i18n.t('uuidNotFound'));
+                        return;
+                    }
+                    const original = btn.innerHTML;
+                    Utils.setButtonLoading(btn, i18n.t('loading'));
+                    try {
+                        const data = await GrokHandler.getConversation(conversationId);
+                        if (!data) throw new Error(i18n.t('fetchFailed'));
+                        const jsonString = JSON.stringify(data, null, 2);
+                        const filename = `grok_${data.title || 'conversation'}_${conversationId.substring(0, 8)}.json`;
+                        await Communicator.open(jsonString, filename);
+                    } catch (error) {
+                        ErrorHandler.handle(error, 'Preview conversation', {
+                            userMessage: `${i18n.t('loadFailed')} ${error.message}`
+                        });
+                    } finally {
+                        Utils.restoreButton(btn, original);
+                    }
+                }
+            ));
+
+            controls.appendChild(Utils.createButton(
+                `${exportIcon} ${i18n.t('exportCurrentJSON')}`,
+                async (btn) => {
+                    const conversationId = GrokHandler.getCurrentConversationId();
+                    if (!conversationId) {
+                        alert(i18n.t('uuidNotFound'));
+                        return;
+                    }
+                    const filename = prompt(i18n.t('enterFilename'), Utils.sanitizeFilename(`grok_${conversationId.substring(0, 8)}`));
+                    if (!filename?.trim()) return;
+                    const original = btn.innerHTML;
+                    Utils.setButtonLoading(btn, i18n.t('exporting'));
+                    try {
+                        const data = await GrokHandler.getConversation(conversationId);
+                        if (!data) throw new Error(i18n.t('fetchFailed'));
+                        Utils.downloadJSON(JSON.stringify(data, null, 2), `${filename.trim()}.json`);
+                    } catch (error) {
+                        ErrorHandler.handle(error, 'Export conversation');
+                    } finally {
+                        Utils.restoreButton(btn, original);
+                    }
+                }
+            ));
+
+            controls.appendChild(Utils.createButton(
+                `${zipIcon} ${i18n.t('exportAllConversations')}`,
+                (btn) => GrokHandler.exportAll(btn, controls)
+            ));
+        },
+
+        exportAll: async (btn, controlsArea) => {
+            if (typeof fflate === 'undefined' || typeof fflate.zipSync !== 'function' || typeof fflate.strToU8 !== 'function') {
+                const errorMsg = i18n.currentLang === 'zh'
+                    ? '批量导出功能需要压缩库支持。\n\n由于当前平台的安全策略限制,该功能暂时不可用。\n建议使用"导出当前"功能单个导出对话。'
+                    : 'Batch export requires compression library.\n\nThis feature is currently unavailable due to platform security policies.\nPlease use "Export" button to export conversations individually.';
+                alert(errorMsg);
+                return;
+            }
+
+            // 先探测对话数量
+            const original = btn.innerHTML;
+            Utils.setButtonLoading(btn, i18n.t('detectingConversations'));
+
+            let allConvs;
+            try {
+                allConvs = await GrokHandler.getAllConversations();
+                if (!allConvs || !Array.isArray(allConvs)) throw new Error(i18n.t('fetchFailed'));
+            } catch (error) {
+                ErrorHandler.handle(error, 'Detect conversations');
+                Utils.restoreButton(btn, original);
+                return;
+            }
+
+            const totalCount = allConvs.length;
+            Utils.restoreButton(btn, original);
+
+            // 弹出确认框让用户选择导出数量
+            const promptMsg = i18n.currentLang === 'zh'
+                ? `${i18n.t('foundConversations')} ${totalCount} ${i18n.t('conversations')}\n\n${i18n.t('selectExportCount')}`
+                : `${i18n.t('foundConversations')} ${totalCount} ${i18n.t('conversations')}\n\n${i18n.t('selectExportCount')}`;
+
+            const userInput = prompt(promptMsg, totalCount.toString());
+
+            // 用户取消
+            if (userInput === null) {
+                alert(i18n.t('exportCancelled'));
+                return;
+            }
+
+            // 解析用户输入
+            let exportCount = totalCount;
+            const trimmedInput = userInput.trim();
+
+            if (trimmedInput !== '' && trimmedInput !== '0') {
+                const parsed = parseInt(trimmedInput, 10);
+                if (isNaN(parsed) || parsed < 0) {
+                    alert(i18n.t('invalidNumber'));
+                    return;
+                }
+                exportCount = Math.min(parsed, totalCount);
+            }
+
+            // 开始导出
+            const progress = Utils.createProgressElem(controlsArea);
+            progress.textContent = i18n.t('preparing');
+            Utils.setButtonLoading(btn, i18n.t('exporting'));
+
+            try {
+                let exported = 0;
+                const zipEntries = {};
+
+                // 只导出最近的 exportCount 个对话
+                const convsToExport = allConvs.slice(0, exportCount);
+                console.log(`[Grok] Starting export of ${convsToExport.length} conversations (out of ${totalCount} total)`);
+
+                for (let i = 0; i < convsToExport.length; i++) {
+                    const conv = convsToExport[i];
+                    progress.textContent = `${i18n.t('gettingConversation')} ${i + 1}/${convsToExport.length}`;
+
+                    if (i > 0 && i % 5 === 0) {
+                        await new Promise(resolve => setTimeout(resolve, Config.TIMING.BATCH_EXPORT_YIELD));
+                    } else if (i > 0) {
+                        await Utils.sleep(Config.TIMING.BATCH_EXPORT_SLEEP);
+                    }
+
+                    try {
+                        const data = await GrokHandler.getConversation(conv.conversationId);
+                        if (data) {
+                            const title = Utils.sanitizeFilename(data.title || conv.conversationId);
+                            const filename = `grok_${conv.conversationId.substring(0, 8)}_${title}.json`;
+                            zipEntries[filename] = fflate.strToU8(JSON.stringify(data, null, 2));
+                            exported++;
+                        }
+                    } catch (error) {
+                        console.error(`[Lyra] Failed to process ${conv.conversationId}:`, error);
+                    }
+                }
+
+                progress.textContent = `${i18n.t('compressing')}…`;
+                const zipUint8 = fflate.zipSync(zipEntries, { level: 1 });
+                const zipBlob = new Blob([zipUint8], { type: 'application/zip' });
+
+                const zipFilename = `grok_export_${exportCount === totalCount ? 'all' : 'recent_' + exportCount}_${new Date().toISOString().slice(0, 10)}.zip`;
+                Utils.downloadFile(zipBlob, zipFilename);
+                alert(`${i18n.t('successExported')} ${exported} ${i18n.t('conversations')}`);
+            } catch (error) {
+                ErrorHandler.handle(error, 'Export all conversations');
+            } finally {
+                Utils.restoreButton(btn, original);
+                if (progress.parentNode) progress.parentNode.removeChild(progress);
+            }
+        }
+    };
+
+
     const UI = {
 
         injectStyle: () => {
             const platformColors = {
                 claude: '#141413',
+                grok: '#000000',
                 gemini: '#1a73e8',
                 notebooklm: '#4285f4',
                 aistudio: '#777779'
@@ -2412,6 +3137,7 @@ const ScraperHandler = {
             title.className = 'loominary-title';
             const titles = {
                 claude: 'Claude',
+                grok: 'Grok',
                 gemini: 'Gemini', notebooklm: 'Note LM', aistudio: 'AI Studio'
             };
             title.textContent = titles[State.currentPlatform] || 'Exporter';
@@ -2434,6 +3160,10 @@ const ScraperHandler = {
                     }
                 });
                 controls.appendChild(inputLabel);
+            }
+            if (State.currentPlatform === 'grok') {
+                GrokHandler.addUI(controls);
+                GrokHandler.addButtons(controls);
             }
             if (['gemini', 'notebooklm', 'aistudio'].includes(State.currentPlatform)) {
                 ScraperHandler.addButtons(controls, State.currentPlatform);
@@ -2469,21 +3199,35 @@ const ScraperHandler = {
         if (!State.currentPlatform) return;
 
         if (State.currentPlatform === 'claude') ClaudeHandler.init();
+        if (State.currentPlatform === 'grok') GrokHandler.init();
 
         UI.injectStyle();
 
         const initPanel = () => {
             UI.createPanel();
-            if (['claude'].includes(State.currentPlatform)) {
+            if (['claude', 'grok', 'gemini', 'notebooklm', 'aistudio'].includes(State.currentPlatform)) {
                 let lastUrl = window.location.href;
+                let panelCheckTimer = null;
                 new MutationObserver(() => {
+                    // URL 变化时重建面板
                     if (window.location.href !== lastUrl) {
                         lastUrl = window.location.href;
                         setTimeout(() => {
                             if (!document.getElementById(Config.CONTROL_ID)) {
+                                State.panelInjected = false;
                                 UI.createPanel();
                             }
                         }, 1000);
+                    }
+                    // SPA 框架可能在初始化时移除我们的面板，防抖检测并重建
+                    if (State.panelInjected && !document.getElementById(Config.CONTROL_ID)) {
+                        clearTimeout(panelCheckTimer);
+                        panelCheckTimer = setTimeout(() => {
+                            if (!document.getElementById(Config.CONTROL_ID)) {
+                                State.panelInjected = false;
+                                UI.createPanel();
+                            }
+                        }, 500);
                     }
                 }).observe(document.body, { childList: true, subtree: true });
             }

@@ -483,6 +483,29 @@ function bindEvents() {
   });
 }
 
+// ── Firefox MV3 权限请求 ──
+// Firefox MV3 中 host_permissions 是可选的，需要用户手动授权。
+// 当用户点击扩展图标打开 popup 时，自动请求所有 host_permissions。
+async function requestHostPermissions() {
+  try {
+    const manifest = chrome.runtime.getManifest();
+    const origins = manifest.host_permissions || [];
+    if (!origins.length) return;
+
+    const granted = await chrome.permissions.contains({ origins });
+    if (granted) return;
+
+    const result = await chrome.permissions.request({ origins });
+    if (result) {
+      // 权限已授予，刷新当前标签页以注入 content script
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab?.id) chrome.tabs.reload(tab.id);
+    }
+  } catch (e) {
+    // Chrome 中 host_permissions 已自动授予，忽略
+  }
+}
+
 // ── 初始化：从 storage 读取语言和配置，再渲染 ──
 chrome.storage.local.get([STORAGE_KEY, LANG_KEY], result => {
   config = { ...DEFAULTS, ...(result[STORAGE_KEY] || {}) };
@@ -490,4 +513,6 @@ chrome.storage.local.get([STORAGE_KEY, LANG_KEY], result => {
   document.documentElement.lang = currentLang === 'zh' ? 'zh' : 'en';
   loadUI();
   bindEvents();
+  // Firefox: 自动请求 host_permissions
+  requestHostPermissions();
 });
