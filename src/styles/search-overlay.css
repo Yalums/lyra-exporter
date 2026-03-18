@@ -1,0 +1,340 @@
+/* ===== SearchOverlay - Spotlight 风格搜索浮层 ===== */
+
+/* 背景遮罩 */
+.so-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 2000;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 12vh;
+  animation: so-fade-in 0.15s ease;
+}
+
+@keyframes so-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* 主面板 */
+.so-panel {
+  width: 100%;
+  max-width: 660px;
+  margin: 0 16px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  border-radius: 18px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55), 0 4px 16px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  animation: so-slide-down 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes so-slide-down {
+  from { transform: translateY(-18px) scale(0.98); opacity: 0; }
+  to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* ===== 输入行 ===== */
+.so-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 18px;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.so-search-icon {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.so-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border-secondary);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: so-spin 0.7s linear infinite;
+}
+
+@keyframes so-spin {
+  to { transform: rotate(360deg); }
+}
+
+.so-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 18px;
+  font-family: var(--font-system);
+  color: var(--text-primary);
+  caret-color: var(--accent-primary);
+  min-width: 0;
+}
+
+.so-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.so-clear {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  font-size: 20px;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.so-clear:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+/* ===== 空状态（索引统计 + 历史） ===== */
+.so-empty-state {
+  padding: 14px 18px 16px;
+}
+
+.so-index-stats {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-bottom: 12px;
+}
+
+.so-history {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.so-history-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  padding: 0 2px 4px;
+}
+
+.so-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.so-history-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.so-history-item:hover {
+  background: var(--bg-secondary);
+}
+
+.so-history-clock {
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.so-history-query {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.so-history-del {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  font-size: 16px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.12s, color 0.12s;
+  flex-shrink: 0;
+}
+
+.so-history-item:hover .so-history-del {
+  opacity: 1;
+}
+
+.so-history-del:hover {
+  color: var(--accent-danger);
+}
+
+/* ===== 搜索结果区 ===== */
+.so-results {
+  max-height: 58vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 0;
+}
+
+.so-status {
+  padding: 32px 18px;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 14px;
+}
+
+.so-results-meta {
+  padding: 6px 18px 8px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  border-bottom: 1px solid var(--border-primary);
+  margin-bottom: 4px;
+}
+
+/* 对话分组 */
+.so-group {
+  margin: 2px 8px;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.so-group-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 10px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.12s;
+  user-select: none;
+}
+
+.so-group-header:hover {
+  background: var(--bg-secondary);
+}
+
+.so-group-arrow {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  width: 12px;
+  flex-shrink: 0;
+}
+
+.so-group-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.so-group-count {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  background: var(--bg-tertiary);
+  padding: 1px 6px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+/* 结果条目 */
+.so-group-results {
+  border-left: 2px solid var(--border-primary);
+  margin-left: 18px;
+  padding: 2px 0;
+}
+
+.so-result-item {
+  padding: 8px 10px;
+  cursor: pointer;
+  border-radius: 6px;
+  margin: 1px 4px;
+  transition: background 0.12s;
+}
+
+.so-result-item:hover {
+  background: var(--bg-secondary);
+}
+
+.so-result-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+
+.so-result-sender {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-primary);
+}
+
+.so-result-idx {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.so-result-time {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-left: auto;
+}
+
+.so-result-preview {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 高亮 */
+.so-result-preview mark.search-highlight,
+mark.search-highlight {
+  background: rgba(217, 119, 6, 0.3);
+  color: var(--text-primary);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* ===== 移动端 ===== */
+@media (max-width: 768px) {
+  .so-backdrop {
+    padding-top: 0;
+    align-items: flex-start;
+  }
+
+  .so-panel {
+    max-width: 100%;
+    margin: 0;
+    border-radius: 0 0 18px 18px;
+    border-top: none;
+  }
+
+  .so-results {
+    max-height: 70vh;
+  }
+}

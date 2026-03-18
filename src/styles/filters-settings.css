@@ -1,0 +1,156 @@
+/* =================== 筛选器样式 =================== */
+
+/* ============ 对话筛选器 ============ */
+.conversation-filter {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  margin-bottom: 20px;
+}
+
+.filter-panel {
+  padding: 20px;
+}
+
+.filter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.filter-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.filter-icon {
+  font-size: 18px;
+}
+
+.filter-text {
+  color: var(--text-primary);
+}
+
+.filter-badge {
+  background: var(--accent-primary);
+  color: white;
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  min-width: 20px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.filter-sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* 当有自定义日期范围时的特殊布局 */
+.filter-sections.has-custom-date {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.filter-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-input,
+.filter-select {
+  padding: 8px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.filter-input:focus,
+.filter-select:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px rgba(31, 111, 235, 0.1);
+}
+
+.filter-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+
+/* 时间范围选择区域 */
+.time-range-section {
+  grid-column: auto;
+}
+
+/* 自定义日期范围 - 独立一行显示 */
+.custom-date-section {
+  grid-column: 1 / -1;
+  margin-top: -8px;
+}
+
+.date-range-inputs {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.date-range-inputs {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.date-input {
+  flex: 1;
+  min-width: 140px;
+}
+
+.date-separator {
+  color: var(--text-secondary);
+  font-size: 14px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.filter-footer {
+  padding-top: 16px;
+  border-top: 1px solid var(--border-primary);
+}
+
+.filter-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stats-text {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.active-filters-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+}

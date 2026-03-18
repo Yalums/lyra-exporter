@@ -1,0 +1,928 @@
+{
+  "common": {
+    "loading": "加载中...",
+    "error": "发生错误",
+    "success": "成功",
+    "cancel": "取消",
+    "confirm": "确认",
+    "save": "保存",
+    "close": "关闭",
+    "expand": "展开",
+    "collapse": "收起",
+    "retry": "重试"
+  },
+  "app": {
+    "title": "Lyra Exporter",
+    "navbar": {
+      "backToList": "返回对话列表",
+      "settings": "设置",
+      "restoreStars": "恢复原始"
+    },
+    "search": {
+      "placeholder": {
+        "conversations": "搜索对话标题、项目名称...",
+        "files": "搜索文件名称、格式...",
+        "messages": "搜索消息内容、思考过程、Artifacts..."
+      },
+      "results": "显示 {{displayed}} / {{total}} {{unit}}"
+    },
+    "stats": {
+      "totalMessages": "总消息数",
+      "conversationCount": "对话数",
+      "fileCount": "文件数",
+      "markedCount": "标记消息",
+      "starredCount": "星标对话"
+    },
+    "export": {
+      "segments": {
+        "currentBranch": "当前分支",
+        "allBranches": "全部分支",
+        "all": "全部",
+        "starredOnly": "仅星标",
+        "completedOnly": "仅完成"
+      }
+    },
+    "messageDetail": {
+      "title": "消息详情",
+      "tabs": {
+        "content": "内容",
+        "thinking": "思考过程",
+        "artifacts": "Artifacts"
+      },
+      "actions": {
+        "markCompleted": "标记完成",
+        "unmarkCompleted": "取消完成",
+        "markImportant": "标记重要",
+        "unmarkImportant": "取消重要",
+        "markDeleted": "标记删除",
+        "unmarkDeleted": "取消删除"
+      }
+    },
+    "typeConflict": {
+      "title": "文件类型冲突",
+      "message": "你正在尝试加载不同类型的文件。为了保证正常显示，<strong>Claude 完整导出</strong>格式不能与其他格式同时加载。",
+      "currentFiles": "当前文件：{{count}} 个文件",
+      "newFiles": "新文件：{{count}} 个文件",
+      "hint": "选择\"替换\"将关闭当前所有文件并加载新文件。",
+      "cancel": "取消",
+      "replace": "替换所有文件"
+    },
+    "confirmations": {
+      "clearAllMarks": "确定要清除所有文件和对话的标记吗？这个操作不可恢复。"
+    }
+  },
+  "units": {
+    "conversation": "个对话",
+    "file": "个文件",
+    "message": "条消息"
+  },
+  "fileCard": {
+    "conversationSummary": "{{count}}个对话，{{messages}}条消息",
+    "messageSummary": "{{count}}条消息的对话",
+    "clickToLoad": "点击加载文件内容...",
+    "conversationFilter": "筛选对话",
+    "btnFilter": "清除所有筛选条件",
+    "btnFilter2": " ✕  清除所有筛选条件",
+    "btn-secondary": "清除所有文件的标记（{{operatedCount}}个有操作）"
+  },
+  "settings": {
+    "title": "设置",
+    "done": "完成",
+    "appearance": {
+      "title": "外观",
+      "theme": {
+        "label": "主题",
+        "description": "选择深色、浅色或墨水屏主题",
+        "dark": "深色主题",
+        "light": "浅色主题",
+        "eink": "墨水屏主题",
+        "toggleToDark": "切换到深色主题",
+        "toggleToLight": "切换到浅色主题",
+        "toggleToEink": "切换到墨水屏主题"
+      },
+      "language": {
+        "label": "语言",
+        "description": "选择界面显示语言(设置完成后需刷新网页)"
+      },
+      "deviceMode": {
+        "label": "设备模式",
+        "description": "选择界面布局模式",
+        "auto": "自动识别",
+        "mobile": "固定移动端",
+        "desktop": "固定桌面端"
+      }
+    },
+    "copyOptions": {
+      "title": "复制选项",
+      "includeThinking": {
+        "label": "包含思考过程",
+        "description": "复制消息时包含Claude的思考过程"
+      },
+      "includeArtifacts": {
+        "label": "包含Artifacts",
+        "description": "复制消息时包含生成的代码和文档"
+      },
+      "includeAttachments": {
+        "label": "包含附件",
+        "description": "复制消息时包含用户上传的文件附件信息"
+      },
+      "includeCanvas": {
+        "label": "包含 Canvas",
+        "description": "复制消息时包含 Canvas 内容"
+      }
+    },
+    "exportFormat": {
+      "title": "导出格式",
+      "preview": {
+        "label": "格式预览",
+        "description": "查看当前设置下的标题格式效果",
+        "userMessage": "（用户消息）",
+        "assistantMessage": "（助手消息）"
+      },
+      "numbering": {
+        "label": "序号设置",
+        "description": "选择是否在消息标题中包含序号",
+        "none": "不包含序号",
+        "numeric": "数字序号 (1, 2, 3...)",
+        "letter": "字母序号 (A, B, C...)",
+        "roman": "罗马数字 (I, II, III...)"
+      },
+      "senderLabel": {
+        "label": "发送者标签",
+        "description": "选择发送者的显示格式",
+        "default": "默认 (用户/AI)",
+        "humanAssistant": "英文 (Human/Assistant)",
+        "custom": "自定义"
+      },
+      "customLabels": {
+        "human": {
+          "label": "用户标签",
+          "description": "自定义用户发送者的标签",
+          "placeholder": "例如：用户、User"
+        },
+        "assistant": {
+          "label": "助手标签",
+          "description": "自定义AI助手的标签",
+          "placeholder": "例如：AI、Assistant"
+        }
+      },
+      "headerPrefix": {
+        "label": "标题前缀",
+        "description": "选择是否在标题前添加 Markdown 标题符号",
+        "none": "不包含标题前缀",
+        "h1": "一级标题 (#)",
+        "h2": "二级标题 (##)"
+      },
+      "thinkingFormat": {
+        "label": "思考过程格式",
+        "description": "选择思考过程在复制和导出时的显示格式",
+        "codeblock": "代码块格式（思考前置）",
+        "xml": "XML标签格式（思考前置）",
+        "emoji": "Emoji格式（内容后置）"
+      }
+    },
+    "exportContent": {
+      "title": "导出内容",
+      "description": "控制导出的Markdown文件中包含哪些内容",
+      "timestamps": {
+        "label": "时间戳",
+        "description": "包含消息的发送时间"
+      },
+      "thinking": {
+        "label": "思考过程",
+        "description": "Claude 的内部思考过程"
+      },
+      "artifacts": {
+        "label": "Artifacts",
+        "description": "代码、文档等生成内容"
+      },
+      "tools": {
+        "label": "工具使用",
+        "description": "搜索、计算等工具调用记录"
+      },
+      "citations": {
+        "label": "引用来源",
+        "description": "网页链接等引用信息"
+      },
+      "canvas": {
+        "label": "包含 Canvas",
+        "description": "导出时包含 Canvas 内容"
+      },
+      "attachments": {
+        "label": "附件信息",
+        "description": "用户上传的文件及其预览信息"
+      }
+    },
+    "about": {
+      "title": "关于",
+      "appName": "Lyra Exporter",
+      "appDescription": "强大的对话导出和管理工具",
+      "version": "版本",
+      "github": "GitHub",
+      "githubDescription": "开源项目，欢迎贡献和反馈",
+      "aiChatTitle": "AI 对话助手",
+      "aiChatDescription": "嵌入式AI对话助手，帮助你在浏览对话历史时获得整理建议",
+      "mainFeatures": "主要功能",
+      "feature1": "与AI进行上下文相关的对话",
+      "feature2": "基于浏览轨迹的智能上下文管理",
+      "feature3": "支持MCP工具调用",
+      "feature4": "流式响应，实时显示",
+      "mcpTitle": "MCP集成说明",
+      "mcpDescription": "本工具支持Model Context Protocol (MCP)，可以连接各种MCP服务器扩展AI能力",
+      "mcpBuiltin": "内置MCP",
+      "mcpBuiltinDesc": "预配置的对话上下文服务",
+      "mcpCustom": "自定义MCP",
+      "mcpCustomDesc": "支持添加任意MCP服务器",
+      "relatedLinks": "相关链接",
+      "mcpDocs": "MCP官方文档",
+      "anthropicDocs": "Anthropic API文档"
+    },
+    "searchOptions": {
+        "title": "搜索设置",
+        "removeDuplicates": {
+          "label": "移除重复结果",
+          "description": "自动过滤重复的搜索结果，只显示唯一的消息"
+        },
+        "includeThinking": {
+          "label": "搜索思考内容",
+          "description": "在搜索时包含 Claude 的思考过程内容"
+        },
+        "includeArtifacts": {
+          "label": "搜索Artifacts内容",
+          "description": "在搜索时包含Claude创建的Artifacts"
+        }
+      },
+    "nav": {
+      "general": "通用",
+      "export": "导出",
+      "ai": "AI 配置",
+      "about": "关于"
+    },
+    "aiChat": {
+      "title": "AI 对话配置",
+      "description": "配置嵌入式 AI 助手的 API 设置",
+      "protocol": {
+        "label": "通信协议",
+        "description": "选择 API 通信协议类型"
+      },
+      "apiKey": {
+        "label": "API 密钥",
+        "description": "输入你的 API 密钥（仅保存在本地）"
+      },
+      "baseUrl": {
+        "label": "API 基础 URL",
+        "description": "API 服务器地址，支持代理和中转服务"
+      },
+      "model": {
+        "label": "模型",
+        "description": "选择或输入要使用的模型名称"
+      },
+      "maxTokens": {
+        "label": "最大 Token 数",
+        "description": "单次对话的最大令牌数量限制"
+      }
+    },
+    "embedding": {
+      "title": "语义搜索配置",
+      "description": "配置语义搜索的向量化模型（用于 AI 搜索功能）",
+      "apiUrl": {
+        "label": "LM Studio API 地址",
+        "description": "本地 LM Studio Embedding 服务地址"
+      },
+      "modelName": {
+        "label": "模型名称",
+        "description": "已加载的 Embedding 模型名称"
+      },
+      "info": "请确保本地 LM Studio 已启动并加载 Embedding 模型。推荐使用 qwen3-embedding 等轻量模型。"
+    },
+    "aiChatContext": {
+      "title": "AI 对话上下文配置",
+      "description": "配置 AI 对话浮窗如何追踪和处理浏览中的消息上下文",
+      "autoTrack": {
+        "label": "自动追踪",
+        "description": "浏览消息时自动添加到 AI 对话上下文"
+      },
+      "maxContentLength": {
+        "label": "消息截取长度",
+        "description": "每条消息最多保留的字符数（0 = 不限制）"
+      },
+      "includeThinking": {
+        "label": "包含思考过程",
+        "description": "将 Claude 的思考过程（thinking）添加到上下文"
+      },
+      "includeArtifacts": {
+        "label": "包含 Artifacts",
+        "description": "将 Artifacts（代码、文档）添加到上下文"
+      },
+      "includeAttachments": {
+        "label": "包含附件",
+        "description": "将附件信息添加到上下文"
+      },
+      "info": "这些设置控制 AI 对话浮窗如何处理消息上下文。调整截取长度可以在上下文完整性和 Token 消耗之间取得平衡。"
+    },
+    "mcp": {
+      "title": "MCP 服务器管理",
+      "description": "配置和管理 Model Context Protocol (MCP) 服务器，扩展 AI 的能力",
+      "serversCount": "个服务器",
+      "toolsCount": "个工具",
+      "addServer": "添加服务器",
+      "cancelAdd": "取消",
+      "confirmAdd": "确认添加",
+      "removeServer": "删除服务器",
+      "serverName": "服务器名称",
+      "typeStdio": "Stdio (命令行)",
+      "typeHttp": "HTTP/SSE",
+      "command": "命令 (例如: npx)",
+      "args": "参数 (例如: -y @modelcontextprotocol/server-filesystem)",
+      "serverUrl": "服务器URL (例如: http://localhost:3000/mcp)",
+      "builtin": "内置",
+      "noServers": "暂无 MCP 服务器",
+      "availableTools": "可用工具"
+    }
+  },
+  "timeline": {
+    "branch": {
+      "mainBranch": "主分支",
+      "branch": "分支",
+      "all": "全部",
+      "previousBranch": "上一个分支",
+      "nextBranch": "下一个分支",
+      "showAllBranches": "显示所有分支",
+      "allMessages": "所有消息",
+      "showMessagesFromAllBranches": "显示所有分支的消息",
+      "messages": "条消息",
+      "detected": "检测到",
+      "branchPoints": "个分支点",
+      "filterBranches": "分支",
+      "showAll": "显示全部",
+      "showSelectedOnly": "仅显示选中分支",
+      "noBranches": "当前对话没有分支"
+    },
+    "conversation": {
+      "unknownTime": "未知时间",
+      "unnamedConversation": "未命名对话",
+      "unknownConversation": "未知对话"
+    },
+    "file": {
+      "clickToPrevious": "点击切换到上一个文件",
+      "clickToNext": "点击切换到下一个文件"
+    },
+    "actions": {
+      "resetMarks": "重置标记",
+      "clearAllMarks": "清除所有标记",
+      "resetSort": "重置排序",
+      "confirmClearMarks": "确定要清除当前对话的所有标记吗？",
+      "confirmResetSort": "确定要恢复原始顺序吗？",
+      "restoreOriginalOrder": "恢复原始消息顺序",
+      "disableSort": "禁用排序",
+      "enableSort": "启用排序",
+      "cannotSortWhileSearching": "搜索时无法排序",
+      "enableMessageSorting": "启用消息排序",
+      "sortingDisabledDuringSearch": "搜索期间排序已禁用",
+      "moveUp": "上移",
+      "moveDown": "下移",
+      "copyMessage": "复制消息",
+      "copied": "已复制",
+      "markCompleted": "完成标记",
+      "unmarkCompleted": "取消完成",
+      "markImportant": "星标标记",
+      "unmarkImportant": "取消重要",
+      "markDeleted": "删除标记",
+      "unmarkDeleted": "取消删除",
+      "jumpToLatest": "跳转到最新",
+      "previousMessage": "上一条消息",
+      "nextMessage": "下一条消息"
+    },
+    "info": {
+      "modelPlatform": "模型/平台",
+      "created": "创建时间",
+      "displayedMessages": "显示消息数",
+      "lastUpdated": "最后更新"
+    },
+    "tags": {
+      "hasThinking": "思考过程",
+      "images": "张图片",
+      "attachments": "个附件",
+      "artifacts": "个Artifacts",
+      "usedTools": "使用的工具",
+      "citations": "个引用",
+      "completed": "已完成",
+      "important": "重要",
+      "deleted": "已删除"
+    },
+    "detail": {
+      "selectMessage": "选择一条消息以查看详情"
+    }
+  },
+  "card": {
+    "unnamed": "未命名",
+    "unstar": "取消星标",
+    "star": "星标",
+    "close": "关闭",
+    "conversations": "个对话",
+    "contains": "包含",
+    "and": "和",
+    "messages": "条消息",
+    "clickToLoad": "点击加载文件内容...",
+    "clickToView": "点击查看对话详情...",
+    "hasThinking": "有思考过程",
+    "hasCode": "有代码",
+    "addFile": "添加文件",
+    "supportsJson": "支持JSON格式",
+    "openJsonDirect": "打开 JSON",
+    "openJsonDirectHint": "直接进入时间线视图"
+  },
+  "messageDetail": {
+    "tabs": {
+      "content": "内容",
+      "thinking": "思考过程",
+      "attachments": "附件"
+    },
+    "placeholder": {
+      "selectMessage": "选择一条消息以查看详情",
+      "noArtifacts": "此消息未使用Artifacts",
+      "noAttachments": "此消息没有附件",
+      "noThinking": "此消息没有记录思考过程",
+      "formatNotSupported": {
+        "thinking": "此格式不支持思考过程",
+        "artifacts": "此格式不支持Artifacts"
+      },
+      "selectTab": "请选择一个标签页"
+    },
+    "images": {
+      "title": "图片附件",
+      "loadFailed": "图片加载失败"
+    },
+    "artifacts": {
+      "noTitle": "无标题",
+      "unknown": "未知",
+      "language": "语言",
+      "originalText": "原文本",
+      "newText": "新文本"
+    },
+    "attachments": {
+      "fullContent": "完整内容",
+      "contentPreview": "内容预览",
+      "characters": "个字符",
+      "showPreview": "显示预览",
+      "showAll": "显示全部",
+      "contentTruncated": "内容已截断",
+      "codeTruncated": "代码已截断",
+      "collapse": "收起内容",
+      "expand": "展开显示更多",
+      "unknownFile": "未知文件",
+      "type": "类型",
+      "created": "创建时间"
+    },
+    "tools": {
+      "tool": "工具",
+      "searchQuery": "搜索查询",
+      "inputParams": "输入参数",
+      "result": "结果",
+      "executionError": "工具执行错误",
+      "noTitle": "无标题",
+      "moreResults": "更多结果"
+    },
+    "citations": {
+      "title": "引用来源",
+      "unknownSource": "未知来源",
+      "unknownWebsite": "未知网站"
+    }
+  },
+  "filter": {
+    "title": "筛选对话",
+    "actions": {
+      "clearFilters": "清除筛选",
+      "clearAllFilters": "清除所有筛选条件",
+      "clearAllMarks": "清除所有标记",
+      "clearAllMarksTitle": "清除所有文件的标记（{{count}}个有操作）",
+      "exportProject": "导出项目",
+      "exportProjectTitle": "保存当前文件列表为项目配置",
+      "importProject": "导入项目",
+      "importProjectTitle": "从项目配置文件加载文件列表"
+    },
+    "search": {
+      "label": "搜索对话",
+      "placeholder": "对话或项目名称..."
+    },
+    "timeRange": {
+      "label": "时间范围",
+      "all": "所有时间",
+      "today": "今天",
+      "week": "最近一周",
+      "month": "最近一月",
+      "custom": "自定义范围"
+    },
+    "dateRange": {
+      "label": "日期范围",
+      "startDate": "开始日期",
+      "endDate": "结束日期",
+      "to": "至"
+    },
+    "project": {
+      "label": "项目",
+      "all": "所有项目",
+      "none": "无项目"
+    },
+    "organization": {
+      "label": "账号",
+      "all": "所有账号",
+      "none": "无账号"
+    },
+    "starred": {
+      "label": "星标状态",
+      "all": "全部",
+      "starred": "已星标",
+      "unstarred": "未星标"
+    },
+    "operated": {
+      "label": "操作状态",
+      "all": "全部",
+      "hasOperations": "有操作",
+      "noOperations": "无操作"
+    },
+    "stats": {
+      "showing": "显示",
+      "conversations": "个对话",
+      "activeFilters": "{{count}}个活动筛选条件"
+    },
+    "sort": {
+      "label": "排序方式",
+      "createdAt": "创建时间",
+      "name": "名称",
+      "messageCount": "消息条数",
+      "size": "文件大小",
+      "asc": "正序",
+      "desc": "倒序"
+    }
+  },
+  "rename": {
+    "title": "重命名",
+    "label": "新名称",
+    "placeholder": "输入新的名称...",
+    "action": "重命名",
+    "error": {
+      "empty": "名称不能为空"
+    }
+  },
+  "copy": {
+    "messages": {
+      "success": "已复制到剪贴板",
+      "error": "复制失败，请重试",
+      "generalError": "复制失败",
+      "multipleSuccess": "已复制{{count}}条消息"
+    },
+    "format": {
+      "timeLabel": "时间",
+      "thinkingLabel": "💭 思考过程：",
+      "artifactsLabel": "🔧 Artifacts：",
+      "noTitle": "无标题",
+      "unknownType": "未知类型"
+    }
+  },
+  "exportManager": {
+    "metadata": {
+      "defaultTitle": "对话记录",
+      "created": "创建时间",
+      "unknown": "未知",
+      "exportTime": "导出时间",
+      "filterCondition": "筛选条件"
+    },
+    "messages": {
+      "noMatchingMessages": "*没有符合条件的消息*",
+      "exportedCount": "*根据筛选条件，从 {{total}} 条消息中导出了 {{count}} 条消息*"
+    },
+    "format": {
+      "thinkingProcess": "思考过程",
+      "thinkingLabel": "💭 思考过程：",
+      "attachments": "📎 附加文件",
+      "type": "类型",
+      "contentPreview": "内容预览",
+      "artifact": "🔧 Artifact：",
+      "noTitle": "无标题",
+      "unknown": "未知",
+      "typeLabel": "**类型**：",
+      "language": "**语言**：",
+      "content": "**内容**：",
+      "tool": "🔍 工具：",
+      "searchQuery": "**搜索查询**：",
+      "searchResults": "**搜索结果**：",
+      "citations": "📎 引用来源",
+      "unknownSource": "未知来源",
+      "unknownWebsite": "未知网站"
+    },
+    "filters": {
+      "excludeDeleted": "排除已删除",
+      "onlyCompleted": "仅已完成的消息",
+      "onlyImportant": "仅重要的消息",
+      "completedAndImportant": "仅已完成且重要的消息"
+    },
+    "errors": {
+      "saveFileFailed": "保存文件失败，请重试",
+      "noDataToExport": "没有可导出的数据",
+      "exportFailed": "导出失败",
+      "unknownScope": "未知的导出范围：",
+      "screenshotOnlySupportsCurrent": "截图导出仅支持当前对话或当前分支",
+      "pdfOnlySupportsCurrent": "PDF导出仅支持当前对话或当前分支",
+      "noMatchingMessages": "没有符合条件的消息"
+    }
+  },
+  "search": {
+    "all": "全部",
+    "titles": "标题",
+    "content": "内容",
+    "modeAll": "搜索全部内容",
+    "modeTitles": "仅搜索标题",
+    "modeContent": "仅搜索内容",
+    "placeholderAll": "搜索所有消息...",
+    "placeholderTitles": "搜索对话标题...",
+    "placeholderContent": "搜索消息内容...",
+    "options": "搜索选项",
+    "indexStats": "{{messages}} 条消息，{{files}} 个文件",
+    "removeDuplicates": "去除重复内容",
+    "removeDuplicatesDesc": "基于消息内容的前100个字符进行去重，不仅限于retry消息",
+    "includeThinking": "包含思考过程",
+    "includeArtifacts": "包含Artifacts",
+    "messagesWithThinking": "{{count}} 条有思考过程的消息",
+    "messagesWithArtifacts": "{{count}} 条有Artifacts的消息",
+    "blankMessages": "{{count}} 条空白消息",
+    "expandPanel": "展开搜索面板",
+    "history": {
+      "title": "搜索历史",
+      "delete": "删除此记录"
+    }
+  },
+  "nodeLocator": {
+    "title": "搜索结果",
+    "searching": "搜索中",
+    "foundMessages": "找到 {{count}} 条消息，来自 {{fileCount}} 个文件，{{conversationCount}} 个对话",
+    "listView": "列表视图",
+    "treeView": "树形视图",
+    "selectFile": "选择文件",
+    "chooseFile": "请选择一个文件",
+    "results": "个结果",
+    "resultCount": "{{count}} 个结果",
+    "matches": "匹配",
+    "singleConversation": "单个对话",
+    "blocked": "被拒绝",
+    "retry": "重试",
+    "duplicate": "重复",
+    "blankMessage": "空白消息",
+    "hasThinking": "思考过程",
+    "hasArtifacts": "Artifacts",
+    "messages": "条消息",
+    "file": "文件"
+  },
+  "semanticSearch": {
+    "title": "语义搜索",
+    "header": "🔮 语义搜索",
+    "settings": "设置",
+    "close": "关闭",
+    "embeddingModel": {
+      "title": "向量化模型",
+      "apiUrl": "API 地址",
+      "apiUrlPlaceholder": "http://localhost:1234",
+      "modelName": "模型名称",
+      "modelNamePlaceholder": "qwen3-embedding",
+      "infoLmstudio": "💡 请确保本地 Embedding 服务已启动并加载模型。"
+    },
+    "llmConfig": {
+      "title": "AI 回答（可选）",
+      "provider": "AI 服务",
+      "none": "仅搜索（不使用 AI）",
+      "openai": "OpenAI",
+      "claude": "Claude",
+      "apiKey": "API Key",
+      "apiKeyPlaceholder": "输入你的 API Key",
+      "apiEndpoint": "API 接入点",
+      "apiEndpointPlaceholder": "",
+      "model": "模型",
+      "modelPlaceholder": "输入模型名称（如 gpt-4o-mini）"
+    },
+    "status": {
+      "initializing": "初始化中...",
+      "waitingFiles": "⏳ 等待文件稳定...",
+      "rebuildIndex": "🔄 重新构建索引",
+      "ready": "✅ 就绪",
+      "indexSize": "{{count}} 条消息",
+      "embeddingInfo": "向量化 · {{count}} 条消息",
+      "filesChanging": "文件变化中，等待稳定...",
+      "filesChanged": "文件已变化，请重新构建索引"
+    },
+    "chat": {
+      "placeholder": "问我任何关于你历史对话的问题...",
+      "placeholderWaiting": "文件加载中，输入问题，稳定后将自动搜索...",
+      "placeholderIndexing": "输入问题，索引完成后将自动搜索...",
+      "placeholderNotReady": "输入问题并按回车，将自动启动索引...",
+      "send": "发送",
+      "search": "搜索",
+      "greeting": "👋 你好！我可以帮你在历史对话中搜索内容。",
+      "noResults": "没有找到相关的对话记录。请尝试其他关键词。",
+      "resultsIntro": "以下是与你问题相关的对话记录：",
+      "searchError": "搜索出错: {{error}}",
+      "waitingIndex": "⏳ 正在构建索引，完成后将自动搜索...",
+      "waitingFiles": "⏳ 等待文件稳定中，稳定后将自动构建索引并搜索..."
+    },
+    "results": {
+      "score": "{{score}}%",
+      "preview": "预览"
+    }
+  },
+  "actionPanel": {
+    "title": "操作面板",
+    "nav": {
+      "globalSearch": "全局搜索",
+      "semanticSearch": "语义搜索",
+      "exportMarkdown": "Markdown",
+      "exportScreenshot": "长截图",
+      "exportPdf": "PDF"
+    }
+  },
+  "aiChat": {
+    "panel": {
+      "title": "AI 对话",
+      "settings": "设置",
+      "openSettings": "打开设置",
+      "backToChat": "返回对话",
+      "pin": "固定窗口",
+      "unpin": "取消固定",
+      "minimize": "最小化",
+      "restore": "恢复",
+      "close": "关闭",
+      "assistant": "AI 助手"
+    },
+    "chat": {
+      "needsConfig": "需要配置 API",
+      "configPrompt": "请先在设置中配置 API 密钥",
+      "goToSettings": "前往设置",
+      "expandDetails": "展开详情",
+      "collapseDetails": "收起详情",
+      "clearChat": "清除对话",
+      "placeholder": "开始对话...",
+      "placeholderWithContext": "询问关于当前浏览的对话内容..."
+    },
+    "context": {
+      "empty": "暂无浏览上下文",
+      "messages": "{{count}} 条消息",
+      "tokens": "约 {{count}} tokens",
+      "steps": "{{count}} 步轨迹",
+      "refresh": "刷新上下文",
+      "clear": "清理上下文",
+      "detailsTitle": "当前上下文详情",
+      "browsingMessages": "浏览的消息",
+      "browsingPath": "浏览轨迹",
+      "summaries": "生成的总结",
+      "remove": "移除",
+      "config": "上下文配置",
+      "maxContentLength": "消息截取长度",
+      "maxContentLengthDesc": "每条消息最多保留的字符数（0 = 不限制）",
+      "systemPrompt": "自定义系统提示词",
+      "systemPromptDesc": "留空使用默认提示词。可用占位符：{contextSummary}、{pathSummary}",
+      "systemPromptPlaceholder": "留空使用默认系统提示词..."
+    },
+    "manage": {
+      "tabs": {
+        "mcp": "MCP 服务器",
+        "api": "API 设置",
+        "about": "关于"
+      },
+      "mcp": {
+        "title": "MCP 服务器",
+        "builtin": "内置服务器",
+        "custom": "自定义服务器",
+        "addServer": "添加服务器",
+        "noBuiltin": "暂无内置服务器",
+        "noCustom": "暂无自定义服务器",
+        "active": "已激活",
+        "inactive": "未激活",
+        "tools": "{{count}} 个工具",
+        "refresh": "刷新",
+        "remove": "移除",
+        "serverName": "服务器名称",
+        "serverType": "连接类型",
+        "typeStdio": "Stdio (本地进程)",
+        "typeHttp": "HTTP/SSE (网络)",
+        "command": "命令",
+        "commandPlaceholder": "例如: npx",
+        "args": "参数",
+        "argsPlaceholder": "例如: -y @anthropic-ai/mcp-server",
+        "baseUrl": "基础 URL",
+        "baseUrlPlaceholder": "例如: http://localhost:3000",
+        "cancel": "取消",
+        "add": "添加"
+      },
+      "api": {
+        "title": "API 设置",
+        "configured": "已配置",
+        "notConfigured": "未配置",
+        "apiKey": "API 密钥",
+        "apiKeyPlaceholder": "输入你的 Claude API 密钥",
+        "baseUrl": "API 基础 URL",
+        "baseUrlPlaceholder": "https://api.anthropic.com",
+        "model": "模型",
+        "maxTokens": "最大 Token 数",
+        "save": "保存设置",
+        "note": {
+          "title": "使用说明",
+          "items": [
+            "API 密钥通过环境变量配置（本地部署）",
+            "支持自定义 API 代理地址",
+            "建议使用 claude-sonnet-4-5-20250929 模型"
+          ]
+        }
+      },
+      "about": {
+        "title": "Lyra AI Chat",
+        "version": "版本",
+        "description": "嵌入式 AI 对话浮窗，用于回顾和整理对话记录。",
+        "features": {
+          "title": "功能特性",
+          "items": [
+            "自动追踪浏览的消息上下文",
+            "记录分支切换轨迹",
+            "支持手动清理上下文",
+            "集成 MCP 工具扩展"
+          ]
+        },
+        "mcpInfo": {
+          "title": "MCP 集成",
+          "description": "支持 Model Context Protocol，可扩展 AI 能力"
+        },
+        "links": {
+          "github": "GitHub",
+          "docs": "文档"
+        }
+      }
+    },
+    "messages": {
+      "empty": "暂无消息",
+      "emptyHint": "开始输入以发起对话",
+      "toolCall": "调用工具",
+      "thinking": "思考中..."
+    }
+  },
+  "whiteboard": {
+    "title": "画布",
+    "resetLayout": "重置布局",
+    "resetView": "重置视图",
+    "mobileWarning": "画布视图建议在桌面端使用",
+    "addCard": "添加卡片",
+    "removeCard": "移除",
+    "connectMode": "连线",
+    "newCanvas": "新建画布",
+    "renameCanvas": "重命名",
+    "deleteCanvas": "删除",
+    "deleteCanvasConfirm": "确定删除该画布及其所有卡片？",
+    "hints": {
+      "drag": "拖拽",
+      "dragDesc": "移动卡片",
+      "click": "点击",
+      "select": "选中",
+      "dblclick": "双击",
+      "detail": "详情",
+      "wheel": "滚轮",
+      "zoom": "缩放",
+      "canvasDrag": "空白拖拽",
+      "pan": "平移"
+    },
+    "canvas": {
+      "defaultName": "画布 {{num}}",
+      "empty": "画布为空。点击「添加卡片」开始。",
+      "switchedTo": "已切换到 {{name}}"
+    },
+    "cardPicker": {
+      "title": "添加卡片",
+      "selectFile": "选择对话",
+      "search": "搜索消息…",
+      "addToCanvas": "添加",
+      "addAll": "全部添加",
+      "noFiles": "未加载文件",
+      "noMessages": "未找到消息",
+      "branchPoints": "个分支点",
+      "showByBranch": "按分支显示",
+      "showAll": "显示全部",
+      "alreadyAdded": "已添加",
+      "addCard": "添加到画布"
+    },
+    "connection": {
+      "delete": "删除连线",
+      "selectStart": "点击卡片开始连线",
+      "selectEnd": "点击另一张卡片完成连线",
+      "cancel": "取消"
+    },
+    "aiPanel": {
+      "title": "AI 分析",
+      "analyze": "分析选中卡片",
+      "noSelection": "Shift+点击卡片进行多选",
+      "analyzing": "分析中...",
+      "selectedCards": "已选 {{count}} 张",
+      "noApiKey": "请先在设置中配置 AI Chat API 密钥",
+      "noResponse": "未收到响应"
+    }
+  },
+  "cardGrid": {
+    "viewMode": "视图模式",
+    "timelineMode": "时间线",
+    "whiteboardMode": "白板"
+  }
+}

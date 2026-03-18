@@ -1,0 +1,955 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error occurred",
+    "success": "Success",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "close": "Close",
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "retry": "Retry"
+  },
+  "app": {
+    "title": "Lyra Exporter",
+    "navbar": {
+      "backToList": "Back to Conversation List",
+      "settings": "Settings",
+      "restoreStars": "Restore Stars"
+    },
+    "search": {
+      "placeholder": {
+        "conversations": "Search conversation titles, project names...",
+        "files": "Search file names, formats...",
+        "messages": "Search message content, thinking process, Artifacts..."
+      },
+      "results": "Showing {{displayed}} / {{total}} {{unit}}"
+    },
+    "stats": {
+      "totalMessages": "Total Messages",
+      "conversationCount": "Conversations",
+      "fileCount": "Files",
+      "markedCount": "Marked Messages",
+      "starredCount": "Starred"
+    },
+    "export": {
+      "title": "Export Options",
+      "button": "Export",
+      "exportToMarkdown": "Export as Markdown",
+      "previewAndExport": "Preview and Export",
+      "exportToPDF": "Export as PDF",
+      "format": {
+        "title": "Export Format",
+        "markdown": "Markdown Document",
+        "markdownDesc": "Export as plain text Markdown format",
+        "screenshot": "Conversation Screenshot",
+        "screenshotDesc": "Export as long screenshot, supports editing and preview",
+        "pdf": "PDF Document",
+        "pdfDesc": "Export as searchable plain text PDF (images not supported)"
+      },
+      "scope": {
+        "title": "Export Scope",
+        "current": "Current Timeline File",
+        "currentDesc": "Export only the single file currently being viewed",
+        "currentBranch": "Current Branch of Timeline",
+        "currentBranchDesc": "Export only the branch shown in current timeline",
+        "operated": "Operated Files",
+        "operatedDesc": "Export all files with marking or sorting operations",
+        "all": "All Loaded Files",
+        "allDesc": "Export all currently loaded files, regardless of operations",
+        "hint": {
+          "enterTimeline": "Please enter timeline view first",
+          "markFirst": "Please mark or sort messages first",
+          "showAllBranches": "Cannot select when showing all branches"
+        }
+      },
+      "filters": {
+        "title": "Mark Filters",
+        "excludeDeleted": "Exclude \"Deleted\" marks",
+        "excludeDeletedDesc": "Do not export messages marked as deleted",
+        "includeCompleted": "Export only \"Completed\" marks",
+        "includeCompletedDesc": "Export only messages marked as completed",
+        "includeImportant": "Export only \"Important\" marks",
+        "includeImportantDesc": "Export only messages marked as important",
+        "importantAndCompleted": "(Must also be completed)"
+      },
+      "stats": {
+        "files": "File Statistics:",
+        "filesDesc": "{{fileCount}} files, {{conversationCount}} conversations, {{totalMessages}} messages",
+        "marks": "Mark Statistics:",
+        "marksDesc": "Completed {{completed}} · Important {{important}} · Deleted {{deleted}}",
+        "stars": "Star Statistics:",
+        "starsDesc": "{{starred}} starred conversations",
+        "content": "Current Content Settings:",
+        "contentDesc": "{{settings}}",
+        "basicOnly": "Basic Content Only"
+      },
+      "segments": {
+        "currentBranch": "Current Branch",
+        "allBranches": "All Branches",
+        "all": "All",
+        "starredOnly": "Starred Only",
+        "completedOnly": "Completed Only"
+      }
+    },
+    "typeConflict": {
+      "title": "File Type Conflict",
+      "message": "You are trying to load files of different types. To ensure proper display, <strong>Claude Full Export</strong> format cannot be loaded together with other formats.",
+      "currentFiles": "Current files: {{count}} files",
+      "newFiles": "New files: {{count}} files",
+      "hint": "Selecting \"Replace\" will close all current files and load new ones.",
+      "cancel": "Cancel",
+      "replace": "Replace All Files"
+    },
+    "confirmations": {
+      "clearAllMarks": "Are you sure you want to clear marks from all files and conversations? This action cannot be undone."
+    }
+  },
+  "units": {
+    "conversation": " conversations",
+    "file": " files",
+    "message": " messages"
+  },
+  "fileCard": {
+    "conversationSummary": "{{count}} conversations, {{messages}} messages",
+    "messageSummary": "{{count}} messages",
+    "clickToLoad": "Click to load file content..."
+  },
+  "timeline": {
+    "branch": {
+      "mainBranch": "Main Branch",
+      "branch": "Branch",
+      "all": "All",
+      "previousBranch": "Previous branch",
+      "nextBranch": "Next branch",
+      "showAllBranches": "Show all branches",
+      "allMessages": "All messages",
+      "showMessagesFromAllBranches": "Show messages from all branches",
+      "messages": " messages",
+      "detected": "Detected",
+      "branchPoints": " branch points",
+      "filterBranches": "Branches",
+      "showAll": "Show all",
+      "showSelectedOnly": "Show selected branch only",
+      "noBranches": "No branches in current conversation"
+    },
+    "conversation": {
+      "unknownTime": "Unknown time",
+      "unnamedConversation": "Unnamed conversation",
+      "unknownConversation": "Unknown conversation"
+    },
+    "file": {
+      "clickToPrevious": "Click to switch to previous file",
+      "clickToNext": "Click to switch to next file"
+    },
+    "actions": {
+      "resetMarks": "Reset marks",
+      "clearAllMarks": "Clear all marks",
+      "resetSort": "Reset sort",
+      "confirmClearMarks": "Are you sure you want to clear all marks from the current conversation?",
+      "confirmResetSort": "Are you sure you want to reset to original order?",
+      "restoreOriginalOrder": "Restore original message order",
+      "disableSort": "Disable sort",
+      "enableSort": "Enable sort",
+      "cannotSortWhileSearching": "Cannot sort while searching",
+      "enableMessageSorting": "Enable message sorting",
+      "sortingDisabledDuringSearch": "Sorting disabled during search",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "copyMessage": "Copy message",
+      "copied": "Copied",
+      "markCompleted": "Completed Mark",
+      "unmarkCompleted": "Unmark completed",
+      "markImportant": "Star Mark",
+      "unmarkImportant": "Unmark important",
+      "markDeleted": "Deleted Mark",
+      "unmarkDeleted": "Unmark deleted",
+      "jumpToLatest": "Jump to Latest",
+      "previousMessage": "Previous message",
+      "nextMessage": "Next message"
+    },
+    "info": {
+      "modelPlatform": "Model/Platform",
+      "created": "Created",
+      "displayedMessages": "Displayed messages",
+      "lastUpdated": "Last updated"
+    },
+    "tags": {
+      "hasThinking": "thinking",
+      "images": " images",
+      "attachments": " attachments",
+      "artifacts": " Artifacts",
+      "usedTools": "Used tools",
+      "citations": " citations",
+      "completed": "Completed",
+      "important": "Important",
+      "deleted": "Deleted"
+    }
+  },
+  "card": {
+    "unnamed": "Unnamed",
+    "unstar": "Unstar",
+    "star": "Star",
+    "close": "Close",
+    "conversations": " conversations",
+    "contains": "Contains",
+    "and": " and ",
+    "messages": " messages",
+    "clickToLoad": "Click to load file content...",
+    "clickToView": "Click to view conversation details...",
+    "hasThinking": "Has thinking",
+    "hasCode": "Has code",
+    "addFile": "Add file",
+    "supportsJson": "Supports JSON format",
+    "openJsonDirect": "Open JSON",
+    "openJsonDirectHint": "Jump directly to timeline view"
+  },
+  "messageDetail": {
+    "tabs": {
+      "content": "Content",
+      "thinking": "Thinking Process",
+      "attachments": "Attachments"
+    },
+    "placeholder": {
+      "selectMessage": "Select a message to view details",
+      "noArtifacts": "This message does not use Artifacts",
+      "noAttachments": "This message has no attachments",
+      "noThinking": "This message has no thinking process recorded",
+      "formatNotSupported": {
+        "thinking": "This format does not support thinking process",
+        "artifacts": "This format does not support Artifacts"
+      },
+      "selectTab": "Please select a tab"
+    },
+    "images": {
+      "title": "Image attachments",
+      "loadFailed": "Image failed to load"
+    },
+    "artifacts": {
+      "noTitle": "No title",
+      "unknown": "Unknown",
+      "language": "Language",
+      "originalText": "Original text",
+      "newText": "New text"
+    },
+    "attachments": {
+      "fullContent": "Full content",
+      "contentPreview": "Content preview",
+      "characters": " characters",
+      "showPreview": "Show preview",
+      "showAll": "Show all",
+      "contentTruncated": "Content truncated",
+      "codeTruncated": "Code truncated",
+      "collapse": "Collapse content",
+      "expand": "Expand to show more",
+      "unknownFile": "Unknown file",
+      "type": "Type",
+      "created": "Created"
+    },
+    "tools": {
+      "tool": "Tool",
+      "searchQuery": "Search query",
+      "inputParams": "Input parameters",
+      "result": "Result",
+      "executionError": "Tool execution error",
+      "noTitle": "No title",
+      "moreResults": " more results"
+    },
+    "citations": {
+      "title": "Citations",
+      "unknownSource": "Unknown source",
+      "unknownWebsite": "Unknown website"
+    }
+  },
+  "filter": {
+    "title": "Filter conversations",
+    "actions": {
+      "clearFilters": "Clear filters",
+      "clearAllFilters": "Clear all filter conditions",
+      "clearAllMarks": "Clear all marks",
+      "clearAllMarksTitle": "Clear marks from all files ({{count}} with operations)",
+      "exportProject": "Export Project",
+      "exportProjectTitle": "Save current file list as project config",
+      "importProject": "Import Project",
+      "importProjectTitle": "Load file list from project config"
+    },
+    "search": {
+      "label": "Search conversations",
+      "placeholder": "Conversation or project name..."
+    },
+    "timeRange": {
+      "label": "Time range",
+      "all": "All time",
+      "today": "Today",
+      "week": "Last week",
+      "month": "Last month",
+      "custom": "Custom range"
+    },
+    "dateRange": {
+      "label": "Date range",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "to": "to"
+    },
+    "project": {
+      "label": "Project",
+      "all": "All projects",
+      "none": "No project"
+    },
+    "organization": {
+      "label": "Account",
+      "all": "All accounts",
+      "none": "No account"
+    },
+    "starred": {
+      "label": "Star status",
+      "all": "All",
+      "starred": "Starred",
+      "unstarred": "Unstarred"
+    },
+    "operated": {
+      "label": "Operation status",
+      "all": "All",
+      "hasOperations": "Has operations",
+      "noOperations": "No operations"
+    },
+    "stats": {
+      "showing": "Showing",
+      "conversations": "conversations",
+      "activeFilters": "{{count}} active filters"
+    },
+    "sort": {
+      "label": "Sort by",
+      "createdAt": "Created time",
+      "name": "Name",
+      "messageCount": "Message count",
+      "size": "File size",
+      "asc": "Asc",
+      "desc": "Desc"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "done": "Done",
+    "appearance": {
+      "title": "Appearance",
+      "theme": {
+        "label": "Theme",
+        "description": "Choose dark, light or e-ink theme",
+        "dark": "Dark Theme",
+        "light": "Light Theme",
+        "eink": "E-Ink Theme",
+        "toggleToDark": "Switch to Dark Theme",
+        "toggleToLight": "Switch to Light Theme",
+        "toggleToEink": "Switch to E-Ink Theme"
+      },
+      "language": {
+        "label": "Language",
+        "description": "Select interface display language (Requires manual restart)"
+      },
+      "deviceMode": {
+        "label": "Device Mode",
+        "description": "Choose interface layout mode",
+        "auto": "Auto Detect",
+        "mobile": "Force Mobile",
+        "desktop": "Force Desktop"
+      }
+    },
+    "copyOptions": {
+      "title": "Copy Options",
+      "includeThinking": {
+        "label": "Include Thinking Process",
+        "description": "Include Claude's thinking process when copying messages"
+      },
+      "includeArtifacts": {
+        "label": "Include Artifacts",
+        "description": "Include generated code and documents when copying messages"
+      },
+      "includeAttachments": {
+        "label": "Include Attachments",
+        "description": "Include uploaded file information when copying messages"
+      },
+      "includeCanvas": {
+        "label": "Include Canvas",
+        "description": "Include Canvas content when copying messages"
+      }
+    },
+    "exportFormat": {
+      "title": "Export Format",
+      "preview": {
+        "label": "Format Preview",
+        "description": "View the title format effect under current settings",
+        "userMessage": "(User Message)",
+        "assistantMessage": "(Assistant Message)"
+      },
+      "numbering": {
+        "label": "Numbering Settings",
+        "description": "Choose whether to include numbering in message titles",
+        "none": "No Numbering",
+        "numeric": "Numeric (1, 2, 3...)",
+        "letter": "Letter (A, B, C...)",
+        "roman": "Roman Numerals (I, II, III...)"
+      },
+      "senderLabel": {
+        "label": "Sender Label",
+        "description": "Choose the display format for senders",
+        "default": "Default (User/AI)",
+        "humanAssistant": "English (Human/Assistant)",
+        "custom": "Custom"
+      },
+      "customLabels": {
+        "human": {
+          "label": "User Label",
+          "description": "Customize the label for user sender",
+          "placeholder": "e.g.: User, 用户"
+        },
+        "assistant": {
+          "label": "Assistant Label",
+          "description": "Customize the label for AI assistant",
+          "placeholder": "e.g.: AI, Assistant"
+        }
+      },
+      "headerPrefix": {
+        "label": "Header Prefix",
+        "description": "Choose whether to add Markdown header symbols before titles",
+        "none": "No Header Prefix",
+        "h1": "Level 1 Header (#)",
+        "h2": "Level 2 Header (##)"
+      },
+      "thinkingFormat": {
+        "label": "Thinking Process Format",
+        "description": "Choose the display format for thinking process when copying and exporting",
+        "codeblock": "Code Block Format (Thinking First)",
+        "xml": "XML Tag Format (Thinking First)",
+        "emoji": "Emoji Format (Content First)"
+      }
+    },
+    "exportContent": {
+      "title": "Export Content",
+      "description": "Control what content is included in exported Markdown files",
+      "timestamps": {
+        "label": "Timestamps",
+        "description": "Include message send time"
+      },
+      "thinking": {
+        "label": "Thinking Process",
+        "description": "Claude's internal thinking process"
+      },
+      "artifacts": {
+        "label": "Artifacts",
+        "description": "Generated content like code and documents"
+      },
+      "tools": {
+        "label": "Tool Usage",
+        "description": "Records of tool calls like search and calculation"
+      },
+      "citations": {
+        "label": "Citations",
+        "description": "Citation information like web links"
+      },
+      "attachments": {
+        "label": "Attachments",
+        "description": "User-uploaded files and their preview information"
+      },
+      "canvas": {
+        "label": "Include Canvas",
+        "description": "Include Canvas content when exporting"
+      }
+    },
+    "about": {
+      "title": "About",
+      "appName": "Lyra Exporter",
+      "appDescription": "Powerful conversation export and management tool",
+      "version": "Version",
+      "github": "GitHub",
+      "githubDescription": "Open source project, contributions and feedback welcome",
+      "aiChatTitle": "AI Chat Assistant",
+      "aiChatDescription": "Embedded AI assistant to help you organize conversations while browsing",
+      "mainFeatures": "Main Features",
+      "feature1": "Context-aware AI conversations",
+      "feature2": "Intelligent context management based on browsing history",
+      "feature3": "MCP tool integration support",
+      "feature4": "Streaming responses with real-time display",
+      "mcpTitle": "MCP Integration",
+      "mcpDescription": "Supports Model Context Protocol (MCP) to connect various MCP servers and extend AI capabilities",
+      "mcpBuiltin": "Built-in MCP",
+      "mcpBuiltinDesc": "Pre-configured conversation context services",
+      "mcpCustom": "Custom MCP",
+      "mcpCustomDesc": "Support for adding any MCP server",
+      "relatedLinks": "Related Links",
+      "mcpDocs": "MCP Official Documentation",
+      "anthropicDocs": "Anthropic API Documentation"
+    },
+    "nav": {
+      "general": "General",
+      "export": "Export",
+      "ai": "AI Config",
+      "about": "About"
+    },
+    "aiChat": {
+      "title": "AI Chat Configuration",
+      "description": "Configure embedded AI assistant API settings",
+      "protocol": {
+        "label": "Protocol",
+        "description": "Select API communication protocol type"
+      },
+      "apiKey": {
+        "label": "API Key",
+        "description": "Enter your API key (stored locally only)"
+      },
+      "baseUrl": {
+        "label": "API Base URL",
+        "description": "API server address, supports proxy and relay services"
+      },
+      "model": {
+        "label": "Model",
+        "description": "Select or enter the model name to use"
+      },
+      "maxTokens": {
+        "label": "Max Tokens",
+        "description": "Maximum number of tokens per conversation"
+      }
+    },
+    "embedding": {
+      "title": "Semantic Search Configuration",
+      "description": "Configure embedding model for semantic search (AI search feature)",
+      "apiUrl": {
+        "label": "LM Studio API URL",
+        "description": "Local LM Studio embedding service address"
+      },
+      "modelName": {
+        "label": "Model Name",
+        "description": "Loaded embedding model name"
+      },
+      "info": "Please ensure LM Studio is running and has loaded an embedding model. Recommended: qwen3-embedding or similar lightweight models."
+    },
+    "aiChatContext": {
+      "title": "AI Chat Context Configuration",
+      "description": "Configure how the AI chat panel tracks and processes browsing message context",
+      "autoTrack": {
+        "label": "Auto Track",
+        "description": "Automatically add messages to AI chat context while browsing"
+      },
+      "maxContentLength": {
+        "label": "Message Truncation Length",
+        "description": "Maximum characters to keep per message (0 = unlimited)"
+      },
+      "includeThinking": {
+        "label": "Include Thinking",
+        "description": "Add Claude's thinking process to context"
+      },
+      "includeArtifacts": {
+        "label": "Include Artifacts",
+        "description": "Add Artifacts (code, documents) to context"
+      },
+      "includeAttachments": {
+        "label": "Include Attachments",
+        "description": "Add attachment information to context"
+      },
+      "info": "These settings control how the AI chat panel processes message context. Adjust truncation length to balance context completeness and token consumption."
+    },
+    "mcp": {
+      "title": "MCP Server Management",
+      "description": "Configure and manage Model Context Protocol (MCP) servers to extend AI capabilities",
+      "serversCount": "servers",
+      "toolsCount": "tools",
+      "addServer": "Add Server",
+      "cancelAdd": "Cancel",
+      "confirmAdd": "Confirm Add",
+      "removeServer": "Remove Server",
+      "serverName": "Server Name",
+      "typeStdio": "Stdio (CLI)",
+      "typeHttp": "HTTP/SSE",
+      "command": "Command (e.g., npx)",
+      "args": "Arguments (e.g., -y @modelcontextprotocol/server-filesystem)",
+      "serverUrl": "Server URL (e.g., http://localhost:3000/mcp)",
+      "builtin": "Built-in",
+      "noServers": "No MCP servers yet",
+      "availableTools": "Available Tools"
+    },
+    "searchOptions": {
+      "title": "Search Settings",
+      "removeDuplicates": {
+        "label": "Remove Duplicates",
+        "description": "Automatically filter duplicate search results, showing only unique messages"
+      },
+      "includeThinking": {
+        "label": "Search Thinking Content",
+        "description": "Include Claude's thinking process in search"
+      },
+      "includeArtifacts": {
+        "label": "Search Artifacts Content",
+        "description": "Include Claude-created Artifacts in search"
+      }
+    }
+  },
+  "rename": {
+    "title": "Rename",
+    "label": "New Name",
+    "placeholder": "Enter new name...",
+    "action": "Rename",
+    "error": {
+      "empty": "Name cannot be empty"
+    }
+  },
+  "copy": {
+    "messages": {
+      "success": "Copied to clipboard",
+      "error": "Copy failed, please try again",
+      "generalError": "Copy failed",
+      "multipleSuccess": "Copied {{count}} messages"
+    },
+    "format": {
+      "timeLabel": "Time",
+      "thinkingLabel": "💭 Thinking Process:",
+      "artifactsLabel": "🔧 Artifacts:",
+      "noTitle": "No title",
+      "unknownType": "Unknown type"
+    }
+  },
+  "exportManager": {
+    "metadata": {
+      "defaultTitle": "Conversation Record",
+      "created": "Created",
+      "unknown": "Unknown",
+      "exportTime": "Export Time",
+      "filterCondition": "Filter Condition"
+    },
+    "messages": {
+      "noMatchingMessages": "*No matching messages*",
+      "exportedCount": "*Exported {{count}} of {{total}} messages based on filter conditions*"
+    },
+    "format": {
+      "thinkingProcess": "Thinking Process",
+      "thinkingLabel": "💭 Thinking Process:",
+      "attachments": "📎 Attachments",
+      "type": "Type",
+      "contentPreview": "Content Preview",
+      "artifact": "🔧 Artifact:",
+      "noTitle": "No title",
+      "unknown": "Unknown",
+      "typeLabel": "**Type**:",
+      "language": "**Language**:",
+      "content": "**Content**:",
+      "tool": "🔍 Tool:",
+      "searchQuery": "**Search Query**:",
+      "searchResults": "**Search Results**:",
+      "citations": "📎 Citations",
+      "unknownSource": "Unknown source",
+      "unknownWebsite": "Unknown website"
+    },
+    "filters": {
+      "excludeDeleted": "Exclude Deleted",
+      "onlyCompleted": "Only Completed Messages",
+      "onlyImportant": "Only Important Messages",
+      "completedAndImportant": "Only Completed and Important Messages"
+    },
+    "errors": {
+      "saveFileFailed": "Failed to save file, please try again",
+      "noDataToExport": "No data to export",
+      "exportFailed": "Export failed",
+      "unknownScope": "Unknown export scope:",
+      "screenshotOnlySupportsCurrent": "Screenshot export only supports current conversation or current branch",
+      "pdfOnlySupportsCurrent": "PDF export only supports current conversation or current branch",
+      "noMatchingMessages": "No messages match the filter criteria"
+    }
+  },
+  "search": {
+      "all": "All",
+      "titles": "Titles",
+      "content": "Content",
+      "modeAll": "Search all content",
+      "modeTitles": "Search titles only",
+      "modeContent": "Search content only",
+      "placeholderAll": "Search all messages...",
+      "placeholderTitles": "Search conversation titles...",
+      "placeholderContent": "Search message content...",
+      "options": "Search Options",
+      "indexStats": "{{messages}} messages, {{files}} files",
+      "removeDuplicates": "Remove duplicates",
+      "removeDuplicatesDesc": "Deduplicate based on the first 100 characters of message content, not limited to retry messages",
+      "includeThinking": "Include thinking",
+      "includeArtifacts": "Include Artifacts",
+      "messagesWithThinking": "{{count}} messages with thinking",
+      "messagesWithArtifacts": "{{count}} messages with Artifacts",
+      "blankMessages": "{{count}} blank messages",
+      "expandPanel": "Expand search panel",
+      "history": {
+        "title": "Search History",
+        "delete": "Delete this record"
+      }
+    },
+    "nodeLocator": {
+      "title": "Search Results",
+      "searching": "Searching",
+      "foundMessages": "Found {{count}} messages from {{fileCount}} files, {{conversationCount}} conversations",
+      "listView": "List View",
+      "treeView": "Tree View",
+      "selectFile": "Select File",
+      "chooseFile": "Please select a file",
+      "results": "results",
+      "resultCount": "{{count}} results",
+      "matches": "matches",
+      "singleConversation": "Single conversation",
+      "blocked": "Blocked",
+      "retry": "Retry",
+      "duplicate": "Duplicate",
+      "blankMessage": "Blank message",
+      "hasThinking": "Thinking",
+      "hasArtifacts": "Artifacts",
+      "messages": "messages",
+      "file": "File"
+    },
+    "semanticSearch": {
+      "title": "Semantic Search",
+      "header": "🔮 Semantic Search",
+      "settings": "Settings",
+      "close": "Close",
+      "embeddingModel": {
+        "title": "Embedding Model",
+        "apiUrl": "API URL",
+        "apiUrlPlaceholder": "http://localhost:1234",
+        "modelName": "Model Name",
+        "modelNamePlaceholder": "qwen3-embedding",
+        "infoLmstudio": "💡 Please ensure local Embedding service is running with model loaded."
+      },
+      "llmConfig": {
+        "title": "AI Response (Optional)",
+        "provider": "AI Service",
+        "none": "Search Only (No AI)",
+        "openai": "OpenAI",
+        "claude": "Claude",
+        "apiKey": "API Key",
+        "apiKeyPlaceholder": "Enter your API key",
+        "apiEndpoint": "API Endpoint",
+        "apiEndpointPlaceholder": "",
+        "model": "Model",
+        "modelPlaceholder": "Enter model name (e.g., gpt-4o-mini)"
+      },
+      "status": {
+        "initializing": "Initializing...",
+        "waitingFiles": "⏳ Waiting for files to stabilize...",
+        "rebuildIndex": "🔄 Rebuild Index",
+        "ready": "✅ Ready",
+        "indexSize": "{{count}} messages",
+        "embeddingInfo": "Embedding · {{count}} messages",
+        "filesChanging": "Files changing, waiting for stability...",
+        "filesChanged": "Files changed, please rebuild index"
+      },
+      "chat": {
+        "placeholder": "Ask me anything about your conversation history...",
+        "placeholderWaiting": "Files loading, enter your question, will auto-search when stable...",
+        "placeholderIndexing": "Enter your question, will auto-search after indexing...",
+        "placeholderNotReady": "Enter your question and press Enter, will auto-start indexing...",
+        "send": "Send",
+        "search": "Search",
+        "greeting": "👋 Hello! I can help you search through your conversation history.",
+        "noResults": "No relevant conversation records found. Please try other keywords.",
+        "resultsIntro": "Here are conversation records related to your question:",
+        "searchError": "Search error: {{error}}",
+        "waitingIndex": "⏳ Building index, will auto-search when complete...",
+        "waitingFiles": "⏳ Waiting for files to stabilize, will auto-build index and search..."
+      },
+      "results": {
+        "score": "{{score}}%",
+        "preview": "Preview"
+      }
+    },
+  "actionPanel": {
+    "title": "Action Panel",
+    "nav": {
+      "globalSearch": "Global Search",
+      "semanticSearch": "Semantic Search",
+      "exportMarkdown": "Markdown",
+      "exportScreenshot": "Screenshot",
+      "exportPdf": "PDF"
+    }
+  },
+  "aiChat": {
+    "panel": {
+      "title": "AI Chat",
+      "settings": "Settings",
+      "openSettings": "Open Settings",
+      "backToChat": "Back to Chat",
+      "pin": "Pin Window",
+      "unpin": "Unpin",
+      "minimize": "Minimize",
+      "restore": "Restore",
+      "close": "Close",
+      "assistant": "AI Assistant"
+    },
+    "chat": {
+      "needsConfig": "API Configuration Required",
+      "configPrompt": "Please configure API key in settings first",
+      "goToSettings": "Go to Settings",
+      "expandDetails": "Expand Details",
+      "collapseDetails": "Collapse Details",
+      "clearChat": "Clear Chat",
+      "placeholder": "Start a conversation...",
+      "placeholderWithContext": "Ask about the conversation you're browsing..."
+    },
+    "context": {
+      "empty": "No browsing context",
+      "messages": "{{count}} messages",
+      "tokens": "~{{count}} tokens",
+      "steps": "{{count}} steps",
+      "refresh": "Refresh Context",
+      "clear": "Clear Context",
+      "detailsTitle": "Current Context Details",
+      "browsingMessages": "Browsing Messages",
+      "browsingPath": "Browsing Path",
+      "summaries": "Generated Summaries",
+      "remove": "Remove",
+      "config": "Context Configuration",
+      "maxContentLength": "Message Truncation Length",
+      "maxContentLengthDesc": "Maximum characters to keep per message (0 = unlimited)",
+      "systemPrompt": "Custom System Prompt",
+      "systemPromptDesc": "Leave empty to use default prompt. Available placeholders: {contextSummary}, {pathSummary}",
+      "systemPromptPlaceholder": "Leave empty to use default system prompt..."
+    },
+    "manage": {
+      "tabs": {
+        "mcp": "MCP Servers",
+        "api": "API Settings",
+        "about": "About"
+      },
+      "mcp": {
+        "title": "MCP Servers",
+        "builtin": "Built-in Servers",
+        "custom": "Custom Servers",
+        "addServer": "Add Server",
+        "noBuiltin": "No built-in servers",
+        "noCustom": "No custom servers",
+        "active": "Active",
+        "inactive": "Inactive",
+        "tools": "{{count}} tools",
+        "refresh": "Refresh",
+        "remove": "Remove",
+        "serverName": "Server Name",
+        "serverType": "Connection Type",
+        "typeStdio": "Stdio (Local Process)",
+        "typeHttp": "HTTP/SSE (Network)",
+        "command": "Command",
+        "commandPlaceholder": "e.g.: npx",
+        "args": "Arguments",
+        "argsPlaceholder": "e.g.: -y @anthropic-ai/mcp-server",
+        "baseUrl": "Base URL",
+        "baseUrlPlaceholder": "e.g.: http://localhost:3000",
+        "cancel": "Cancel",
+        "add": "Add"
+      },
+      "api": {
+        "title": "API Settings",
+        "configured": "Configured",
+        "notConfigured": "Not Configured",
+        "apiKey": "API Key",
+        "apiKeyPlaceholder": "Enter your Claude API key",
+        "baseUrl": "API Base URL",
+        "baseUrlPlaceholder": "https://api.anthropic.com",
+        "model": "Model",
+        "maxTokens": "Max Tokens",
+        "save": "Save Settings",
+        "note": {
+          "title": "Usage Notes",
+          "items": [
+            "API key is configured via environment variables (local deployment)",
+            "Custom API proxy URL supported",
+            "Recommended model: claude-sonnet-4-5-20250929"
+          ]
+        }
+      },
+      "about": {
+        "title": "Lyra AI Chat",
+        "version": "Version",
+        "description": "Embedded AI chat panel for reviewing and organizing conversation records.",
+        "features": {
+          "title": "Features",
+          "items": [
+            "Auto-track browsing message context",
+            "Record branch switch history",
+            "Manual context cleanup",
+            "MCP tool integration"
+          ]
+        },
+        "mcpInfo": {
+          "title": "MCP Integration",
+          "description": "Supports Model Context Protocol for extended AI capabilities"
+        },
+        "links": {
+          "github": "GitHub",
+          "docs": "Documentation"
+        }
+      }
+    },
+    "messages": {
+      "empty": "No messages",
+      "emptyHint": "Start typing to begin a conversation",
+      "toolCall": "Tool Call",
+      "thinking": "Thinking..."
+    }
+  },
+  "whiteboard": {
+    "title": "Canvas",
+    "resetLayout": "Reset",
+    "resetView": "Reset View",
+    "mobileWarning": "Canvas view works best on desktop",
+    "addCard": "Add Card",
+    "removeCard": "Remove",
+    "connectMode": "Connect",
+    "newCanvas": "New Canvas",
+    "renameCanvas": "Rename",
+    "deleteCanvas": "Delete",
+    "deleteCanvasConfirm": "Delete this canvas and all its cards?",
+    "hints": {
+      "drag": "Drag",
+      "dragDesc": "move cards",
+      "click": "Click",
+      "select": "select",
+      "dblclick": "Double-click",
+      "detail": "details",
+      "wheel": "Wheel",
+      "zoom": "zoom",
+      "canvasDrag": "Canvas drag",
+      "pan": "pan"
+    },
+    "canvas": {
+      "defaultName": "Canvas {{num}}",
+      "empty": "Canvas is empty. Click \"Add Card\" to get started.",
+      "switchedTo": "Switched to {{name}}"
+    },
+    "cardPicker": {
+      "title": "Add Cards",
+      "selectFile": "Select conversation",
+      "search": "Search messages...",
+      "addToCanvas": "Add",
+      "addAll": "Add All",
+      "noFiles": "No files loaded",
+      "noMessages": "No messages found",
+      "branchPoints": "branch points",
+      "showByBranch": "By Branch",
+      "showAll": "Show All",
+      "alreadyAdded": "Already added",
+      "addCard": "Add to canvas"
+    },
+    "connection": {
+      "delete": "Delete Connection",
+      "selectStart": "Click a card to start connection",
+      "selectEnd": "Click another card to connect",
+      "cancel": "Cancel"
+    },
+    "aiPanel": {
+      "title": "AI Analysis",
+      "analyze": "Analyze Selected",
+      "noSelection": "Shift+Click cards to select",
+      "analyzing": "Analyzing...",
+      "selectedCards": "{{count}} cards selected",
+      "noApiKey": "Please configure AI Chat API key in Settings",
+      "noResponse": "No response received"
+    }
+  },
+  "cardGrid": {
+    "viewMode": "View Mode",
+    "timelineMode": "Timeline",
+    "whiteboardMode": "Whiteboard"
+  }
+}
