@@ -15,6 +15,7 @@ import {
   toRoman
 } from './formatHelpers';
 import { t } from '../index.js';
+import * as fflateStatic from 'fflate';
 
 const gt = (key) => t(`exportManager.${key}`);
 
@@ -410,13 +411,8 @@ export async function downloadMarkdownExport(result) {
     return;
   }
 
-  // 打包 ZIP（优先使用 window.fflate，否则动态 import）
-  let fflate;
-  if (typeof window !== 'undefined' && window.fflate) {
-    fflate = window.fflate;
-  } else {
-    fflate = await import('fflate');
-  }
+  // 打包 ZIP
+  const fflate = (typeof window !== 'undefined' && window.fflate) ? window.fflate : fflateStatic;
 
   const entries = {};
 

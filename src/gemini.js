@@ -843,8 +843,8 @@ const ScraperHandler = {
             if (progress) progress.textContent = i18n.t('exporting');
             try {
                 const json = await ScraperHandler.buildConversationJson(platform, title);
-                const filename = `${platform}_${Utils.sanitizeFilename(title)}_${new Date().toISOString().slice(0, 10)}.json`;
-                Utils.downloadJSON(JSON.stringify(json, null, 2), filename);
+                const baseName = `${platform}_${Utils.sanitizeFilename(title)}_${new Date().toISOString().slice(0, 10)}`;
+                await loominaryExportMarkdown(json, baseName);
             } catch (e) {
                 ErrorHandler.handle(e, 'Export conversation');
             } finally {

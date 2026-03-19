@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
@@ -14,7 +14,19 @@ const TRANSLATIONS = {
 const DEFAULT_LANG = 'en';
 
 // Language is read once from chrome.storage at startup (set there by the userscript)
+// setResolvedLang allows the App to switch language after a postMessage payload arrives.
 let resolvedLang = DEFAULT_LANG;
+let _langListeners = [];
+export function setResolvedLang(lang) {
+  const next = TRANSLATIONS[lang] ? lang : DEFAULT_LANG;
+  if (next === resolvedLang) return;
+  resolvedLang = next;
+  _langListeners.forEach(fn => fn(next));
+}
+export function subscribeLang(fn) {
+  _langListeners.push(fn);
+  return () => { _langListeners = _langListeners.filter(f => f !== fn); };
+}
 
 function getNestedValue(obj, path) {
   return path.split('.').reduce((cur, key) => (cur && typeof cur === 'object' ? cur[key] : undefined), obj);
@@ -35,7 +47,8 @@ export function t(key, params = {}) {
 }
 
 export const useI18n = () => {
-  const [lang] = useState(() => resolvedLang);
+  const [lang, setLang] = useState(() => resolvedLang);
+  useEffect(() => subscribeLang(setLang), []);
   const translations = TRANSLATIONS[lang] || TRANSLATIONS[DEFAULT_LANG];
 
   const tHook = useCallback((key, params = {}) => {

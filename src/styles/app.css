@@ -142,7 +142,7 @@ html.navbar-hidden .navbar-redesigned {
 /* 固定在右侧的导出筛选面板 */
 .timeline-filter-panel {
   position: fixed;
-  right: 20px;
+  right: 32px;
   top: 5px;
   z-index: 100;
   display: flex;
@@ -184,11 +184,27 @@ html.navbar-hidden .navbar-redesigned {
   color: var(--text-primary);
 }
 
-/* Branch group active: 实心高亮 */
+/* Branch group: 未选中白底深色文字，选中深底白字 */
+.segment-group--branch .segment-btn {
+  background: #ffffff;
+  color: #141413;
+}
+
+.segment-group--branch .segment-btn:hover {
+  background: #f0f0f0;
+  color: #141413;
+}
+
 .segment-group--branch .segment-btn.active {
-  background: var(--accent-primary);
-  color: #fff;
+  background: #141413;
+  color: #ffffff;
   font-weight: 500;
+}
+
+.segment-group--branch .segment-btn:disabled {
+  background: #f5f5f5;
+  color: #aaaaaa;
+  cursor: not-allowed;
 }
 
 /* Filter group：独立 toggle，无边框容器，各自是 pill */
@@ -221,6 +237,19 @@ html.navbar-hidden .navbar-redesigned {
   border-color: var(--accent-primary);
   color: var(--accent-primary);
   font-weight: 500;
+}
+
+/* 导航栏搜索框 input 重置：覆盖全局 input[type="text"] 样式 */
+.navbar-search-input {
+  -webkit-appearance: none;
+  appearance: none;
+  align-self: stretch;   /* 填满父 flex 容器高度，消除"大框套小框"问题 */
+  box-shadow: none;
+}
+
+.navbar-search-input:focus {
+  box-shadow: none;      /* 覆盖全局 :focus 的橙色 box-shadow */
+  border-color: transparent;
 }
 
 /* Logo */

@@ -436,14 +436,14 @@
                         alert(i18n.t('uuidNotFound'));
                         return;
                     }
-                    const filename = prompt(i18n.t('enterFilename'), Utils.sanitizeFilename(`grok_${conversationId.substring(0, 8)}`));
-                    if (!filename?.trim()) return;
                     const original = btn.innerHTML;
                     Utils.setButtonLoading(btn, i18n.t('exporting'));
                     try {
                         const data = await GrokHandler.getConversation(conversationId);
                         if (!data) throw new Error(i18n.t('fetchFailed'));
-                        Utils.downloadJSON(JSON.stringify(data, null, 2), `${filename.trim()}.json`);
+                        const title = data.title || conversationId.substring(0, 8);
+                        const filename = `grok_${Utils.sanitizeFilename(title)}_${conversationId.substring(0, 8)}`;
+                        await loominaryExportMarkdown(data, filename);
                     } catch (error) {
                         ErrorHandler.handle(error, 'Export conversation');
                     } finally {

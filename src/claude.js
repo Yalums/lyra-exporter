@@ -9,36 +9,27 @@ const ClaudeHandler = {
         // 扩展模式下 injected.js 已通过 script.src 注入（符合 CSP），不需要 inline script
         const isExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id;
         if (!isExtension) {
-            // Userscript 模式：通过 inline script 拦截 fetch/XHR 以捕获 userId
-            const script = document.createElement('script');
-            script.textContent = `
-                (function() {
-                    function captureUserId(url) {
-                        const match = url.match(/\\/api\\/organizations\\/([a-f0-9-]+)\\//);
-                        if (match && match[1]) {
-                            localStorage.setItem('claudeUserId', match[1]);
-                            window.dispatchEvent(new CustomEvent('userIdCaptured', { detail: { userId: match[1] } }));
-                        }
-                    }
-                    const originalXHROpen = XMLHttpRequest.prototype.open;
-                    XMLHttpRequest.prototype.open = function() {
-                        if (arguments[1]) captureUserId(arguments[1]);
-                        return originalXHROpen.apply(this, arguments);
-                    };
-                    const originalFetch = window.fetch;
-                    window.fetch = function(resource) {
-                        const url = typeof resource === 'string' ? resource : (resource.url || '');
-                        if (url) captureUserId(url);
-                        return originalFetch.apply(this, arguments);
-                    };
-                })();
-            `;
-            (document.head || document.documentElement).appendChild(script);
-            script.remove();
-            // Userscript 模式：监听 inline script 触发的 CustomEvent
-            window.addEventListener('userIdCaptured', (e) => {
-                if (e.detail.userId) State.capturedUserId = e.detail.userId;
-            });
+            // Userscript 模式：通过 unsafeWindow 直接拦截 fetch/XHR 以捕获 userId
+            // CSP 阻止内联 script 注入，但 unsafeWindow 可以直接修改页面的 window 对象
+            function captureUserId(url) {
+                const match = url && url.match(/\/api\/organizations\/([a-f0-9-]+)\//);
+                if (match && match[1] && !State.capturedUserId) {
+                    State.capturedUserId = match[1];
+                    localStorage.setItem('claudeUserId', match[1]);
+                }
+            }
+            const uw = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
+            const origFetch = uw.fetch;
+            uw.fetch = function(resource) {
+                const url = typeof resource === 'string' ? resource : (resource && resource.url || '');
+                captureUserId(url);
+                return origFetch.apply(uw, arguments);
+            };
+            const origXHROpen = uw.XMLHttpRequest.prototype.open;
+            uw.XMLHttpRequest.prototype.open = function() {
+                if (arguments[1]) captureUserId(arguments[1]);
+                return origXHROpen.apply(this, arguments);
+            };
         } else {
             // 扩展模式：injected.js 通过 postMessage 发送 LOOMINARY_USER_ID_CAPTURED
             // build.py 的 header 已在 content.js 顶部监听并写入 localStorage
@@ -114,58 +105,51 @@ const ClaudeHandler = {
                         if (meta.project) data.project = meta.project;
                     }
 
-                    // 扩展模式：根据 popup 配置附带 exportContext（project 信息 / 用户记忆）
-                    let exportContext;
-                    const isExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id;
-                    if (isExtension) {
-                        const exportCfg = await new Promise(resolve => {
-                            chrome.storage.local.get(['loominary_export_config'], r => resolve(r.loominary_export_config || {}));
-                        });
-                        const ctx = {};
-                        const projectUuid = data.project_uuid;
+                    // 读取导出配置并收集 exportContext（project 信息 / 用户记忆）
+                    const exportCfg = await _readExportConfig();
+                    const ctx = {};
+                    const projectUuid = data.project_uuid;
 
-                        if (exportCfg.includeProjectInfo && projectUuid) {
-                            const [detail, memory, files] = await Promise.all([
-                                ClaudeHandler.getProjectDetail(projectUuid),
-                                ClaudeHandler.getProjectMemory(projectUuid),
-                                ClaudeHandler.getProjectFiles(projectUuid)
-                            ]);
-                            const knowledgeFiles = [];
-                            if (files && files.length > 0) {
-                                const fileResults = await Promise.allSettled(
-                                    files.map(f => ClaudeHandler.getProjectFileContent(projectUuid, f.uuid)
-                                        .then(content => ({ name: f.file_name || f.uuid, content })))
-                                );
-                                for (const r of fileResults) {
-                                    if (r.status === 'fulfilled' && r.value.content) {
-                                        const c = r.value.content;
-                                        knowledgeFiles.push({ name: r.value.name, content: typeof c === 'string' ? c : JSON.stringify(c) });
-                                    }
+                    if (exportCfg.includeProjectInfo && projectUuid) {
+                        const [detail, memory, files] = await Promise.all([
+                            ClaudeHandler.getProjectDetail(projectUuid),
+                            ClaudeHandler.getProjectMemory(projectUuid),
+                            ClaudeHandler.getProjectFiles(projectUuid)
+                        ]);
+                        const knowledgeFiles = [];
+                        if (files && files.length > 0) {
+                            const fileResults = await Promise.allSettled(
+                                files.map(f => ClaudeHandler.getProjectFileContent(projectUuid, f.uuid)
+                                    .then(content => ({ name: f.file_name || f.uuid, content })))
+                            );
+                            for (const r of fileResults) {
+                                if (r.status === 'fulfilled' && r.value.content) {
+                                    const c = r.value.content;
+                                    knowledgeFiles.push({ name: r.value.name, content: typeof c === 'string' ? c : JSON.stringify(c) });
                                 }
                             }
-                            ctx.projectInfo = {
-                                name: detail?.name || data.project?.name || '',
-                                description: detail?.description || '',
-                                instructions: detail?.prompt_template || '',
-                                memory: memory?.memory || '',
-                                knowledgeFiles
-                            };
                         }
-
-                        if (exportCfg.includeUserMemory) {
-                            const [profile, globalMem] = await Promise.all([
-                                ClaudeHandler.getUserProfile(),
-                                ClaudeHandler.getGlobalMemory()
-                            ]);
-                            ctx.userMemory = {
-                                preferences: profile?.conversation_preferences || '',
-                                memories: globalMem?.memory || ''
-                            };
-                        }
-
-                        if (Object.keys(ctx).length) exportContext = ctx;
+                        ctx.projectInfo = {
+                            name: detail?.name || data.project?.name || '',
+                            description: detail?.description || '',
+                            instructions: detail?.prompt_template || '',
+                            memory: memory?.memory || '',
+                            knowledgeFiles
+                        };
                     }
 
+                    if (exportCfg.includeUserMemory) {
+                        const [profile, globalMem] = await Promise.all([
+                            ClaudeHandler.getUserProfile(),
+                            ClaudeHandler.getGlobalMemory()
+                        ]);
+                        ctx.userMemory = {
+                            preferences: profile?.conversation_preferences || '',
+                            memories: globalMem?.memory || ''
+                        };
+                    }
+
+                    const exportContext = Object.keys(ctx).length ? ctx : undefined;
                     const jsonString = JSON.stringify(data, null, 2);
                     const filename = `claude_${data.name || 'conversation'}_${uuid.substring(0, 8)}.json`;
                     await Communicator.open(jsonString, filename, exportContext ? { exportContext } : undefined);
@@ -187,7 +171,6 @@ const ClaudeHandler = {
                 const original = btn.innerHTML;
                 Utils.setButtonLoading(btn, i18n.t('exporting'));
                 try {
-                    const isExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id;
                     const includeImages = document.getElementById(Config.IMAGE_SWITCH_ID)?.checked || false;
                     const [data, meta] = await Promise.all([
                         ClaudeHandler.getConversation(uuid, includeImages),
@@ -199,26 +182,12 @@ const ClaudeHandler = {
                         if (meta.project) data.project = meta.project;
                     }
 
-                    if (!isExtension) {
-                        // Userscript 模式：回退为原来的下载 JSON 行为
-                        const filename = prompt(i18n.t('enterFilename'), Utils.sanitizeFilename(`claude_${uuid.substring(0, 8)}`));
-                        if (!filename?.trim()) return;
-                        Utils.downloadJSON(JSON.stringify(data, null, 2), `${filename.trim()}.json`);
-                        return;
-                    }
-
-                    // 扩展模式：读取 popup 导出配置，生成 Markdown
-                    const exportCfg = await new Promise(resolve => {
-                        chrome.storage.local.get(['loominary_export_config'], r => resolve(r.loominary_export_config || {}));
-                    });
-                    const includeProjectInfo = !!exportCfg.includeProjectInfo;
-                    const includeUserMemory = !!exportCfg.includeUserMemory;
-
-                    // 收集附加上下文
+                    // 读取导出配置（extension 从 chrome.storage，userscript 从 localStorage）
+                    const exportCfg = await _readExportConfig();
                     const exportContext = {};
                     const projectUuid = data.project_uuid;
 
-                    if (includeProjectInfo && projectUuid) {
+                    if (exportCfg.includeProjectInfo && projectUuid) {
                         const [detail, memory, files] = await Promise.all([
                             ClaudeHandler.getProjectDetail(projectUuid),
                             ClaudeHandler.getProjectMemory(projectUuid),
@@ -232,7 +201,8 @@ const ClaudeHandler = {
                             );
                             for (const r of fileResults) {
                                 if (r.status === 'fulfilled' && r.value.content) {
-                                    knowledgeFiles.push({ name: r.value.name, content: typeof r.value.content === 'string' ? r.value.content : JSON.stringify(r.value.content) });
+                                    const c = r.value.content;
+                                    knowledgeFiles.push({ name: r.value.name, content: typeof c === 'string' ? c : JSON.stringify(c) });
                                 }
                             }
                         }
@@ -245,7 +215,7 @@ const ClaudeHandler = {
                         };
                     }
 
-                    if (includeUserMemory) {
+                    if (exportCfg.includeUserMemory) {
                         const [profile, globalMem] = await Promise.all([
                             ClaudeHandler.getUserProfile(),
                             ClaudeHandler.getGlobalMemory()
@@ -258,10 +228,7 @@ const ClaudeHandler = {
 
                     const title = data.name || uuid.substring(0, 8);
                     const filename = `claude_${Utils.sanitizeFilename(title)}_${uuid.substring(0, 8)}`;
-                    await Communicator.open(JSON.stringify(data, null, 2), `${filename}.json`, {
-                        action: 'export_markdown',
-                        exportContext: Object.keys(exportContext).length ? exportContext : undefined
-                    });
+                    await loominaryExportMarkdown(data, filename, exportCfg, Object.keys(exportContext).length ? exportContext : null);
                 } catch (error) {
                     ErrorHandler.handle(error, 'Export conversation markdown');
                 } finally {
@@ -470,17 +437,21 @@ const ClaudeHandler = {
         const userId = await ClaudeHandler.ensureUserId();
         if (!userId) return;
 
-        // 检查扩展模式下的导出模式配置
+        // 检查导出模式配置
         const isExtensionMode = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id;
         let exportAllMode = 'zip';
-        if (isExtensionMode) {
-            try {
-                const exportCfg = await new Promise(resolve =>
+        try {
+            let exportCfg = {};
+            if (isExtensionMode) {
+                exportCfg = await new Promise(resolve =>
                     chrome.storage.local.get(['loominary_export_config'], r => resolve(r.loominary_export_config || {}))
                 );
-                exportAllMode = exportCfg.exportAllMode || 'zip';
-            } catch (e) {}
-        }
+            } else {
+                const raw = localStorage.getItem('loominary_export_config') || '{}';
+                exportCfg = JSON.parse(raw);
+            }
+            exportAllMode = exportCfg.exportAllMode || 'zip';
+        } catch (e) {}
 
         const original = btn.innerHTML;
         Utils.setButtonLoading(btn, i18n.t('detectingConversations'));
@@ -557,15 +528,19 @@ const ClaudeHandler = {
         // 读取 popup 导出配置
         let includeProjectInfo = true, includeUserMemory = true;
         const isExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id;
-        if (isExtension) {
-            try {
-                const exportCfg = await new Promise(resolve =>
+        try {
+            let exportCfg = {};
+            if (isExtension) {
+                exportCfg = await new Promise(resolve =>
                     chrome.storage.local.get(['loominary_export_config'], r => resolve(r.loominary_export_config || {}))
                 );
-                includeProjectInfo = exportCfg.includeProjectInfo !== false;
-                includeUserMemory = exportCfg.includeUserMemory !== false;
-            } catch (e) {}
-        }
+            } else {
+                const raw = localStorage.getItem('loominary_export_config') || '{}';
+                exportCfg = JSON.parse(raw);
+            }
+            includeProjectInfo = exportCfg.includeProjectInfo !== false;
+            includeUserMemory = exportCfg.includeUserMemory !== false;
+        } catch (e) {}
 
         try {
             const includeImages = document.getElementById(Config.IMAGE_SWITCH_ID)?.checked || false;

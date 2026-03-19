@@ -9,6 +9,7 @@ import ConversationTimeline from './components/ConversationTimeline';
 import FloatingActionButton from './components/FloatingActionButton';
 import SearchOverlay from './components/SearchOverlay';
 import { CardGrid } from './components/UnifiedCard';
+import SettingsPanel from './components/SettingsPanel';
 
 // 工具函数导入
 import { ThemeUtils } from './utils/themeManager';
@@ -25,7 +26,7 @@ import StorageManager from './utils/data/storageManager.js';
 import { getGlobalSearchManager } from './utils/globalSearchManager';
 import { getRenameManager } from './utils/data/renameManager.js';
 import { prepareMarkdownExport, downloadMarkdownExport } from './utils/markdownExporter';
-import { useI18n } from './index.js';
+import { useI18n, setResolvedLang } from './index.js';
 
 
 // ==================== 筛选 Hook ====================
@@ -193,7 +194,7 @@ function NavSearchBox({ onSearch, onExpand, onGlobalSearch, disabled = false }) 
   return (
     <div style={{ flex: 1, maxWidth: 600, margin: '4px 0', alignSelf: 'stretch', display: 'flex', alignItems: 'stretch' }}>
       <div style={{
-        flex: 1, display: 'flex', alignItems: 'center',
+        flex: 1, display: 'flex', alignItems: 'stretch',
         background: 'var(--bg-secondary)',
         border: 'none',
         borderRadius: radius,
@@ -201,10 +202,11 @@ function NavSearchBox({ onSearch, onExpand, onGlobalSearch, disabled = false }) 
         opacity: disabled ? 0.5 : 1,
         pointerEvents: disabled ? 'none' : undefined,
       }}>
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', position: 'relative' }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'stretch', position: 'relative' }}>
           <input
             ref={searchInputRef}
             type="text"
+            className="navbar-search-input"
             placeholder={t('search.placeholderAll')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -317,7 +319,7 @@ const useFileManager = () => {
   }, []);
 
   // 加载文件
-  const loadFiles = useCallback(async (fileList) => {
+  const loadFiles = useCallback(async (fileList, { replace = false } = {}) => {
     const validFiles = fileList.filter(f =>
       f.name.endsWith('.json') || f.name.endsWith('.jsonl') || f.type === 'application/json'
     );
@@ -325,7 +327,7 @@ const useFileManager = () => {
       setError('未找到有效的JSON/JSONL文件');
       return;
     }
-    const newFiles = validFiles.filter(nf =>
+    const newFiles = replace ? validFiles : validFiles.filter(nf =>
       !files.some(ef => ef.name === nf.name && ef.lastModified === nf.lastModified)
     );
     if (!newFiles.length) {
@@ -389,8 +391,9 @@ const useFileManager = () => {
       });
       StorageManager.remove('pending_project_config');
     }
-    setFileMetadata(prev => ({ ...prev, ...newMeta }));
-    setFiles(prev => [...prev, ...newFiles]);
+    setFileMetadata(replace ? newMeta : (prev => ({ ...prev, ...newMeta })));
+    setFiles(replace ? newFiles : (prev => [...prev, ...newFiles]));
+    if (replace) setCurrentFileIndex(0);
     setError(null);
   }, [files, checkCompatibility, parseFile]);
 
@@ -740,6 +743,10 @@ function App() {
   setErrorRef.current = setError;
   const setViewModeRef = useRef(setViewMode);
   setViewModeRef.current = setViewMode;
+  const setBrowseAllCardsRef = useRef(setBrowseAllCards);
+  setBrowseAllCardsRef.current = setBrowseAllCards;
+  const setBrowseAllCurrentIndexRef = useRef(setBrowseAllCurrentIndex);
+  setBrowseAllCurrentIndexRef.current = setBrowseAllCurrentIndex;
 
   // 非时间线视图的 view-content 滚动容器 ref（用于自动隐藏顶栏）
   const viewContentRef = useRef(null);
@@ -794,6 +801,11 @@ function App() {
       includeAttachments: savedExportConfig.includeAttachments !== undefined ? savedExportConfig.includeAttachments : true
     };
   });
+
+  // 设置面板（仅 GitHub Pages / 独立模式）
+  const [showSettings, setShowSettings] = useState(() =>
+    !!(new URLSearchParams(window.location.search).get('settings'))
+  );
 
   // 搜索状态
   const [searchQuery, setSearchQuery] = useState('');
@@ -1605,25 +1617,25 @@ function App() {
   }, [browseAllCards]);
 
   const handleExportClick = async () => {
-    console.log('[Export] click — isExtension:', !!isExtension, '| processedData:', !!processedData, '| pendingExportContext:', !!pendingExportContext);
-    if (!isExtension || !processedData) {
-      console.log('[Export] 提前返回，原因:', !isExtension ? 'not extension' : 'no processedData');
-      return;
-    }
+    if (!processedData) return;
     try {
-      const extCfg = await new Promise(resolve =>
-        chrome.storage.local.get(['loominary_export_config'], r => resolve(r.loominary_export_config || {}))
-      );
+      let exportCfg;
+      if (isExtension) {
+        exportCfg = await new Promise(resolve =>
+          chrome.storage.local.get(['loominary_export_config'], r => resolve(r.loominary_export_config || {}))
+        );
+      } else {
+        exportCfg = StorageManager.get('export-config', {});
+      }
       const currentFile = files[currentFileIndex];
       const originalBaseName = (currentFile?.name || 'conversation').replace(/\.json$/, '');
       const renameManager = getRenameManager();
-      // zip 模式下 rename key 是 claude uuid；否则用 fileUuid
       const renameKey = (hasZipData && openedCardUuidRef.current) ? openedCardUuidRef.current : currentFileUuid;
       const baseName = renameKey ? renameManager.getRename(renameKey, originalBaseName) : originalBaseName;
       const exportResult = prepareMarkdownExport(
         processedData,
         baseName,
-        { ...extCfg, conversationUuid: currentFileUuid },
+        { ...exportCfg, conversationUuid: currentFileUuid },
         pendingExportContext,
         exportOptions,
         timelineDisplayMessages,
@@ -1631,7 +1643,7 @@ function App() {
       );
       await downloadMarkdownExport(exportResult);
     } catch (err) {
-      console.error('[Lyra App] Export with context failed:', err);
+      console.error('[Lyra App] Export failed:', err);
     }
   };
 
@@ -1758,19 +1770,31 @@ function App() {
       const { data } = event;
       if (!data || typeof data !== 'object') return;
 
-      // 响应握手：告知 Userscript 页面已就绪
+      // 响应握手：告知 Userscript 页面已就绪，同时附带保存的导出配置（供 userscript 同步）
       if (data.type === 'LOOMINARY_HANDSHAKE') {
-        event.source?.postMessage({ type: 'LOOMINARY_READY' }, event.origin);
+        const savedConfig = StorageManager.get('export-config', {});
+        event.source?.postMessage({ type: 'LOOMINARY_READY', config: savedConfig }, event.origin);
         return;
       }
 
       // 接收数据
       if (data.type === 'LOOMINARY_LOAD_DATA') {
-        if (dataLoadedRef.current) return;
+        // Always process — allow tab reuse (don't guard with dataLoadedRef)
         dataLoadedRef.current = true;
 
         const payload = data.data;
         if (!payload) return;
+
+        // Apply lang and theme from payload
+        if (payload.lang) setResolvedLang(payload.lang);
+        if (payload.theme) {
+          document.documentElement.setAttribute('data-theme', payload.theme);
+          StorageManager.set('app-theme', payload.theme);
+        }
+
+        // Reset previously loaded state so new data replaces old
+        setBrowseAllCardsRef.current([]);
+        setBrowseAllCurrentIndexRef.current(null);
 
         try {
           if (payload.files && Array.isArray(payload.files)) {
@@ -1779,6 +1803,7 @@ function App() {
               const blob = new Blob([typeof content === 'string' ? content : JSON.stringify(content)], { type: 'application/jsonl' });
               return new File([blob], filename, { type: 'application/jsonl', lastModified: Date.now() });
             });
+            pendingSelectIndexRef.current = 0;
             fileActionsRef.current.loadMergedJSONLFiles(fileObjs);
           } else {
             // 单文件
@@ -1786,7 +1811,8 @@ function App() {
             const jsonData = typeof content === 'string' ? content : JSON.stringify(content);
             const blob = new Blob([jsonData], { type: 'application/json' });
             const file = new File([blob], filename, { type: 'application/json', lastModified: Date.now() });
-            fileActionsRef.current.loadFiles([file]);
+            pendingSelectIndexRef.current = 0;
+            fileActionsRef.current.loadFiles([file], { replace: true });
           }
           if (payload.exportContext) {
             setPendingExportContext(payload.exportContext);
@@ -1840,9 +1866,16 @@ function App() {
     };
 
     // 检查是否有待处理的数据，同时加载 content script 面板保存的导出设置
-    chrome.storage.local.get(['loominary_pending_data', 'loominary_export_config'], (result) => {
+    chrome.storage.local.get(['loominary_pending_data', 'loominary_export_config', 'loominary_lang', 'loominary_page_theme'], (result) => {
       // 应用从 content script 面板保存的导出设置
       applyExtensionConfig(result.loominary_export_config);
+
+      // 应用语言和页面主题
+      if (result.loominary_lang) setResolvedLang(result.loominary_lang);
+      if (result.loominary_page_theme) {
+        document.documentElement.setAttribute('data-theme', result.loominary_page_theme);
+        StorageManager.set('app-theme', result.loominary_page_theme);
+      }
 
       if (result.loominary_pending_data) {
         const pendingData = result.loominary_pending_data;
@@ -1995,11 +2028,34 @@ function App() {
               )}
             </div>
 
+            {/* 设置按钮 - 仅非扩展模式（GitHub Pages 独立版）显示 */}
+            {!isExtension && (
+              <div className="navbar-right" style={{ display: 'flex', alignItems: 'center', paddingRight: 12 }}>
+                <button
+                  className="navbar-icon-btn"
+                  title={t('app.openSettings') || '设置'}
+                  onClick={() => setShowSettings(true)}
+                  style={{ fontSize: 18, lineHeight: 1 }}
+                >
+                  ⚙
+                </button>
+              </div>
+            )}
+
           </nav>
 
           {/* 导出筛选 toggle - 固定右侧，仅时间线视图显示 */}
           {viewMode === 'timeline' && (
             <div className="timeline-filter-panel">
+              {/* 导出格式切换（UI预留，暂无实现） */}
+              <div className="segment-group segment-group--branch">
+                {['Markdown', 'PDF', '长截图'].map((mode) => (
+                  <button key={mode} className="segment-btn" disabled title="即将推出">
+                    {mode}
+                  </button>
+                ))}
+              </div>
+              <div className="navbar-segments-divider" />
               <div className="segment-group segment-group--branch">
                 {[
                   { label: t('app.export.segments.currentBranch'), active: exportOptions.scope === 'currentBranch' },
@@ -2120,6 +2176,15 @@ function App() {
             onNavigateToMessage={handleNavigateToMessage}
             initialQuery={searchOverlayQuery}
           />
+
+          {/* 设置面板（仅独立/GitHub Pages 模式） */}
+          {!isExtension && showSettings && (
+            <SettingsPanel
+              onClose={() => setShowSettings(false)}
+              exportOptions={exportOptions}
+              setExportOptions={setExportOptions}
+            />
+          )}
         </>
     </div>
   );

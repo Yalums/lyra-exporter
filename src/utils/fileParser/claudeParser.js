@@ -15,8 +15,8 @@ import {
 // ==================== Claude 解析器 ====================
 export const extractClaudeData = (jsonData) => {
   // 调试输出：检查原始数据中的字段
-  console.log('[Lyra Parser Debug] Claude - 原始JSON顶层字段:', Object.keys(jsonData));
-  console.log('[Lyra Parser Debug] Claude - 原始数据中的关键字段:', {
+  console.log('[Loominary Parser Debug] Claude - 原始JSON顶层字段:', Object.keys(jsonData));
+  console.log('[Loominary Parser Debug] Claude - 原始数据中的关键字段:', {
     organization_id: jsonData.organization_id,
     project_uuid: jsonData.project_uuid,
     project: jsonData.project,
@@ -42,7 +42,7 @@ export const extractClaudeData = (jsonData) => {
     images_processed: jsonData._debug_info?.images_processed || 0
   };
 
-  console.log('[Lyra Parser Debug] Claude - 解析后的metaInfo:', {
+  console.log('[Loominary Parser Debug] Claude - 解析后的metaInfo:', {
     organization_id: metaInfo.organization_id,
     project_uuid: metaInfo.project_uuid,
     project: metaInfo.project
@@ -51,18 +51,18 @@ export const extractClaudeData = (jsonData) => {
   const chatHistory = [];
   const messages = jsonData.chat_messages || [];
 
-  console.log('[Lyra claudeParser] chat_messages count:', messages.length);
+  console.log('[Loominary claudeParser] chat_messages count:', messages.length);
   if (messages.length > 0) {
     const firstMsg = messages[0];
-    console.log('[Lyra claudeParser] first message keys:', Object.keys(firstMsg));
-    console.log('[Lyra claudeParser] first message sender:', firstMsg.sender);
-    console.log('[Lyra claudeParser] first message content type:', Array.isArray(firstMsg.content) ? `Array[${firstMsg.content.length}]` : typeof firstMsg.content);
+    console.log('[Loominary claudeParser] first message keys:', Object.keys(firstMsg));
+    console.log('[Loominary claudeParser] first message sender:', firstMsg.sender);
+    console.log('[Loominary claudeParser] first message content type:', Array.isArray(firstMsg.content) ? `Array[${firstMsg.content.length}]` : typeof firstMsg.content);
     if (Array.isArray(firstMsg.content) && firstMsg.content.length > 0) {
-      console.log('[Lyra claudeParser] first message content[0]:', JSON.stringify(firstMsg.content[0]).substring(0, 200));
+      console.log('[Loominary claudeParser] first message content[0]:', JSON.stringify(firstMsg.content[0]).substring(0, 200));
     }
-    console.log('[Lyra claudeParser] first message has text:', !!firstMsg.text);
+    console.log('[Loominary claudeParser] first message has text:', !!firstMsg.text);
   } else {
-    console.warn('[Lyra claudeParser] chat_messages is empty! Top-level keys of jsonData:', Object.keys(jsonData));
+    console.warn('[Loominary claudeParser] chat_messages is empty! Top-level keys of jsonData:', Object.keys(jsonData));
   }
 
   messages.forEach((msg, msgIdx) => {

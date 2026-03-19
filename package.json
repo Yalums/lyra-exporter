@@ -34,6 +34,7 @@
     "build:extension": "cross-env NODE_OPTIONS=--max-old-space-size=4096 react-scripts build",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build",
+    "deploy:pages": "gh-pages -d build -r https://github.com/Laumss/react.git",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build"

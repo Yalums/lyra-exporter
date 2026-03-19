@@ -459,15 +459,6 @@
         const canvasData = [];
         const seen = new Set();
 
-        let globalRetryLabel = '';
-        try {
-            const retryBtnGlobal = document.querySelector('button.retry-without-tool-button');
-            if (retryBtnGlobal) {
-                globalRetryLabel = (retryBtnGlobal.innerText || '').trim();
-            }
-        } catch (e) {
-            globalRetryLabel = '';
-        }
 
         const codeBlocks = document.querySelectorAll('code-block, pre code, .code-block');
         codeBlocks.forEach((block) => {
@@ -520,9 +511,59 @@
     // #endplatform
         const Communicator = {
             open: async (jsonData, filename, extraData) => {
-                try {
-                    const defaultFilename = filename || `${State.currentPlatform}_export_${new Date().toISOString().slice(0,10)}.json`;
+                const defaultFilename = filename || `${State.currentPlatform}_export_${new Date().toISOString().slice(0,10)}.json`;
 
+                // Userscript mode: open GitHub Pages viewer and transfer data via postMessage
+                if (typeof LOOMINARY_ENV !== 'undefined' && LOOMINARY_ENV === 'userscript') {
+                    const GITHUB_PAGES_URL = 'https://Laumss.github.io/react';
+                    // Use unsafeWindow.open so the new tab's window.opener = actual page window,
+                    // not the ViolentMonkey sandbox proxy. This allows github.io to postMessage back.
+                    const _opener = (typeof unsafeWindow !== 'undefined') ? unsafeWindow : window;
+                    const newWin = _opener.open(GITHUB_PAGES_URL, '_blank');
+                    if (!newWin) {
+                        alert(i18n.t('cannotOpenExporter'));
+                        return false;
+                    }
+                    return new Promise((resolve) => {
+                        // Poll with LOOMINARY_HANDSHAKE until the GitHub Pages app signals it is ready
+                        const interval = setInterval(() => {
+                            try {
+                                newWin.postMessage({ type: 'LOOMINARY_HANDSHAKE' }, 'https://Laumss.github.io');
+                            } catch (e) { /* page may not be loaded yet */ }
+                        }, 500);
+                        const timeout = setTimeout(() => {
+                            clearInterval(interval);
+                            _opener.removeEventListener('message', handler);
+                            console.warn('[Loominary] Timed out waiting for GitHub Pages viewer to respond');
+                            resolve(false);
+                        }, 15000);
+                        function handler(event) {
+                            if (event.source !== newWin || event.data?.type !== 'LOOMINARY_READY') return;
+                            clearInterval(interval);
+                            clearTimeout(timeout);
+                            _opener.removeEventListener('message', handler);
+                            // Viewer sends back its saved export config — save it to local storage so
+                            // content-script exports use the same settings as the React viewer.
+                            if (event.data.config && typeof event.data.config === 'object') {
+                                const cfgStr = JSON.stringify(event.data.config);
+                                console.log('[Loominary] LOOMINARY_READY: syncing config from viewer:', cfgStr);
+                                try { localStorage.setItem('loominary_export_config', cfgStr); } catch (e) {}
+                            }
+                            // Detect page theme via color-scheme CSS property
+                            const pageTheme = getComputedStyle(document.documentElement).getPropertyValue('color-scheme').trim();
+                            const detectedTheme = (pageTheme === 'light') ? 'light' : 'dark';
+                            newWin.postMessage({
+                                type: 'LOOMINARY_LOAD_DATA',
+                                data: { content: jsonData, filename: defaultFilename, lang: i18n.currentLang, theme: detectedTheme, ...extraData }
+                            }, 'https://Laumss.github.io');
+                            resolve(true);
+                        }
+                        _opener.addEventListener('message', handler);
+                    });
+                }
+
+                // Extension mode: open side panel via background service worker
+                try {
                     if (State.capturedUserId) {
                         chrome.storage.local.set({ loominary_browse_context: {
                             baseUrl: window.location.origin,
@@ -530,11 +571,18 @@
                         }});
                     }
 
+                    // Detect page theme and sync lang before opening tab
+                    const _extPageTheme = getComputedStyle(document.documentElement).getPropertyValue('color-scheme').trim();
+                    const _extDetectedTheme = (_extPageTheme === 'light') ? 'light' : 'dark';
+                    chrome.storage.local.set({ loominary_lang: i18n.currentLang, loominary_page_theme: _extDetectedTheme });
+
                     chrome.runtime.sendMessage({
                         type: 'LOOMINARY_OPEN_SIDEPANEL',
                         data: {
                             content: jsonData,
                             filename: defaultFilename,
+                            lang: i18n.currentLang,
+                            theme: _extDetectedTheme,
                             ...extraData
                         }
                     }, () => {
@@ -553,3 +601,20 @@
                 }
             }
         };
+
+        // Listen for settings updates posted back from the viewer tab (github.io SettingsPanel)
+        // Must use unsafeWindow in userscript mode: ViolentMonkey sandbox `window` is a proxy;
+        // the actual postMessage from github.io goes to the real page window (unsafeWindow).
+        const _msgTarget = (typeof unsafeWindow !== 'undefined') ? unsafeWindow : window;
+        console.log('[Loominary] settings listener registered on', typeof unsafeWindow !== 'undefined' ? 'unsafeWindow' : 'window');
+        _msgTarget.addEventListener('message', (event) => {
+            if (event.data?.type !== 'LOOMINARY_SETTINGS_UPDATE') return;
+            if (!event.data.config || typeof event.data.config !== 'object') return;
+            const config = event.data.config;
+            console.log('[Loominary] LOOMINARY_SETTINGS_UPDATE received, saving config:', JSON.stringify(config));
+            if (typeof LOOMINARY_ENV !== 'undefined' && LOOMINARY_ENV === 'userscript') {
+                try { localStorage.setItem('loominary_export_config', JSON.stringify(config)); } catch (e) {}
+            } else if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+                chrome.storage.local.set({ loominary_export_config: config });
+            }
+        });
