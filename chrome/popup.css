@@ -200,3 +200,27 @@ select:focus {
 .st-status.ok {
   color: #34a853;
 }
+
+/* ── More button ── */
+.more-section {
+  padding: 12px 16px;
+  border-top: 1px solid #ebebeb;
+}
+
+.more-btn {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #3c4043;
+  background: #f1f3f4;
+  border: 1px solid #dadce0;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.more-btn:hover {
+  background: #e8eaed;
+}

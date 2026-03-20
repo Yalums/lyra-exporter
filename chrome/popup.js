@@ -76,7 +76,8 @@ const I18N = {
     stNoST: '当前标签页未检测到 SillyTavern',
     stNoChat: '当前没有打开的对话',
     stOk: '已发送，正在打开查看器…',
-    stError: '导出失败：'
+    stError: '导出失败：',
+    more: '更多'
   },
   en: {
     saved: 'Saved',
@@ -122,7 +123,8 @@ const I18N = {
     stNoST: 'SillyTavern not detected on current tab',
     stNoChat: 'No chat is currently open',
     stOk: 'Sent — opening viewer…',
-    stError: 'Export failed: '
+    stError: 'Export failed: ',
+    more: 'More'
   }
 };
 
@@ -268,6 +270,11 @@ function bindEvents() {
         saveConfig();
       });
     }
+  });
+
+  // 更多 — 打开 WelcomePage
+  document.getElementById('moreBtn').addEventListener('click', () => {
+    chrome.tabs.create({ url: 'app/index.html#/welcome' });
   });
 
   // SillyTavern 导出

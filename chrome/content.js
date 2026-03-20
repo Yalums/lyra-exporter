@@ -1,7 +1,7 @@
 // ============================================================
 // Loominary - Content Script
-// Version: 0.4
-// Built: 2026-03-18T00:21:32.191732
+// Version: 26.3.0
+// Built: 2026-03-20T20:09:37.740583
 // ============================================================
 
 (function() {
@@ -190,6 +190,11 @@ function GM_xmlhttpRequest(options) {
             LANG_SWITCH_ID: 'loominary-lang-switch',
             TREE_SWITCH_ID: 'loominary-tree-mode-switch',
             IMAGE_SWITCH_ID: 'loominary-image-switch',
+            // #platform: chatgpt,copilot
+            CANVAS_SWITCH_ID: 'loominary-canvas-switch',
+            WORKSPACE_TYPE_ID: 'loominary-workspace-type',
+            MANUAL_ID_BTN: 'loominary-manual-id-btn',
+            // #endplatform
 
             TIMING: {
                 SCROLL_DELAY: 250,
@@ -212,37 +217,63 @@ function GM_xmlhttpRequest(options) {
                     console.log('[Loominary] Platform detected: claude');
                     return 'claude';
                 }
+                // #platform: chatgpt
+                if (host.includes('chatgpt') || host.includes('openai')) {
+                    console.log('[Loominary] Platform detected: chatgpt');
+                    return 'chatgpt';
+                }
+                // #endplatform
+                // #platform: grok
                 if (host.includes('grok.com')) {
                     console.log('[Loominary] Platform detected: grok');
                     return 'grok';
                 }
+                // #endplatform
+                // #platform: copilot
+                if (host.includes('copilot.microsoft.com')) {
+                    console.log('[Loominary] Platform detected: copilot');
+                    return 'copilot';
+                }
+                // #endplatform
+                // #platform: gemini
                 if (host.includes('gemini')) {
                     console.log('[Loominary] Platform detected: gemini');
                     return 'gemini';
                 }
-                if (host.includes('notebooklm')) {
-                    console.log('[Loominary] Platform detected: notebooklm');
-                    return 'notebooklm';
-                }
+
                 if (host.includes('aistudio')) {
                     console.log('[Loominary] Platform detected: aistudio');
                     return 'aistudio';
                 }
+                // #endplatform
                 console.log('[Loominary] Platform detected: null (unknown)');
                 return null;
             })(),
-            isPanelCollapsed: localStorage.getItem('exporterCollapsed') === 'true',
+            isPanelCollapsed: localStorage.getItem('exporterCollapsed') !== 'false',
             includeImages: localStorage.getItem('includeImages') === 'true',
             capturedUserId: localStorage.getItem('claudeUserId') || '',
-            panelInjected: false
+            // #platform: chatgpt
+            chatgptAccessToken: null,
+            chatgptUserId: localStorage.getItem('chatGPTUserId') || '',
+            chatgptWorkspaceId: localStorage.getItem('chatGPTWorkspaceId') || '',
+            chatgptWorkspaceType: localStorage.getItem('chatGPTWorkspaceType') || 'user',
+            // #endplatform
+            panelInjected: false,
+            // #platform: chatgpt,copilot
+            includeCanvas: localStorage.getItem('includeCanvas') === 'true'
+            // #endplatform
         };
 
+        // #platform: gemini
         let collectedData = new Map();
+        // #endplatform
+        // #platform: chatgpt,copilot,gemini
         const Flags = {
             hasRetryWithoutToolButton: false,
             lastCanvasContent: null,
             lastCanvasMessageIndex: -1
         };
+        // #endplatform
 
         const i18n = {
             languages: {
@@ -257,6 +288,11 @@ function GM_xmlhttpRequest(options) {
                     withImages: ' (处理图片中...)', successExported: '成功导出', conversations: '个对话!',
                     manualUserId: '手动设置ID', enterUserId: '请输入您的组织ID (settings/account):',
                     userIdSaved: '用户ID已保存!',
+                    // #platform: chatgpt
+                    workspaceType: '团队空间', userWorkspace: '个人区', teamWorkspace: '工作区',
+                    manualWorkspaceId: '手动设置工作区ID', enterWorkspaceId: '请输入工作区ID (工作空间设置/工作空间 ID):',
+                    workspaceIdSaved: '工作区ID已保存!', tokenNotFound: '未找到访问令牌!',
+                    // #endplatform
                     viewOnline: '预览对话',
                     loadFailed: '加载失败: ',
                     cannotOpenExporter: '无法打开 Loominary,请检查弹窗拦截',
@@ -265,7 +301,7 @@ function GM_xmlhttpRequest(options) {
                     foundConversations: '检测到',
                     selectExportCount: '请输入要导出最近的多少个对话 (输入 0 或留空导出全部):',
                     invalidNumber: '输入无效，请输入有效的数字',
-                    exportCancelled: '已取消导出'
+                    exportCancelled: '已取消导出',
                 },
                 en: {
                     loading: 'Loading...', exporting: 'Exporting...', compressing: 'Compressing...', preparing: 'Preparing...',
@@ -278,6 +314,11 @@ function GM_xmlhttpRequest(options) {
                     withImages: ' (processing images...)', successExported: 'Successfully exported', conversations: 'conversations!',
                     manualUserId: 'Customize UUID', enterUserId: 'Organization ID (settings/account)',
                     userIdSaved: 'User ID saved!',
+                    // #platform: chatgpt
+                    workspaceType: 'Workspace', userWorkspace: 'Personal', teamWorkspace: 'Team',
+                    manualWorkspaceId: 'Set Workspace ID', enterWorkspaceId: 'Enter Workspace ID(Workspace settings/Workspace ID):',
+                    workspaceIdSaved: 'Workspace ID saved!', tokenNotFound: 'Access token not found!',
+                    // #endplatform
                     viewOnline: 'Preview',
                     loadFailed: 'Load failed: ',
                     cannotOpenExporter: 'Cannot open Loominary, please check popup blocker',
@@ -286,7 +327,7 @@ function GM_xmlhttpRequest(options) {
                     foundConversations: 'Found',
                     selectExportCount: 'How many recent conversations to export? (Enter 0 or leave empty for all):',
                     invalidNumber: 'Invalid input, please enter a valid number',
-                    exportCancelled: 'Export cancelled'
+                    exportCancelled: 'Export cancelled',
                 }
             },
             currentLang: localStorage.getItem('exporterLanguage') || (navigator.language.startsWith('zh') ? 'zh' : 'en'),
@@ -450,6 +491,7 @@ function GM_xmlhttpRequest(options) {
             }
         };
 
+    // #platform: gemini
     // Simple hash function for better deduplication
     function simpleHash(str) {
         let hash = 0;
@@ -568,15 +610,6 @@ function GM_xmlhttpRequest(options) {
         const canvasData = [];
         const seen = new Set();
 
-        let globalRetryLabel = '';
-        try {
-            const retryBtnGlobal = document.querySelector('button.retry-without-tool-button');
-            if (retryBtnGlobal) {
-                globalRetryLabel = (retryBtnGlobal.innerText || '').trim();
-            }
-        } catch (e) {
-            globalRetryLabel = '';
-        }
 
         const codeBlocks = document.querySelectorAll('code-block, pre code, .code-block');
         codeBlocks.forEach((block) => {
@@ -626,11 +659,62 @@ function GM_xmlhttpRequest(options) {
 
         return canvasData;
     }
+    // #endplatform
         const Communicator = {
             open: async (jsonData, filename, extraData) => {
-                try {
-                    const defaultFilename = filename || `${State.currentPlatform}_export_${new Date().toISOString().slice(0,10)}.json`;
+                const defaultFilename = filename || `${State.currentPlatform}_export_${new Date().toISOString().slice(0,10)}.json`;
 
+                // Userscript mode: open GitHub Pages viewer and transfer data via postMessage
+                if (typeof LOOMINARY_ENV !== 'undefined' && LOOMINARY_ENV === 'userscript') {
+                    const GITHUB_PAGES_URL = 'https://Laumss.github.io/react';
+                    // Use unsafeWindow.open so the new tab's window.opener = actual page window,
+                    // not the ViolentMonkey sandbox proxy. This allows github.io to postMessage back.
+                    const _opener = (typeof unsafeWindow !== 'undefined') ? unsafeWindow : window;
+                    const newWin = _opener.open(GITHUB_PAGES_URL, '_blank');
+                    if (!newWin) {
+                        alert(i18n.t('cannotOpenExporter'));
+                        return false;
+                    }
+                    return new Promise((resolve) => {
+                        // Poll with LOOMINARY_HANDSHAKE until the GitHub Pages app signals it is ready
+                        const interval = setInterval(() => {
+                            try {
+                                newWin.postMessage({ type: 'LOOMINARY_HANDSHAKE' }, 'https://Laumss.github.io');
+                            } catch (e) { /* page may not be loaded yet */ }
+                        }, 500);
+                        const timeout = setTimeout(() => {
+                            clearInterval(interval);
+                            _opener.removeEventListener('message', handler);
+                            console.warn('[Loominary] Timed out waiting for GitHub Pages viewer to respond');
+                            resolve(false);
+                        }, 15000);
+                        function handler(event) {
+                            if (event.source !== newWin || event.data?.type !== 'LOOMINARY_READY') return;
+                            clearInterval(interval);
+                            clearTimeout(timeout);
+                            _opener.removeEventListener('message', handler);
+                            // Viewer sends back its saved export config — save it to local storage so
+                            // content-script exports use the same settings as the React viewer.
+                            if (event.data.config && typeof event.data.config === 'object') {
+                                const cfgStr = JSON.stringify(event.data.config);
+                                console.log('[Loominary] LOOMINARY_READY: syncing config from viewer:', cfgStr);
+                                try { localStorage.setItem('loominary_export_config', cfgStr); } catch (e) {}
+                            }
+                            // Detect page theme via color-scheme CSS property
+                            const pageTheme = getComputedStyle(document.documentElement).getPropertyValue('color-scheme').trim();
+                            const detectedTheme = (pageTheme === 'light') ? 'light' : 'dark';
+                            newWin.postMessage({
+                                type: 'LOOMINARY_LOAD_DATA',
+                                data: { content: jsonData, filename: defaultFilename, lang: i18n.currentLang, theme: detectedTheme, ...extraData }
+                            }, 'https://Laumss.github.io');
+                            resolve(true);
+                        }
+                        _opener.addEventListener('message', handler);
+                    });
+                }
+
+                // Extension mode: open side panel via background service worker
+                try {
                     if (State.capturedUserId) {
                         chrome.storage.local.set({ loominary_browse_context: {
                             baseUrl: window.location.origin,
@@ -638,11 +722,18 @@ function GM_xmlhttpRequest(options) {
                         }});
                     }
 
+                    // Detect page theme and sync lang before opening tab
+                    const _extPageTheme = getComputedStyle(document.documentElement).getPropertyValue('color-scheme').trim();
+                    const _extDetectedTheme = (_extPageTheme === 'light') ? 'light' : 'dark';
+                    chrome.storage.local.set({ loominary_lang: i18n.currentLang, loominary_page_theme: _extDetectedTheme });
+
                     chrome.runtime.sendMessage({
                         type: 'LOOMINARY_OPEN_SIDEPANEL',
                         data: {
                             content: jsonData,
                             filename: defaultFilename,
+                            lang: i18n.currentLang,
+                            theme: _extDetectedTheme,
                             ...extraData
                         }
                     }, () => {
@@ -662,6 +753,532 @@ function GM_xmlhttpRequest(options) {
             }
         };
 
+        // Listen for settings updates posted back from the viewer tab (github.io SettingsPanel)
+        // Must use unsafeWindow in userscript mode: ViolentMonkey sandbox `window` is a proxy;
+        // the actual postMessage from github.io goes to the real page window (unsafeWindow).
+        const _msgTarget = (typeof unsafeWindow !== 'undefined') ? unsafeWindow : window;
+        console.log('[Loominary] settings listener registered on', typeof unsafeWindow !== 'undefined' ? 'unsafeWindow' : 'window');
+        _msgTarget.addEventListener('message', (event) => {
+            if (event.data?.type !== 'LOOMINARY_SETTINGS_UPDATE') return;
+            if (!event.data.config || typeof event.data.config !== 'object') return;
+            const config = event.data.config;
+            console.log('[Loominary] LOOMINARY_SETTINGS_UPDATE received, saving config:', JSON.stringify(config));
+            if (typeof LOOMINARY_ENV !== 'undefined' && LOOMINARY_ENV === 'userscript') {
+                try { localStorage.setItem('loominary_export_config', JSON.stringify(config)); } catch (e) {}
+            } else if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+                chrome.storage.local.set({ loominary_export_config: config });
+            }
+        });
+
+// markdown-core.js — Script-layer Markdown generation & export
+// Injected into content.js (extension) and userscript AFTER common-base.js.
+// No ES module syntax; all functions live in the enclosing IIFE scope.
+
+// ─── i18n helper ────────────────────────────────────────────────────────────
+function _mdT(key, fallback) {
+    try { const v = i18n.t('exportManager.' + key); return (v && v !== 'exportManager.' + key) ? v : fallback; }
+    catch (_) { return fallback; }
+}
+
+// ─── Date utils ──────────────────────────────────────────────────────────────
+function _fmtDate(s) {
+    if (!s) return '';
+    try { return new Date(s).toLocaleString(); } catch (_) { return s; }
+}
+function _todayStr() {
+    return new Date().toISOString().slice(0, 10);
+}
+
+// ─── Artifact / tool extractors (ported from helpers.js) ─────────────────────
+function _extractArtifact(item) {
+    try {
+        const input = item.input || {};
+        const command = input.command || '';
+        if (command === 'create') return { id: input.id || '', command, type: input.type || '', title: input.title || '', content: input.content || '', language: input.language || '', result: null };
+        if (command === 'update' || command === 'rewrite') return { id: input.id || '', command, old_str: input.old_str || '', new_str: input.new_str || '', result: null };
+    } catch (_) {}
+    return null;
+}
+function _extractToolUse(item) {
+    const t = { name: item.name || 'unknown', input: item.input || {}, result: null };
+    if (item.name === 'web_search_tool' && item.input?.query) t.query = item.input.query;
+    return t;
+}
+function _extractToolResult(item) {
+    return { name: item.name || 'unknown', is_error: !!item.is_error, content: item.content || [] };
+}
+function _filterCitations(cits) {
+    if (!Array.isArray(cits)) return [];
+    return cits.filter(c => c && typeof c === 'object' && (c.metadata?.type !== 'file') && (c.metadata?.source !== 'my_files'));
+}
+
+// ─── Claude content-array processor (ported from helpers.js) ─────────────────
+function _processContentArray(arr, msg, isHuman) {
+    let text = '';
+    (arr || []).forEach((item, idx) => {
+        if (!item || typeof item !== 'object') return;
+        const t = item.type || '';
+        if (t === 'text') {
+            text += item.text || '';
+            if (Array.isArray(item.citations)) msg.citations.push(..._filterCitations(item.citations));
+        } else if (t === 'image') {
+            const src = item.source || {};
+            const placeholder = ` [图片${msg.images.length + 1}] `;
+            msg.images.push({ index: msg.images.length, file_name: `image_${idx}`, file_type: src.media_type || 'image/jpeg', display_mode: 'base64', embedded_image: { data: `data:${src.media_type};base64,${src.data}` }, placeholder });
+            text += placeholder;
+        } else if (t === 'thinking' && !isHuman) {
+            msg.thinking = (item.thinking || '').trim();
+        } else if (t === 'tool_use' && !isHuman) {
+            if (item.name === 'artifacts') { const a = _extractArtifact(item); if (a) msg.artifacts.push(a); }
+            else { const tool = _extractToolUse(item); if (tool) msg.tools.push(tool); }
+        } else if (t === 'tool_result') {
+            const res = _extractToolResult(item);
+            if (item.name && item.name.includes('artifacts')) { if (msg.artifacts.length) msg.artifacts[msg.artifacts.length - 1].result = res; }
+            else { if (msg.tools.length) msg.tools[msg.tools.length - 1].result = res; }
+        }
+    });
+    msg.display_text += text.trim();
+}
+
+// ─── Build blank message object ──────────────────────────────────────────────
+function _blankMsg(idx, uuid, parentUuid, sender, senderLabel, timestamp) {
+    return { index: idx, uuid: uuid || '', parent_uuid: parentUuid || '', sender, sender_label: senderLabel, timestamp: timestamp || '', display_text: '', thinking: '', tools: [], artifacts: [], citations: [], images: [], attachments: [], branch_id: null, is_branch_point: false, branch_level: 0 };
+}
+
+// ─── Claude parser ────────────────────────────────────────────────────────────
+function _parseClaude(d) {
+    const meta = { title: d.name || 'Untitled', created_at: _fmtDate(d.created_at), updated_at: _fmtDate(d.updated_at), uuid: d.uuid || '', project_uuid: d.project_uuid || '', platform: 'claude' };
+    const history = (d.chat_messages || []).map((m, i) => {
+        const isHuman = m.sender === 'human';
+        const msg = _blankMsg(i, m.uuid, m.parent_message_uuid, m.sender, isHuman ? 'User' : 'Claude', _fmtDate(m.created_at));
+        if (Array.isArray(m.content)) _processContentArray(m.content, msg, isHuman);
+        else if (m.text) { msg.display_text = m.text; }
+        if (Array.isArray(m.attachments)) msg.attachments = m.attachments.map(a => ({ id: a.id || '', file_name: a.file_name || '', file_size: a.file_size || 0, file_type: a.file_type || '', extracted_content: a.extracted_content || '', created_at: _fmtDate(a.created_at) }));
+        return msg;
+    });
+    return { meta_info: meta, chat_history: history, format: 'claude' };
+}
+
+// ─── Grok parser ──────────────────────────────────────────────────────────────
+function _parseGrok(d) {
+    const meta = { title: d.title || 'Untitled', created_at: _fmtDate(d.exportTime), uuid: d.conversationId || '', platform: 'grok' };
+    const history = (d.responses || []).map((m, i) => {
+        const isHuman = m.sender === 'human';
+        const msg = _blankMsg(i, m.responseId, m.parentResponseId, m.sender, isHuman ? 'User' : 'Grok', _fmtDate(m.createTime));
+        let text = m.message || '';
+        if (Array.isArray(m.citations)) {
+            const map = new Map();
+            m.citations.forEach(c => map.set(c.id, c));
+            text = text.replace(/<grok:render card_id="([^"]+)"[\s\S]*?<\/grok:render>/g, (_, id) => {
+                const c = map.get(id); return c ? `[${c.title || 'Source'}](${c.url})` : '';
+            }).replace(/<grok:render[\s\S]*?<\/grok:render>/g, '').trim();
+            msg.citations = m.citations.map(c => ({ url: c.url, title: c.title || 'Source' }));
+        }
+        msg.display_text = text;
+        if (Array.isArray(m.attachments)) msg.attachments = m.attachments;
+        return msg;
+    });
+    return { meta_info: meta, chat_history: history, format: 'grok' };
+}
+
+// ─── Gemini / scraped parser ──────────────────────────────────────────────────
+function _attachGeminiImages(msg, images) {
+    if (!Array.isArray(images) || !images.length) return;
+    msg.images = images.map(img => ({
+        link: 'data:' + (img.format || 'image/png') + ';base64,' + img.data,
+        is_embedded_image: true
+    }));
+}
+
+function _parseGemini(d) {
+    const platform = d.platform || 'gemini';
+    const platLabel = platform.charAt(0).toUpperCase() + platform.slice(1);
+    const meta = { title: d.title || 'Untitled', created_at: _fmtDate(d.exportedAt), uuid: platform + '_' + Date.now(), platform };
+    const history = [];
+    let idx = 0;
+
+    (d.conversation || []).forEach((item, turnIdx) => {
+        // 多分支版本格式（VersionTracker 输出）
+        if (item.turnIndex !== undefined && (item.human?.versions || item.assistant?.versions)) {
+            (item.human?.versions || []).forEach(hv => {
+                const msg = _blankMsg(idx++, `h_t${turnIdx}_v${hv.version}`, '', 'human', 'User', meta.created_at);
+                msg.display_text = hv.text || '';
+                if (hv.version > 0) msg.is_branch_point = true;
+                _attachGeminiImages(msg, hv.images);
+                history.push(msg);
+            });
+
+            (item.assistant?.versions || []).forEach(av => {
+                const parentUuid = `h_t${turnIdx}_v${av.userVersion ?? 0}`;
+                const msg = _blankMsg(idx++, `a_t${turnIdx}_v${av.version}`, parentUuid, 'assistant', platLabel, meta.created_at);
+                msg.display_text = av.text || '';
+                if (av.version > 0) msg.is_branch_point = true;
+                if (av.thinking) msg.thinking = av.thinking;
+                _attachGeminiImages(msg, av.images);
+                history.push(msg);
+            });
+        } else {
+            // 普通格式（scraper 输出）
+            if (item.human) {
+                const hc = typeof item.human === 'string' ? { text: item.human } : item.human;
+                const msg = _blankMsg(idx++, 'h_' + idx, '', 'human', 'User', meta.created_at);
+                msg.display_text = hc.text || '';
+                _attachGeminiImages(msg, hc.images);
+                history.push(msg);
+            }
+            if (item.assistant) {
+                const ac = typeof item.assistant === 'string' ? { text: item.assistant } : item.assistant;
+                const msg = _blankMsg(idx++, 'a_' + idx, '', 'assistant', platLabel, meta.created_at);
+                msg.display_text = ac.text || '';
+                if (ac.thinking) msg.thinking = ac.thinking;
+                _attachGeminiImages(msg, ac.images);
+                history.push(msg);
+            }
+        }
+    });
+
+    return { meta_info: meta, chat_history: history, format: platform };
+}
+
+// ─── Dispatch parser by content ──────────────────────────────────────────────
+function _parseRaw(jsonData) {
+    if (!jsonData || typeof jsonData !== 'object') return null;
+    if (jsonData.chat_history && jsonData.format) return jsonData; // already processed
+    if (jsonData.chat_messages) return _parseClaude(jsonData);
+    if (jsonData.responses && jsonData.conversationId !== undefined) return _parseGrok(jsonData);
+    if (jsonData.conversation && jsonData.platform) return _parseGemini(jsonData);
+    return null;
+}
+
+// ─── Format helpers (ported from formatHelpers.js) ───────────────────────────
+function _escXml(s) { return s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : ''; }
+
+function _details(summary, lines) {
+    return ['<details>', `<summary>${summary}</summary>`, '', ...(Array.isArray(lines) ? lines : [lines]), '</details>', ''].join('\n');
+}
+
+function _fmtAttachments(atts, opts) {
+    if (!atts || !atts.length) return '';
+    const lines = ['<attachments>'];
+    atts.forEach((a, i) => {
+        lines.push(`<attachment index="${i+1}">`, `<file_name>${_escXml(a.file_name || '')}</file_name>`, `<file_size>${a.file_size || 0}</file_size>`);
+        if (a.created_at) lines.push(`<created_at>${_escXml(a.created_at)}</created_at>`);
+        if (a.extracted_content) {
+            lines.push('<attachment_content>');
+            lines.push(opts?.includeAttachments !== false ? a.extracted_content : a.extracted_content.substring(0, 200) + (a.extracted_content.length > 200 ? '...' : ''));
+            lines.push('</attachment_content>');
+        }
+        lines.push('</attachment>', '');
+    });
+    lines.push('</attachments>', '');
+    return lines.join('\n');
+}
+
+function _fmtThinking(thinking, fmt, label) {
+    label = label || _mdT('format.thinkingLabel', '💭 Thinking:');
+    switch (fmt) {
+        case 'xml': return ['<anthropic_thinking>', thinking, '</anthropic_thinking>', ''].join('\n');
+        case 'emoji': return [label, '```', thinking, '```', ''].join('\n');
+        default: return ['``` thinking', thinking, '```', ''].join('\n');
+    }
+}
+
+function _fmtArtifact(a) {
+    const typeLabel = _mdT('format.typeLabel', 'Type:');
+    const langLabel = _mdT('format.language', 'Language:');
+    const contLabel = _mdT('format.content', 'Content:');
+    const artLabel  = _mdT('format.artifact', 'Artifact:');
+    const noTitle   = _mdT('format.noTitle', '(no title)');
+    const lines = [`${typeLabel} \`${a.type || ''}\``, ''];
+    if (a.command === 'create' && a.content) {
+        if (a.language) lines.push(`${langLabel} \`${a.language}\``);
+        lines.push('', contLabel, `\`\`\`${a.language || ''}`, a.content, '```');
+    }
+    return _details(`${artLabel} ${a.title || noTitle}`, lines);
+}
+
+function _fmtTool(t) {
+    const toolLabel   = _mdT('format.tool', 'Tool:');
+    const queryLabel  = _mdT('format.searchQuery', 'Query:');
+    const resultLabel = _mdT('format.searchResults', 'Results:');
+    const noTitle     = _mdT('format.noTitle', '(no title)');
+    const lines = [];
+    if (t.query) lines.push(`${queryLabel} \`${t.query}\``, '');
+    if (t.result?.content && t.name === 'web_search_tool') {
+        lines.push(resultLabel, '');
+        t.result.content.slice(0, 5).forEach((item, i) => lines.push(`${i+1}. [${item.title || noTitle}](${item.url || '#'})`));
+    }
+    return _details(`${toolLabel} ${t.name}`, lines);
+}
+
+function _fmtCitations(cits) {
+    const label = _mdT('format.citations', 'Citations');
+    const unk   = _mdT('format.unknownSource', 'Unknown');
+    const lines = ['| Title | Source |', '| --- | --- |'];
+    cits.forEach(c => {
+        const url = c.url || '#';
+        const src = url.includes('/') ? url.split('/')[2] : unk;
+        lines.push(`| [${c.title || unk}](${url}) | ${src} |`);
+    });
+    return _details(label, lines);
+}
+
+function _branchMarker(msg) {
+    if (msg.is_branch_point) return ' 🔀';
+    if (msg.branch_level > 0) {
+        const b = msg.branch_id || '';
+        const dot = b.match(/^main((?:\.\d+)+)$/);
+        if (dot) return ' ↳' + dot[1].slice(1).replace(/\./g, '-');
+        const alt = [...b.matchAll(/_alt(\d+)/g)].map(m => m[1]).join('-');
+        if (alt) return ' ↳' + alt;
+        return ' ↳' + msg.branch_level;
+    }
+    return '';
+}
+
+function _senderLabel(msg, cfg) {
+    const isHuman = msg.sender === 'human';
+    const fmt = (cfg || {}).senderFormat || 'default';
+    if (fmt === 'default') return isHuman ? 'User' : 'AI';
+    if (fmt === 'human-assistant') return isHuman ? 'Human' : 'Assistant';
+    if (fmt === 'custom' && cfg.humanLabel && cfg.assistantLabel) return isHuman ? cfg.humanLabel : cfg.assistantLabel;
+    return msg.sender_label || (isHuman ? 'Human' : 'Assistant');
+}
+
+function _toExcelCol(n) { let r = ''; while (n > 0) { n--; r = String.fromCharCode(65 + (n % 26)) + r; n = Math.floor(n / 26); } return r; }
+
+function _toRoman(n) {
+    if (n <= 0 || n >= 4000) return String(n);
+    const vs = [1000,900,500,400,100,90,50,40,10,9,5,4,1], ss = ['M','CM','D','CD','C','XC','L','XL','X','IX','V','IV','I'];
+    let r = '';
+    for (let i = 0; i < vs.length; i++) while (n >= vs[i]) { r += ss[i]; n -= vs[i]; }
+    return r;
+}
+
+// ─── Markdown generation ──────────────────────────────────────────────────────
+function _generateMarkdown(processedData, cfg) {
+    cfg = cfg || {};
+    const { meta_info = {}, chat_history = [] } = processedData;
+    const title = meta_info.title || _mdT('metadata.defaultTitle', 'Conversation');
+    const lines = [];
+
+    // Header
+    lines.push(`# ${title}`);
+    lines.push(`*${_mdT('metadata.created', 'Created')}: ${meta_info.created_at || ''}*`);
+    lines.push(`*${_mdT('metadata.exportTime', 'Exported')}: ${new Date().toLocaleString()}*`);
+    lines.push('', '---', '');
+
+    const thinkFmt = cfg.thinkingFormat || 'codeblock';
+    const thinkLabel = _mdT('format.thinkingLabel', '💭 Thinking:');
+    const hLevel = cfg.includeHeaderPrefix !== false ? '#'.repeat(cfg.headerLevel || 2) + ' ' : '';
+    const msgLines = [];
+
+    chat_history.forEach((msg, i) => {
+        const num = i + 1;
+        const bm = cfg.includeBranchMarkers !== false ? _branchMarker(msg) : '';
+        let msgHeader = hLevel;
+        if (cfg.includeNumbering !== false && cfg.numberingFormat !== 'none') {
+            const fmt = cfg.numberingFormat || 'numeric';
+            if (fmt === 'letter') msgHeader += _toExcelCol(num) + '. ';
+            else if (fmt === 'roman') msgHeader += _toRoman(num) + '. ';
+            else msgHeader += num + '. ';
+        }
+        msgHeader += _senderLabel(msg, cfg) + bm;
+
+        const part = [msgHeader];
+        if (cfg.includeTimestamps && msg.timestamp) part.push(`*${msg.timestamp}*`);
+        part.push('');
+
+        if (msg.thinking && cfg.includeThinking && msg.sender !== 'human' && (thinkFmt === 'codeblock' || thinkFmt === 'xml'))
+            part.push(_fmtThinking(msg.thinking, thinkFmt, thinkLabel));
+        if (msg.display_text) part.push(msg.display_text, '');
+        if (msg.attachments?.length && cfg.includeAttachments !== false && msg.sender === 'human')
+            part.push(_fmtAttachments(msg.attachments, cfg));
+        if (msg.thinking && cfg.includeThinking && msg.sender !== 'human' && thinkFmt === 'emoji')
+            part.push(_fmtThinking(msg.thinking, thinkFmt, thinkLabel));
+        if (msg.artifacts?.length && cfg.includeArtifacts !== false && msg.sender !== 'human')
+            msg.artifacts.forEach(a => part.push(_fmtArtifact(a)));
+        if (msg.tools?.length && cfg.includeTools !== false)
+            msg.tools.forEach(t => part.push(_fmtTool(t)));
+        if (msg.citations?.length && cfg.includeCitations !== false)
+            part.push(_fmtCitations(msg.citations));
+
+        msgLines.push(part.join('\n'));
+    });
+
+    lines.push(msgLines.join('\n---\n\n'));
+    return lines.join('\n');
+}
+
+// ─── Image processing ─────────────────────────────────────────────────────────
+function _processImages(messages) {
+    const imageFiles = [];
+    const processed = messages.map(msg => {
+        if (!msg.images || !msg.images.length) return msg;
+        let text = msg.display_text || '';
+        msg.images.forEach((img, idx) => {
+            const placeholder = img.placeholder || ` [图片${idx + 1}] `;
+            const data = img.embedded_image?.data || (img.is_embedded_image ? img.link : null);
+            if (data) {
+                const m = data.match(/^data:([^;]+);base64,(.+)$/);
+                if (m) {
+                    const ext = m[1].split('/')[1] || 'jpg';
+                    const n = imageFiles.length + 1;
+                    const zipPath = `images/img_${String(n).padStart(3,'0')}.${ext}`;
+                    imageFiles.push({ zipPath, base64Data: m[2], mimeType: m[1] });
+                    text = text.replace(placeholder.trim(), `![${img.file_name || 'image_' + n}](${zipPath})`);
+                }
+            }
+        });
+        return { ...msg, display_text: text };
+    });
+    return { messages: processed, imageFiles };
+}
+
+// ─── Context block ────────────────────────────────────────────────────────────
+function _contextBlock(exportContext, knowledgeRefs) {
+    if (!exportContext) return '';
+    const { projectInfo, userMemory } = exportContext;
+    if (!projectInfo && !userMemory) return '';
+    const toStr = v => !v ? '' : typeof v === 'string' ? v : JSON.stringify(v, null, 2);
+    const parts = [];
+    if (userMemory) {
+        const mem = toStr(userMemory.memories); if (mem) parts.push(`<userMemories>${mem.replace(/\n/g,'\\n')}</userMemories>`);
+        const pref = toStr(userMemory.preferences); if (pref) parts.push(`<userPreferences>${pref.replace(/\n/g,'\\n')}</userPreferences>`);
+    }
+    if (projectInfo) {
+        const mem = toStr(projectInfo.memory); if (mem) parts.push(`<projectMemories>${mem.replace(/\n/g,'\\n')}</projectMemories>`);
+        const ins = toStr(projectInfo.instructions); if (ins) parts.push(`<projectInstructions>${ins.replace(/\n/g,'\\n')}</projectInstructions>`);
+        if (knowledgeRefs?.length) parts.push(`<projectKnowledge>${knowledgeRefs.map(r=>`- [${r.name}](${r.zipPath})`).join('\\n')}</projectKnowledge>`);
+    }
+    return parts.length ? parts.join('') + '\n\n---\n\n' : '';
+}
+
+// ─── Download helpers ─────────────────────────────────────────────────────────
+function _triggerDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.style.display = 'none';
+    (document.body || document.documentElement).appendChild(a);
+    a.click();
+    setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 500);
+}
+
+async function _downloadMarkdownExport(result) {
+    const { needsZip, mdText, imageFiles, knowledgeFiles, filename } = result;
+    if (!needsZip) {
+        _triggerDownload(new Blob([mdText], { type: 'text/markdown;charset=utf-8' }), filename);
+        return;
+    }
+    // ZIP: use global fflate (extension injects fflate.min.js; userscript uses @require)
+    const fl = (typeof fflate !== 'undefined') ? fflate : null;
+    if (!fl || typeof fl.zip !== 'function') {
+        // Fallback: download plain md without images
+        console.warn('[Loominary] fflate not available, downloading Markdown without images');
+        _triggerDownload(new Blob([mdText], { type: 'text/markdown;charset=utf-8' }), filename.replace('.zip', '.md'));
+        return;
+    }
+    const entries = {};
+    entries['conversation.md'] = fl.strToU8(mdText);
+    for (const { zipPath, base64Data } of imageFiles) {
+        const bin = atob(base64Data);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        entries[zipPath] = bytes;
+    }
+    for (const { zipPath, content } of knowledgeFiles) {
+        entries[zipPath] = fl.strToU8(content);
+    }
+    await new Promise((resolve, reject) => {
+        fl.zip(entries, { level: 1 }, (err, data) => {
+            if (err) { reject(err); return; }
+            _triggerDownload(new Blob([data], { type: 'application/zip' }), filename);
+            resolve();
+        });
+    });
+}
+
+// ─── Config builder ───────────────────────────────────────────────────────────
+function _buildGenConfig(c) {
+    c = c || {};
+    return {
+        includeTimestamps: !!c.includeTimestamps,
+        includeThinking: !!c.includeThinking,
+        includeArtifacts: c.includeArtifacts !== false,
+        includeTools: !!c.includeTools,
+        includeCitations: !!c.includeCitations,
+        includeAttachments: c.includeAttachments !== false,
+        includeBranchMarkers: c.includeBranchMarkers !== false,
+        includeNumbering: c.includeNumbering !== false,
+        numberingFormat: c.numberingFormat || 'numeric',
+        senderFormat: c.senderFormat || 'default',
+        humanLabel: c.humanLabel || 'Human',
+        assistantLabel: c.assistantLabel || 'Assistant',
+        includeHeaderPrefix: c.includeHeaderPrefix !== false,
+        headerLevel: c.headerLevel || 2,
+        thinkingFormat: c.thinkingFormat || 'codeblock',
+    };
+}
+
+// ─── Read export config from storage ─────────────────────────────────────────
+async function _readExportConfig() {
+    if (typeof chrome !== 'undefined' && chrome.storage?.local?.get) {
+        return new Promise(resolve =>
+            chrome.storage.local.get(['loominary_export_config'], r => {
+                const cfg = r.loominary_export_config || {};
+                console.log('[Loominary] _readExportConfig (extension):', JSON.stringify(cfg));
+                resolve(cfg);
+            })
+        );
+    }
+    // Userscript: localStorage on the AI site
+    try {
+        const raw = localStorage.getItem('loominary_export_config') || '{}';
+        const cfg = JSON.parse(raw);
+        console.log('[Loominary] _readExportConfig (userscript), raw:', raw);
+        return cfg;
+    }
+    catch (_) { return {}; }
+}
+
+// ─── Main export entry point ──────────────────────────────────────────────────
+async function loominaryExportMarkdown(rawData, baseFilename, exportConfig, exportContext) {
+    const parsedData = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+    const processedData = _parseRaw(parsedData);
+    if (!processedData) {
+        alert('[Loominary] Could not parse conversation data.');
+        return;
+    }
+
+    const cfg = exportConfig || await _readExportConfig();
+    const genCfg = _buildGenConfig(cfg);
+
+    // Process images in messages
+    const { messages: processedMsgs, imageFiles } = _processImages(processedData.chat_history || []);
+
+    // Process knowledge files
+    const knowledgeFiles = [];
+    const knowledgeRefs = [];
+    if (exportContext?.projectInfo?.knowledgeFiles) {
+        exportContext.projectInfo.knowledgeFiles.forEach(({ name, content }) => {
+            const safe = name.replace(/[<>:"/\\|?*]/g, '_');
+            const zipPath = 'knowledge/' + safe;
+            knowledgeFiles.push({ zipPath, content });
+            knowledgeRefs.push({ name, zipPath });
+        });
+    }
+
+    const contextBlock = _contextBlock(exportContext || null, knowledgeRefs);
+    const bodyMd = _generateMarkdown({ ...processedData, chat_history: processedMsgs }, genCfg);
+    const mdText = contextBlock ? contextBlock + bodyMd : bodyMd;
+
+    const needsZip = imageFiles.length > 0 || knowledgeFiles.length > 0;
+    const filename = (baseFilename || 'conversation') + (needsZip ? '.zip' : '.md');
+
+    await _downloadMarkdownExport({ needsZip, mdText, imageFiles, knowledgeFiles, filename });
+}
+
+
 const ClaudeHandler = {
     _cache: {
         baseUrl: null,
@@ -673,36 +1290,27 @@ const ClaudeHandler = {
         // 扩展模式下 injected.js 已通过 script.src 注入（符合 CSP），不需要 inline script
         const isExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id;
         if (!isExtension) {
-            // Userscript 模式：通过 inline script 拦截 fetch/XHR 以捕获 userId
-            const script = document.createElement('script');
-            script.textContent = `
-                (function() {
-                    function captureUserId(url) {
-                        const match = url.match(/\\/api\\/organizations\\/([a-f0-9-]+)\\//);
-                        if (match && match[1]) {
-                            localStorage.setItem('claudeUserId', match[1]);
-                            window.dispatchEvent(new CustomEvent('userIdCaptured', { detail: { userId: match[1] } }));
-                        }
-                    }
-                    const originalXHROpen = XMLHttpRequest.prototype.open;
-                    XMLHttpRequest.prototype.open = function() {
-                        if (arguments[1]) captureUserId(arguments[1]);
-                        return originalXHROpen.apply(this, arguments);
-                    };
-                    const originalFetch = window.fetch;
-                    window.fetch = function(resource) {
-                        const url = typeof resource === 'string' ? resource : (resource.url || '');
-                        if (url) captureUserId(url);
-                        return originalFetch.apply(this, arguments);
-                    };
-                })();
-            `;
-            (document.head || document.documentElement).appendChild(script);
-            script.remove();
-            // Userscript 模式：监听 inline script 触发的 CustomEvent
-            window.addEventListener('userIdCaptured', (e) => {
-                if (e.detail.userId) State.capturedUserId = e.detail.userId;
-            });
+            // Userscript 模式：通过 unsafeWindow 直接拦截 fetch/XHR 以捕获 userId
+            // CSP 阻止内联 script 注入，但 unsafeWindow 可以直接修改页面的 window 对象
+            function captureUserId(url) {
+                const match = url && url.match(/\/api\/organizations\/([a-f0-9-]+)\//);
+                if (match && match[1] && !State.capturedUserId) {
+                    State.capturedUserId = match[1];
+                    localStorage.setItem('claudeUserId', match[1]);
+                }
+            }
+            const uw = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
+            const origFetch = uw.fetch;
+            uw.fetch = function(resource) {
+                const url = typeof resource === 'string' ? resource : (resource && resource.url || '');
+                captureUserId(url);
+                return origFetch.apply(uw, arguments);
+            };
+            const origXHROpen = uw.XMLHttpRequest.prototype.open;
+            uw.XMLHttpRequest.prototype.open = function() {
+                if (arguments[1]) captureUserId(arguments[1]);
+                return origXHROpen.apply(this, arguments);
+            };
         } else {
             // 扩展模式：injected.js 通过 postMessage 发送 LOOMINARY_USER_ID_CAPTURED
             // build.py 的 header 已在 content.js 顶部监听并写入 localStorage
@@ -778,58 +1386,51 @@ const ClaudeHandler = {
                         if (meta.project) data.project = meta.project;
                     }
 
-                    // 扩展模式：根据 popup 配置附带 exportContext（project 信息 / 用户记忆）
-                    let exportContext;
-                    const isExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id;
-                    if (isExtension) {
-                        const exportCfg = await new Promise(resolve => {
-                            chrome.storage.local.get(['loominary_export_config'], r => resolve(r.loominary_export_config || {}));
-                        });
-                        const ctx = {};
-                        const projectUuid = data.project_uuid;
+                    // 读取导出配置并收集 exportContext（project 信息 / 用户记忆）
+                    const exportCfg = await _readExportConfig();
+                    const ctx = {};
+                    const projectUuid = data.project_uuid;
 
-                        if (exportCfg.includeProjectInfo && projectUuid) {
-                            const [detail, memory, files] = await Promise.all([
-                                ClaudeHandler.getProjectDetail(projectUuid),
-                                ClaudeHandler.getProjectMemory(projectUuid),
-                                ClaudeHandler.getProjectFiles(projectUuid)
-                            ]);
-                            const knowledgeFiles = [];
-                            if (files && files.length > 0) {
-                                const fileResults = await Promise.allSettled(
-                                    files.map(f => ClaudeHandler.getProjectFileContent(projectUuid, f.uuid)
-                                        .then(content => ({ name: f.file_name || f.uuid, content })))
-                                );
-                                for (const r of fileResults) {
-                                    if (r.status === 'fulfilled' && r.value.content) {
-                                        const c = r.value.content;
-                                        knowledgeFiles.push({ name: r.value.name, content: typeof c === 'string' ? c : JSON.stringify(c) });
-                                    }
+                    if (exportCfg.includeProjectInfo && projectUuid) {
+                        const [detail, memory, files] = await Promise.all([
+                            ClaudeHandler.getProjectDetail(projectUuid),
+                            ClaudeHandler.getProjectMemory(projectUuid),
+                            ClaudeHandler.getProjectFiles(projectUuid)
+                        ]);
+                        const knowledgeFiles = [];
+                        if (files && files.length > 0) {
+                            const fileResults = await Promise.allSettled(
+                                files.map(f => ClaudeHandler.getProjectFileContent(projectUuid, f.uuid)
+                                    .then(content => ({ name: f.file_name || f.uuid, content })))
+                            );
+                            for (const r of fileResults) {
+                                if (r.status === 'fulfilled' && r.value.content) {
+                                    const c = r.value.content;
+                                    knowledgeFiles.push({ name: r.value.name, content: typeof c === 'string' ? c : JSON.stringify(c) });
                                 }
                             }
-                            ctx.projectInfo = {
-                                name: detail?.name || data.project?.name || '',
-                                description: detail?.description || '',
-                                instructions: detail?.prompt_template || '',
-                                memory: memory?.memory || '',
-                                knowledgeFiles
-                            };
                         }
-
-                        if (exportCfg.includeUserMemory) {
-                            const [profile, globalMem] = await Promise.all([
-                                ClaudeHandler.getUserProfile(),
-                                ClaudeHandler.getGlobalMemory()
-                            ]);
-                            ctx.userMemory = {
-                                preferences: profile?.conversation_preferences || '',
-                                memories: globalMem?.memory || ''
-                            };
-                        }
-
-                        if (Object.keys(ctx).length) exportContext = ctx;
+                        ctx.projectInfo = {
+                            name: detail?.name || data.project?.name || '',
+                            description: detail?.description || '',
+                            instructions: detail?.prompt_template || '',
+                            memory: memory?.memory || '',
+                            knowledgeFiles
+                        };
                     }
 
+                    if (exportCfg.includeUserMemory) {
+                        const [profile, globalMem] = await Promise.all([
+                            ClaudeHandler.getUserProfile(),
+                            ClaudeHandler.getGlobalMemory()
+                        ]);
+                        ctx.userMemory = {
+                            preferences: profile?.conversation_preferences || '',
+                            memories: globalMem?.memory || ''
+                        };
+                    }
+
+                    const exportContext = Object.keys(ctx).length ? ctx : undefined;
                     const jsonString = JSON.stringify(data, null, 2);
                     const filename = `claude_${data.name || 'conversation'}_${uuid.substring(0, 8)}.json`;
                     await Communicator.open(jsonString, filename, exportContext ? { exportContext } : undefined);
@@ -851,7 +1452,6 @@ const ClaudeHandler = {
                 const original = btn.innerHTML;
                 Utils.setButtonLoading(btn, i18n.t('exporting'));
                 try {
-                    const isExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id;
                     const includeImages = document.getElementById(Config.IMAGE_SWITCH_ID)?.checked || false;
                     const [data, meta] = await Promise.all([
                         ClaudeHandler.getConversation(uuid, includeImages),
@@ -863,26 +1463,12 @@ const ClaudeHandler = {
                         if (meta.project) data.project = meta.project;
                     }
 
-                    if (!isExtension) {
-                        // Userscript 模式：回退为原来的下载 JSON 行为
-                        const filename = prompt(i18n.t('enterFilename'), Utils.sanitizeFilename(`claude_${uuid.substring(0, 8)}`));
-                        if (!filename?.trim()) return;
-                        Utils.downloadJSON(JSON.stringify(data, null, 2), `${filename.trim()}.json`);
-                        return;
-                    }
-
-                    // 扩展模式：读取 popup 导出配置，生成 Markdown
-                    const exportCfg = await new Promise(resolve => {
-                        chrome.storage.local.get(['loominary_export_config'], r => resolve(r.loominary_export_config || {}));
-                    });
-                    const includeProjectInfo = !!exportCfg.includeProjectInfo;
-                    const includeUserMemory = !!exportCfg.includeUserMemory;
-
-                    // 收集附加上下文
+                    // 读取导出配置（extension 从 chrome.storage，userscript 从 localStorage）
+                    const exportCfg = await _readExportConfig();
                     const exportContext = {};
                     const projectUuid = data.project_uuid;
 
-                    if (includeProjectInfo && projectUuid) {
+                    if (exportCfg.includeProjectInfo && projectUuid) {
                         const [detail, memory, files] = await Promise.all([
                             ClaudeHandler.getProjectDetail(projectUuid),
                             ClaudeHandler.getProjectMemory(projectUuid),
@@ -896,7 +1482,8 @@ const ClaudeHandler = {
                             );
                             for (const r of fileResults) {
                                 if (r.status === 'fulfilled' && r.value.content) {
-                                    knowledgeFiles.push({ name: r.value.name, content: typeof r.value.content === 'string' ? r.value.content : JSON.stringify(r.value.content) });
+                                    const c = r.value.content;
+                                    knowledgeFiles.push({ name: r.value.name, content: typeof c === 'string' ? c : JSON.stringify(c) });
                                 }
                             }
                         }
@@ -909,7 +1496,7 @@ const ClaudeHandler = {
                         };
                     }
 
-                    if (includeUserMemory) {
+                    if (exportCfg.includeUserMemory) {
                         const [profile, globalMem] = await Promise.all([
                             ClaudeHandler.getUserProfile(),
                             ClaudeHandler.getGlobalMemory()
@@ -922,10 +1509,7 @@ const ClaudeHandler = {
 
                     const title = data.name || uuid.substring(0, 8);
                     const filename = `claude_${Utils.sanitizeFilename(title)}_${uuid.substring(0, 8)}`;
-                    await Communicator.open(JSON.stringify(data, null, 2), `${filename}.json`, {
-                        action: 'export_markdown',
-                        exportContext: Object.keys(exportContext).length ? exportContext : undefined
-                    });
+                    await loominaryExportMarkdown(data, filename, exportCfg, Object.keys(exportContext).length ? exportContext : null);
                 } catch (error) {
                     ErrorHandler.handle(error, 'Export conversation markdown');
                 } finally {
@@ -1134,17 +1718,21 @@ const ClaudeHandler = {
         const userId = await ClaudeHandler.ensureUserId();
         if (!userId) return;
 
-        // 检查扩展模式下的导出模式配置
+        // 检查导出模式配置
         const isExtensionMode = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id;
         let exportAllMode = 'zip';
-        if (isExtensionMode) {
-            try {
-                const exportCfg = await new Promise(resolve =>
+        try {
+            let exportCfg = {};
+            if (isExtensionMode) {
+                exportCfg = await new Promise(resolve =>
                     chrome.storage.local.get(['loominary_export_config'], r => resolve(r.loominary_export_config || {}))
                 );
-                exportAllMode = exportCfg.exportAllMode || 'zip';
-            } catch (e) {}
-        }
+            } else {
+                const raw = localStorage.getItem('loominary_export_config') || '{}';
+                exportCfg = JSON.parse(raw);
+            }
+            exportAllMode = exportCfg.exportAllMode || 'zip';
+        } catch (e) {}
 
         const original = btn.innerHTML;
         Utils.setButtonLoading(btn, i18n.t('detectingConversations'));
@@ -1221,15 +1809,19 @@ const ClaudeHandler = {
         // 读取 popup 导出配置
         let includeProjectInfo = true, includeUserMemory = true;
         const isExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id;
-        if (isExtension) {
-            try {
-                const exportCfg = await new Promise(resolve =>
+        try {
+            let exportCfg = {};
+            if (isExtension) {
+                exportCfg = await new Promise(resolve =>
                     chrome.storage.local.get(['loominary_export_config'], r => resolve(r.loominary_export_config || {}))
                 );
-                includeProjectInfo = exportCfg.includeProjectInfo !== false;
-                includeUserMemory = exportCfg.includeUserMemory !== false;
-            } catch (e) {}
-        }
+            } else {
+                const raw = localStorage.getItem('loominary_export_config') || '{}';
+                exportCfg = JSON.parse(raw);
+            }
+            includeProjectInfo = exportCfg.includeProjectInfo !== false;
+            includeUserMemory = exportCfg.includeUserMemory !== false;
+        } catch (e) {}
 
         try {
             const includeImages = document.getElementById(Config.IMAGE_SWITCH_ID)?.checked || false;
@@ -1357,6 +1949,1808 @@ const ClaudeHandler = {
 };
 
 
+    // Helper function to fetch images via GM_xmlhttpRequest (bypass CORS)
+    function fetchViaGM(url, headers = {}) {
+        return new Promise((resolve, reject) => {
+            if (typeof GM_xmlhttpRequest === 'undefined') {
+                fetch(url, { headers }).then(r => {
+                    if (r.ok) return r.blob();
+                    return Promise.reject(new Error(`Status: ${r.status}`));
+                }).then(resolve).catch(reject);
+                return;
+            }
+            GM_xmlhttpRequest({
+                method: "GET",
+                url,
+                headers,
+                responseType: "blob",
+                onload: r => {
+                    if (r.status >= 200 && r.status < 300) {
+                        resolve(r.response);
+                    } else {
+                        reject(new Error(`Status: ${r.status}`));
+                    }
+                },
+                onerror: e => reject(new Error(e.statusText || 'Network error'))
+            });
+        });
+    }
+
+    // Process image element and return base64 data
+    async function processImageElement(imgElement, accessToken = null) {
+        if (!imgElement) return null;
+        const url = imgElement.src;
+        if (!url || url.startsWith('data:')) return null;
+
+        try {
+            let base64Data, mimeType, size;
+
+            if (url.startsWith('blob:')) {
+                try {
+                    const blob = await fetch(url).then(r => r.ok ? r.blob() : Promise.reject());
+                    base64Data = await Utils.blobToBase64(blob);
+                    mimeType = blob.type;
+                    size = blob.size;
+                } catch {
+                    // Canvas fallback
+                    const canvas = document.createElement('canvas');
+                    canvas.width = imgElement.naturalWidth || imgElement.width;
+                    canvas.height = imgElement.naturalHeight || imgElement.height;
+                    canvas.getContext('2d').drawImage(imgElement, 0, 0);
+
+                    const isPhoto = canvas.width * canvas.height > 50000;
+                    const dataURL = isPhoto ? canvas.toDataURL('image/jpeg', 0.85) : canvas.toDataURL('image/png');
+                    mimeType = isPhoto ? 'image/jpeg' : 'image/png';
+                    base64Data = dataURL.split(',')[1];
+                    size = Math.round((base64Data.length * 3) / 4);
+                }
+            } else {
+                const headers = {};
+                if (url.includes('backend-api') && accessToken) {
+                    headers['Authorization'] = `Bearer ${accessToken}`;
+                }
+
+                const blob = await fetchViaGM(url, headers);
+                base64Data = await Utils.blobToBase64(blob);
+                mimeType = blob.type;
+                size = blob.size;
+
+                // Fix MIME type if it's octet-stream or empty
+                if (!mimeType || mimeType === 'application/octet-stream' || !mimeType.startsWith('image/')) {
+                    if (url.includes('.jpg') || url.includes('.jpeg')) {
+                        mimeType = 'image/jpeg';
+                    } else if (url.includes('.png')) {
+                        mimeType = 'image/png';
+                    } else if (url.includes('.gif')) {
+                        mimeType = 'image/gif';
+                    } else if (url.includes('.webp')) {
+                        mimeType = 'image/webp';
+                    } else {
+                        // Detect from base64 magic bytes
+                        const firstBytes = base64Data.substring(0, 20);
+                        if (firstBytes.startsWith('iVBORw0KGgo')) mimeType = 'image/png';
+                        else if (firstBytes.startsWith('/9j/')) mimeType = 'image/jpeg';
+                        else if (firstBytes.startsWith('R0lGOD')) mimeType = 'image/gif';
+                        else if (firstBytes.startsWith('UklGR')) mimeType = 'image/webp';
+                        else mimeType = 'image/png';
+                    }
+                }
+            }
+
+            return { type: 'image', format: mimeType, size, data: base64Data, original_src: url };
+        } catch (e) {
+            console.error('[ChatGPT] Failed to process image:', url.substring(0, 80));
+            return null;
+        }
+    }
+
+    const ChatGPTHandler = {
+        init: () => {
+            const rawFetch = window.fetch;
+            window.fetch = async function(resource, options) {
+                const headers = options?.headers;
+                if (headers) {
+                    let authHeader = null;
+                    if (typeof headers === 'string') {
+                        authHeader = headers;
+                    } else if (headers instanceof Headers) {
+                        authHeader = headers.get('Authorization');
+                    } else {
+                        authHeader = headers.Authorization || headers.authorization;
+                    }
+
+                    if (authHeader?.startsWith('Bearer ')) {
+                        const token = authHeader.slice(7);
+                        if (token && token.toLowerCase() !== 'dummy') {
+                            State.chatgptAccessToken = token;
+                        }
+                    }
+                }
+
+                return rawFetch.apply(this, arguments);
+            };
+        },
+
+        ensureAccessToken: async () => {
+            if (State.chatgptAccessToken) return State.chatgptAccessToken;
+
+            try {
+                const response = await fetch('/api/auth/session?unstable_client=true');
+                const session = await response.json();
+                if (session.accessToken) {
+                    State.chatgptAccessToken = session.accessToken;
+                    return session.accessToken;
+                }
+            } catch (error) {
+                console.error('Failed to get access token:', error);
+            }
+
+            return null;
+        },
+
+        getOaiDeviceId: () => {
+            const cookieString = document.cookie;
+            const match = cookieString.match(/oai-did=([^;]+)/);
+            return match ? match[1] : null;
+        },
+
+        getCurrentConversationId: () => {
+            const match = window.location.pathname.match(/\/c\/([a-zA-Z0-9-]+)/);
+            return match ? match[1] : null;
+        },
+
+        getAllConversations: async () => {
+            const token = await ChatGPTHandler.ensureAccessToken();
+            if (!token) throw new Error(i18n.t('tokenNotFound'));
+
+            const deviceId = ChatGPTHandler.getOaiDeviceId();
+            if (!deviceId) throw new Error('Cannot get device ID');
+
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                'oai-device-id': deviceId
+            };
+
+            if (State.chatgptWorkspaceType === 'team' && State.chatgptWorkspaceId) {
+                headers['ChatGPT-Account-Id'] = State.chatgptWorkspaceId;
+            }
+
+            const allConversations = [];
+            let offset = 0;
+            let hasMore = true;
+
+            while (hasMore) {
+                const response = await fetch(`/backend-api/conversations?offset=${offset}&limit=28&order=updated`, { headers });
+                if (!response.ok) throw new Error('Failed to fetch conversation list');
+
+                const data = await response.json();
+                if (data.items && data.items.length > 0) {
+                    allConversations.push(...data.items);
+                    hasMore = data.items.length === 28;
+                    offset += data.items.length;
+                } else {
+                    hasMore = false;
+                }
+            }
+
+            return allConversations;
+        },
+
+        // Extract images from DOM for current conversation
+        extractImagesFromDOM: async (conversationId, includeImages, accessToken = null) => {
+            if (!includeImages) return {};
+
+            const currentId = ChatGPTHandler.getCurrentConversationId();
+            if (currentId !== conversationId) {
+                console.log('[ChatGPT] Not current conversation, skipping DOM image extraction');
+                return {};
+            }
+
+            const imageMap = {};
+            let lastUserMessageId = null;  // 追踪最后的用户消息 ID，用于关联孤立的助手图片
+
+            const messageGroups = document.querySelectorAll('[data-testid^="conversation-turn-"]');
+
+            for (const group of messageGroups) {
+                // 查找整个 group 中所有可能的 message-id
+                const findMessageId = (container) => {
+                    if (!container) return null;
+                    return container.getAttribute('data-message-id') ||
+                           container.closest('[data-message-id]')?.getAttribute('data-message-id') ||
+                           group.querySelector('[data-message-id]')?.getAttribute('data-message-id');
+                };
+
+                // User messages - look for uploaded images
+                const userContainer = group.querySelector('[data-message-author-role="user"]');
+                if (userContainer) {
+                    // 记录用户消息 ID，即使没有图片也要记录（用于关联后续的助手生成图片）
+                    const userMessageId = findMessageId(userContainer);
+                    if (userMessageId) {
+                        lastUserMessageId = userMessageId;
+                    }
+
+                    // Find images in user message
+                    const userImages = userContainer.querySelectorAll('img[src*="backend-api"], img[src*="files.oaiusercontent.com"], img[src*="oaiusercontent"]');
+                    if (userImages.length > 0) {
+                        const images = [];
+                        for (const img of userImages) {
+                            const imageData = await processImageElement(img, accessToken);
+                            if (imageData) images.push(imageData);
+                        }
+                        if (images.length > 0 && lastUserMessageId) {
+                            if (!imageMap[lastUserMessageId]) imageMap[lastUserMessageId] = {};
+                            imageMap[lastUserMessageId].user = images;
+                        }
+                    }
+                }
+
+                // Assistant messages - look for generated images (including DALL-E generated images)
+                const assistantContainer = group.querySelector('[data-message-author-role="assistant"]');
+                
+                // Collect all candidate assistant images from multiple sources
+                const candidateImages = [];
+                const seenSrcs = new Set();
+                
+                // Helper to add images without duplicates
+                const addImages = (imgs) => {
+                    for (const img of imgs) {
+                        if (img.src && !seenSrcs.has(img.src)) {
+                            seenSrcs.add(img.src);
+                            candidateImages.push(img);
+                        }
+                    }
+                };
+                
+                // 1. Images in assistant container
+                if (assistantContainer) {
+                    addImages(assistantContainer.querySelectorAll('img'));
+                }
+                
+                // 2. AI-generated images - find by id pattern (image-xxxx)
+                addImages(group.querySelectorAll('[id^="image-"] img'));
+                
+                // 3. Images with estuary/content URLs (generated content)
+                addImages(group.querySelectorAll('img[src*="estuary/content"], img[src*="estuary"]'));
+                
+                // 4. Images with "已生成图片" or "Generated" alt text
+                addImages(group.querySelectorAll('img[alt*="生成"], img[alt*="Generated"], img[alt*="generated"]'));
+                
+                // 5. Find imagegen containers by iterating through elements (handles class names with /)
+                group.querySelectorAll('div').forEach(div => {
+                    const classList = div.className || '';
+                    if (classList.includes('imagegen') || classList.includes('image-gen')) {
+                        addImages(div.querySelectorAll('img'));
+                    }
+                });
+                
+                // 6. Find by aria-label
+                addImages(group.querySelectorAll('img[aria-label*="图片"], img[aria-label*="image"]'));
+                
+                // Exclude user images
+                const userImgSrcs = new Set();
+                group.querySelectorAll('[data-message-author-role="user"] img').forEach(img => userImgSrcs.add(img.src));
+                
+                const uniqueImages = candidateImages.filter(img => !userImgSrcs.has(img.src));
+
+                if (uniqueImages.length > 0) {
+                    const images = [];
+                    for (const img of uniqueImages) {
+                        // Skip loading/placeholder images (blurred intermediate images during generation)
+                        // Check blur on img itself
+                        const imgStyle = window.getComputedStyle(img);
+                        const imgFilter = imgStyle.filter || imgStyle.webkitFilter || '';
+                        if (imgFilter.includes('blur')) continue;
+
+                        // Check blur on parent element (ChatGPT applies blur to parent div)
+                        const parent = img.parentElement;
+                        if (parent) {
+                            const parentStyle = window.getComputedStyle(parent);
+                            const parentFilter = parentStyle.filter || parentStyle.webkitFilter || '';
+                            if (parentFilter.includes('blur')) continue;
+                        }
+
+                        // Skip images with loading/placeholder/pulse classes
+                        const classList = img.className || '';
+                        if (classList.includes('loading') || classList.includes('placeholder') ||
+                            classList.includes('skeleton') || classList.includes('pulse')) continue;
+
+                        // Skip images with loading aria attributes
+                        if (img.getAttribute('aria-busy') === 'true' || img.getAttribute('data-loading') === 'true') continue;
+
+                        // Wait for image to load if needed
+                        if (!img.complete) {
+                            await new Promise(r => {
+                                img.onload = img.onerror = r;
+                                setTimeout(r, 3000);
+                            });
+                        }
+
+                        // Skip small images (icons/UI elements)
+                        const width = img.naturalWidth || img.width || 0;
+                        const height = img.naturalHeight || img.height || 0;
+                        if (width < 50 || height < 50) continue;
+
+                        const imageData = await processImageElement(img, accessToken);
+                        if (imageData) images.push(imageData);
+                    }
+                    
+                    if (images.length > 0) {
+                        // 尝试多种方式获取 messageId
+                        let messageId = findMessageId(assistantContainer);
+                        
+                        // 如果 assistantContainer 没有 messageId，尝试查找 group 中的任何 assistant 相关的 messageId
+                        if (!messageId) {
+                            // 方法1: 查找所有 data-message-id 属性
+                            const allMessageIds = group.querySelectorAll('[data-message-id]');
+                            for (const el of allMessageIds) {
+                                const role = el.getAttribute('data-message-author-role');
+                                if (role === 'assistant') {
+                                    messageId = el.getAttribute('data-message-id');
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // 方法2: 在同一 group 中查找用户消息
+                        if (!messageId) {
+                            const userContainer = group.querySelector('[data-message-author-role="user"]');
+                            const userMessageId = findMessageId(userContainer);
+                            if (userMessageId) {
+                                if (!imageMap[userMessageId]) imageMap[userMessageId] = {};
+                                imageMap[userMessageId].assistant_generated = images;
+                                continue;
+                            }
+                        }
+
+                        // 方法3: 使用之前遍历过的用户消息 ID（跨 group 查找）
+                        if (!messageId && lastUserMessageId) {
+                            if (!imageMap[lastUserMessageId]) imageMap[lastUserMessageId] = {};
+                            imageMap[lastUserMessageId].assistant_generated = images;
+                            continue;
+                        }
+
+                        if (messageId) {
+                            if (!imageMap[messageId]) imageMap[messageId] = {};
+                            imageMap[messageId].assistant = images;
+                        }
+                    }
+                }
+            }
+
+            return imageMap;
+        },
+
+        getConversation: async (conversationId, includeImages = false) => {
+            const token = await ChatGPTHandler.ensureAccessToken();
+            if (!token) {
+                console.error('[ChatGPT] Token not found');
+                throw new Error(i18n.t('tokenNotFound'));
+            }
+
+            const deviceId = ChatGPTHandler.getOaiDeviceId();
+            if (!deviceId) {
+                console.error('[ChatGPT] Device ID not found in cookies');
+                throw new Error('Cannot get device ID');
+            }
+
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                'oai-device-id': deviceId
+            };
+
+            if (State.chatgptWorkspaceType === 'team' && State.chatgptWorkspaceId) {
+                headers['ChatGPT-Account-Id'] = State.chatgptWorkspaceId;
+            }
+
+            const response = await fetch(`/backend-api/conversation/${conversationId}`, { headers });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('[ChatGPT] Fetch failed:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    error: errorText,
+                    conversationId,
+                    workspaceType: State.chatgptWorkspaceType
+                });
+
+                let errorMessage = `Failed to fetch conversation (${response.status}): ${errorText || response.statusText}`;
+                if (response.status === 404) {
+                    const currentMode = State.chatgptWorkspaceType === 'team' ? i18n.t('teamWorkspace') : i18n.t('userWorkspace');
+                    const suggestMode = State.chatgptWorkspaceType === 'team' ? i18n.t('userWorkspace') : i18n.t('teamWorkspace');
+                    errorMessage += `\n\n当前模式: ${currentMode}\n建议尝试切换到: ${suggestMode}`;
+                    if (State.chatgptWorkspaceType === 'team') {
+                        errorMessage += '并手动填写工作区ID';
+                    } else {
+                        errorMessage += '并手动填写个人ID';
+                    }
+                }
+
+                throw new Error(errorMessage);
+            }
+
+            const data = await response.json();
+
+            // Extract and merge images from DOM if requested
+            if (includeImages) {
+                const imageMap = await ChatGPTHandler.extractImagesFromDOM(conversationId, includeImages, token);
+
+                // Merge images into conversation data
+                if (data.mapping && Object.keys(imageMap).length > 0) {
+                    const messageIdToNodeId = {};
+                    for (const nodeId in data.mapping) {
+                        const node = data.mapping[nodeId];
+                        if (node?.message?.id) {
+                            messageIdToNodeId[node.message.id] = nodeId;
+                        }
+                    }
+
+                    for (const [messageId, images] of Object.entries(imageMap)) {
+                        const nodeId = messageIdToNodeId[messageId];
+                        if (nodeId && data.mapping[nodeId]) {
+                            if (!data.mapping[nodeId].loominary_images) {
+                                data.mapping[nodeId].loominary_images = {};
+                            }
+                            if (images.user) {
+                                data.mapping[nodeId].loominary_images.user = images.user;
+                            }
+                            if (images.assistant) {
+                                data.mapping[nodeId].loominary_images.assistant = images.assistant;
+                            }
+                            if (images.assistant_generated) {
+                                data.mapping[nodeId].loominary_images.assistant_generated = images.assistant_generated;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return data;
+        },
+
+        previewConversation: async () => {
+            const conversationId = ChatGPTHandler.getCurrentConversationId();
+            if (!conversationId) {
+                alert(i18n.t('uuidNotFound'));
+                return;
+            }
+
+            try {
+                const includeImages = State.includeImages || false;
+                const data = await ChatGPTHandler.getConversation(conversationId, includeImages);
+                const jsonString = JSON.stringify(data, null, 2);
+                const filename = `chatgpt_${data.title || 'conversation'}_${conversationId.substring(0, 8)}.json`;
+                await Communicator.open(jsonString, filename);
+            } catch (error) {
+                ErrorHandler.handle(error, 'Preview conversation', {
+                    userMessage: `${i18n.t('loadFailed')} ${error.message}`
+                });
+            }
+        },
+
+        exportCurrent: async (btn) => {
+            const conversationId = ChatGPTHandler.getCurrentConversationId();
+            if (!conversationId) {
+                alert(i18n.t('uuidNotFound'));
+                return;
+            }
+
+            const original = btn.innerHTML;
+            Utils.setButtonLoading(btn, i18n.t('exporting'));
+
+            try {
+                const includeImages = State.includeImages || false;
+                const data = await ChatGPTHandler.getConversation(conversationId, includeImages);
+
+                const filename = prompt(i18n.t('enterFilename'), data.title || i18n.t('untitledChat'));
+                if (!filename) {
+                    Utils.restoreButton(btn, original);
+                    return;
+                }
+
+                const baseName = `chatgpt_${Utils.sanitizeFilename(filename)}_${new Date().toISOString().slice(0, 10)}`;
+                Utils.downloadJSON(JSON.stringify(data, null, 2), `${baseName}.json`);
+            } catch (error) {
+                ErrorHandler.handle(error, 'Export conversation');
+            } finally {
+                Utils.restoreButton(btn, original);
+            }
+        },
+
+        exportAll: async (btn, controlsArea) => {
+            if (typeof fflate === 'undefined' || typeof fflate.zipSync !== 'function' || typeof fflate.strToU8 !== 'function') {
+                const errorMsg = i18n.currentLang === 'zh'
+                    ? '批量导出功能需要压缩库支持。\n\n由于当前平台的安全策略限制,该功能暂时不可用。\n建议使用"导出当前"功能单个导出对话。'
+                    : 'Batch export requires compression library.\n\nThis feature is currently unavailable due to platform security policies.\nPlease use "Export" button to export conversations individually.';
+                alert(errorMsg);
+                return;
+            }
+
+            // 先探测对话数量
+            const original = btn.innerHTML;
+            Utils.setButtonLoading(btn, i18n.t('detectingConversations'));
+
+            let allConvs;
+            try {
+                allConvs = await ChatGPTHandler.getAllConversations();
+                if (!allConvs || !Array.isArray(allConvs)) throw new Error(i18n.t('fetchFailed'));
+            } catch (error) {
+                ErrorHandler.handle(error, 'Detect conversations');
+                Utils.restoreButton(btn, original);
+                return;
+            }
+
+            const totalCount = allConvs.length;
+            Utils.restoreButton(btn, original);
+
+            // 弹出确认框让用户选择导出数量
+            const promptMsg = i18n.currentLang === 'zh'
+                ? `${i18n.t('foundConversations')} ${totalCount} ${i18n.t('conversations')}\n\n${i18n.t('selectExportCount')}`
+                : `${i18n.t('foundConversations')} ${totalCount} ${i18n.t('conversations')}\n\n${i18n.t('selectExportCount')}`;
+
+            const userInput = prompt(promptMsg, totalCount.toString());
+
+            // 用户取消
+            if (userInput === null) {
+                alert(i18n.t('exportCancelled'));
+                return;
+            }
+
+            // 解析用户输入
+            let exportCount = totalCount;
+            const trimmedInput = userInput.trim();
+
+            if (trimmedInput !== '' && trimmedInput !== '0') {
+                const parsed = parseInt(trimmedInput, 10);
+                if (isNaN(parsed) || parsed < 0) {
+                    alert(i18n.t('invalidNumber'));
+                    return;
+                }
+                exportCount = Math.min(parsed, totalCount);
+            }
+
+            // 开始导出
+            const progress = Utils.createProgressElem(controlsArea);
+            progress.textContent = i18n.t('preparing');
+            Utils.setButtonLoading(btn, i18n.t('exporting'));
+
+            try {
+                let exported = 0;
+                const zipEntries = {};
+
+                const includeImages = State.includeImages || false;
+                const currentConvId = ChatGPTHandler.getCurrentConversationId();
+
+                // 只导出最近的 exportCount 个对话
+                const convsToExport = allConvs.slice(0, exportCount);
+                console.log(`Starting export of ${convsToExport.length} conversations (out of ${totalCount} total)`);
+
+                for (let i = 0; i < convsToExport.length; i++) {
+                    const conv = convsToExport[i];
+                    progress.textContent = `${i18n.t('gettingConversation')} ${i + 1}/${convsToExport.length}`;
+
+                    if (i > 0 && i % 5 === 0) {
+                        await new Promise(resolve => setTimeout(resolve, Config.TIMING.BATCH_EXPORT_YIELD));
+                    } else if (i > 0) {
+                        await Utils.sleep(Config.TIMING.BATCH_EXPORT_SLEEP);
+                    }
+
+                    try {
+                        // Note: DOM image extraction only works for the currently open conversation
+                        const shouldExtractImages = includeImages && conv.id === currentConvId;
+                        const data = await ChatGPTHandler.getConversation(conv.id, shouldExtractImages);
+                        if (data) {
+                            const title = Utils.sanitizeFilename(data.title || conv.id);
+                            const filename = `chatgpt_${conv.id.substring(0, 8)}_${title}.json`;
+                            zipEntries[filename] = fflate.strToU8(JSON.stringify(data, null, 2));
+                            exported++;
+                        }
+                    } catch (error) {
+                        console.error(`Failed to process ${conv.id}:`, error);
+                    }
+                }
+
+                progress.textContent = `${i18n.t('compressing')}…`;
+                const zipUint8 = fflate.zipSync(zipEntries, { level: 1 });
+                const zipBlob = new Blob([zipUint8], { type: 'application/zip' });
+
+                const zipFilename = `chatgpt_export_${exportCount === totalCount ? 'all' : 'recent_' + exportCount}_${new Date().toISOString().slice(0, 10)}.zip`;
+                Utils.downloadFile(zipBlob, zipFilename);
+                alert(`${i18n.t('successExported')} ${exported} ${i18n.t('conversations')}`);
+            } catch (error) {
+                ErrorHandler.handle(error, 'Export all conversations');
+            } finally {
+                Utils.restoreButton(btn, original);
+                if (progress.parentNode) progress.parentNode.removeChild(progress);
+            }
+        },
+
+        addUI: (controls) => {
+            // Image inclusion toggle
+            const imageToggle = Utils.createToggle(
+                i18n.t('includeImages'),
+                Config.IMAGE_SWITCH_ID,
+                State.includeImages
+            );
+
+            const imageToggleInput = imageToggle.querySelector('input');
+            imageToggleInput.addEventListener('change', (e) => {
+                State.includeImages = e.target.checked;
+                localStorage.setItem('includeImages', State.includeImages);
+                console.log('[ChatGPT] Include images:', State.includeImages);
+            });
+
+            controls.appendChild(imageToggle);
+
+            // Workspace type toggle
+            const initialLabel = State.chatgptWorkspaceType === 'team' ? i18n.t('teamWorkspace') : i18n.t('userWorkspace');
+            const workspaceToggle = Utils.createToggle(
+                initialLabel,
+                Config.WORKSPACE_TYPE_ID,
+                State.chatgptWorkspaceType === 'team'
+            );
+
+            const toggleInput = workspaceToggle.querySelector('input');
+            const toggleLabel = workspaceToggle.querySelector('.loominary-toggle-label');
+
+            toggleInput.addEventListener('change', (e) => {
+                State.chatgptWorkspaceType = e.target.checked ? 'team' : 'user';
+                localStorage.setItem('chatGPTWorkspaceType', State.chatgptWorkspaceType);
+                if (toggleLabel) toggleLabel.textContent = e.target.checked ? i18n.t('teamWorkspace') : i18n.t('userWorkspace');
+                console.log('[ChatGPT] Workspace type changed to:', State.chatgptWorkspaceType);
+                UI.recreatePanel();
+            });
+
+            controls.appendChild(workspaceToggle);
+        },
+
+        addButtons: (controls) => {
+            controls.appendChild(Utils.createButton(
+                `${previewIcon} ${i18n.t('viewOnline')}`,
+                () => ChatGPTHandler.previewConversation()
+            ));
+
+            controls.appendChild(Utils.createButton(
+                `${exportIcon} ${i18n.t('exportCurrentJSON')}`,
+                (btn) => ChatGPTHandler.exportCurrent(btn)
+            ));
+
+            controls.appendChild(Utils.createButton(
+                `${zipIcon} ${i18n.t('exportAllConversations')}`,
+                (btn) => ChatGPTHandler.exportAll(btn, controls)
+            ));
+
+            const idLabel = document.createElement('div');
+            idLabel.className = 'loominary-input-trigger';
+
+            if (State.chatgptWorkspaceType === 'user') {
+                idLabel.textContent = `${i18n.t('manualUserId')}`;
+                idLabel.addEventListener('click', () => {
+                    const newId = prompt(i18n.t('enterUserId'));
+                    if (newId?.trim()) {
+                        State.chatgptUserId = newId.trim();
+                        localStorage.setItem('chatGPTUserId', State.chatgptUserId);
+                        alert(i18n.t('userIdSaved'));
+                    }
+                });
+            } else {
+                idLabel.textContent = `${i18n.t('manualWorkspaceId')}`;
+                idLabel.addEventListener('click', () => {
+                    const newId = prompt(i18n.t('enterWorkspaceId'));
+                    if (newId?.trim()) {
+                        State.chatgptWorkspaceId = newId.trim();
+                        localStorage.setItem('chatGPTWorkspaceId', State.chatgptWorkspaceId);
+                        alert(i18n.t('workspaceIdSaved'));
+                    }
+                });
+            }
+
+            controls.appendChild(idLabel);
+        }
+    };
+
+    // Helper function to fetch images via GM_xmlhttpRequest (routes through background proxy in extension)
+    function grok_fetchViaGM(url, headers = {}) {
+        return new Promise((resolve, reject) => {
+            if (typeof GM_xmlhttpRequest === 'undefined') {
+                return reject(new Error('GM_xmlhttpRequest not available'));
+            }
+            GM_xmlhttpRequest({
+                method: "GET",
+                url,
+                headers,
+                responseType: "blob",
+                onload: r => {
+                    if (r.status >= 200 && r.status < 300) {
+                        resolve(r.response);
+                    } else {
+                        reject(new Error(`Status: ${r.status}`));
+                    }
+                },
+                onerror: e => reject(new Error(e.statusText || 'Network error')),
+                ontimeout: () => reject(new Error('Request timeout'))
+            });
+        });
+    }
+
+    // Fetch image URL via GM proxy and return base64 data (bypasses canvas, gets original file)
+    async function grok_fetchImageAsData(url) {
+        const blob = await grok_fetchViaGM(url);
+        const base64Data = await Utils.blobToBase64(blob);
+        let mimeType = blob.type;
+        if (!mimeType || mimeType === 'application/octet-stream' || !mimeType.startsWith('image/')) {
+            const firstBytes = base64Data.substring(0, 20);
+            if (firstBytes.startsWith('iVBORw0KGgo')) mimeType = 'image/png';
+            else if (firstBytes.startsWith('/9j/')) mimeType = 'image/jpeg';
+            else if (firstBytes.startsWith('R0lGOD')) mimeType = 'image/gif';
+            else if (firstBytes.startsWith('UklGR')) mimeType = 'image/webp';
+            else mimeType = 'image/jpeg';
+        }
+        return { type: 'image', format: mimeType, size: blob.size, data: base64Data, original_src: url };
+    }
+
+    // Process image element and return base64 data
+    async function grok_processImageElement(imgElement) {
+        if (!imgElement) return null;
+
+        const url = imgElement.src;
+        if (!url || url.startsWith('data:')) return null;
+
+        try {
+            let base64Data, mimeType, size;
+
+            if (url.startsWith('blob:')) {
+                try {
+                    const blob = await fetch(url).then(r => r.ok ? r.blob() : Promise.reject());
+                    base64Data = await Utils.blobToBase64(blob);
+                    mimeType = blob.type;
+                    size = blob.size;
+                } catch (blobError) {
+                    // Canvas fallback for blob URLs
+                    const canvas = document.createElement('canvas');
+                    canvas.width = imgElement.naturalWidth || imgElement.width;
+                    canvas.height = imgElement.naturalHeight || imgElement.height;
+                    canvas.getContext('2d').drawImage(imgElement, 0, 0);
+
+                    const isPhoto = canvas.width * canvas.height > 50000;
+                    const dataURL = isPhoto ? canvas.toDataURL('image/jpeg', 0.85) : canvas.toDataURL('image/png');
+                    mimeType = isPhoto ? 'image/jpeg' : 'image/png';
+                    base64Data = dataURL.split(',')[1];
+                    size = Math.round((base64Data.length * 3) / 4);
+                }
+            } else {
+                // Try Canvas method first (more reliable for already-loaded images)
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = imgElement.naturalWidth || imgElement.width;
+                    canvas.height = imgElement.naturalHeight || imgElement.height;
+
+                    if (canvas.width === 0 || canvas.height === 0) {
+                        throw new Error('Image not loaded or has zero dimensions');
+                    }
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(imgElement, 0, 0);
+
+                    const isPhoto = canvas.width * canvas.height > 50000;
+                    const dataURL = isPhoto ? canvas.toDataURL('image/jpeg', 0.85) : canvas.toDataURL('image/png');
+
+                    mimeType = isPhoto ? 'image/jpeg' : 'image/png';
+                    base64Data = dataURL.split(',')[1];
+                    size = Math.round((base64Data.length * 3) / 4);
+                } catch (canvasError) {
+                    // Fallback to GM_xmlhttpRequest if Canvas fails (CORS issues)
+                    console.warn('[Grok] Canvas method failed, using GM_xmlhttpRequest fallback:', canvasError.message);
+
+                    const blob = await grok_fetchViaGM(url);
+                    base64Data = await Utils.blobToBase64(blob);
+                    mimeType = blob.type;
+                    size = blob.size;
+                }
+
+                // Fix MIME type if it's octet-stream or empty
+                if (!mimeType || mimeType === 'application/octet-stream' || !mimeType.startsWith('image/')) {
+                    if (url.includes('.jpg') || url.includes('.jpeg')) {
+                        mimeType = 'image/jpeg';
+                    } else if (url.includes('.png')) {
+                        mimeType = 'image/png';
+                    } else if (url.includes('.gif')) {
+                        mimeType = 'image/gif';
+                    } else if (url.includes('.webp')) {
+                        mimeType = 'image/webp';
+                    } else {
+                        // Detect from base64 magic bytes
+                        const firstBytes = base64Data.substring(0, 20);
+                        if (firstBytes.startsWith('iVBORw0KGgo')) mimeType = 'image/png';
+                        else if (firstBytes.startsWith('/9j/')) mimeType = 'image/jpeg';
+                        else if (firstBytes.startsWith('R0lGOD')) mimeType = 'image/gif';
+                        else if (firstBytes.startsWith('UklGR')) mimeType = 'image/webp';
+                        else mimeType = 'image/png';
+                    }
+                }
+            }
+
+            return { type: 'image', format: mimeType, size, data: base64Data, original_src: url };
+        } catch (e) {
+            console.error('[Grok] Failed to process image:', e);
+            return null;
+        }
+    }
+
+    const GrokHandler = {
+        init: () => {
+            // Grok doesn't require special initialization like token capture
+            console.log('[Loominary] GrokHandler initialized');
+        },
+
+        getCurrentConversationId: () => {
+            // Grok URL: https://grok.com/{conversationId} - ID is the last segment of path
+            const pathSegments = window.location.pathname.split('/').filter(s => s);
+            const lastSegment = pathSegments[pathSegments.length - 1];
+            // Grok conversation IDs are typically UUID-like (36 chars) or similar long strings
+            if (lastSegment && lastSegment.length >= 20) {
+                return lastSegment;
+            }
+            return null;
+        },
+
+        getAllConversations: async () => {
+            try {
+                const response = await fetch('/rest/app-chat/conversations', {
+                    credentials: 'include',
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (!response.ok) throw new Error(`Failed to fetch conversations: ${response.status}`);
+                const data = await response.json();
+                return data.conversations || [];
+            } catch (error) {
+                console.error('[Loominary] Get all conversations error:', error);
+                return null;
+            }
+        },
+
+        getConversation: async (conversationId) => {
+            try {
+                // Step 1: Get all response nodes with tree structure
+                const nodeUrl = `/rest/app-chat/conversations/${conversationId}/response-node?includeThreads=true`;
+                const nodeResponse = await fetch(nodeUrl, {
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'include'
+                });
+                if (!nodeResponse.ok) throw new Error(`Failed to get response nodes: ${nodeResponse.status}`);
+                const nodeData = await nodeResponse.json();
+                const responseNodes = nodeData.responseNodes || [];
+                const responseIds = responseNodes.map(node => node.responseId);
+
+                if (!responseIds.length) {
+                    return { conversationId, responses: [], title: null, conversationTree: null };
+                }
+
+                // Step 2: Load full conversation content
+                const loadUrl = `/rest/app-chat/conversations/${conversationId}/load-responses`;
+                const loadResponse = await fetch(loadUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ responseIds })
+                });
+                if (!loadResponse.ok) throw new Error(`Failed to load responses: ${loadResponse.status}`);
+                const conversationData = await loadResponse.json();
+
+                // Step 3: Build tree structure map
+                const nodeMap = new Map();
+                responseNodes.forEach(node => {
+                    nodeMap.set(node.responseId, {
+                        responseId: node.responseId,
+                        parentResponseId: node.parentResponseId || null,
+                        childResponseIds: node.childResponseIds || [],
+                        threadId: node.threadId || null
+                    });
+                });
+
+                // Step 4: Process and structure the data
+                const processedResponses = (conversationData.responses || [])
+                    .filter(r => !r.partial)
+                    .sort((a, b) => new Date(a.createTime) - new Date(b.createTime))
+                    .map(r => {
+                        const processed = {
+                            responseId: r.responseId,
+                            sender: r.sender,
+                            createTime: r.createTime,
+                            message: r.message || ''
+                        };
+
+                        // Add tree structure information
+                        const nodeInfo = nodeMap.get(r.responseId);
+                        if (nodeInfo) {
+                            processed.parentResponseId = nodeInfo.parentResponseId;
+                            processed.childResponseIds = nodeInfo.childResponseIds;
+                            if (nodeInfo.threadId) {
+                                processed.threadId = nodeInfo.threadId;
+                            }
+                        }
+
+                        // Process citations if present
+                        if (r.sender === 'assistant' && r.cardAttachmentsJson && r.webSearchResults) {
+                            const citations = [];
+                            try {
+                                r.cardAttachmentsJson.forEach(cardStr => {
+                                    const card = JSON.parse(cardStr);
+                                    if (card.cardType === 'citation_card' && card.url) {
+                                        const searchResult = r.webSearchResults.find(sr => sr.url === card.url);
+                                        citations.push({
+                                            id: card.id,
+                                            url: card.url,
+                                            title: searchResult?.title || 'Source'
+                                        });
+                                    }
+                                });
+                            } catch (e) {
+                                console.warn('[Loominary] Failed to parse cardAttachmentsJson:', e);
+                            }
+                            if (citations.length > 0) {
+                                processed.citations = citations;
+                            }
+                            if (r.webSearchResults) {
+                                processed.webSearchResults = r.webSearchResults;
+                            }
+                        }
+
+                        // Include other potentially useful fields
+                        if (r.attachments) processed.attachments = r.attachments;
+                        if (r.cardAttachmentsJson) processed.cardAttachmentsJson = r.cardAttachmentsJson;
+                        if (r.imageAttachments) processed.imageAttachments = r.imageAttachments;
+                        if (r.fileAttachments) processed.fileAttachments = r.fileAttachments;
+
+                        return processed;
+                    });
+
+                // Try to get conversation title from list if available
+                let title = null;
+                try {
+                    const allConvs = await GrokHandler.getAllConversations();
+                    const conv = allConvs?.find(c => c.conversationId === conversationId);
+                    title = conv?.title || null;
+                } catch (e) {
+                    console.warn('[Loominary] Could not fetch title:', e);
+                }
+
+                // Step 5: Capture images from DOM if State.includeImages is true
+                if (State.includeImages) {
+                    const processedUrls = new Set();
+
+                    // Helper: resolve DOM response container to a processedResponse entry
+                    function resolveContainer(el) {
+                        const container = el.closest('[id^="response-"]');
+                        if (!container) return null;
+                        const responseId = container.id.replace('response-', '');
+                        return processedResponses.find(r => r.responseId === responseId) || null;
+                    }
+
+                    // Method 1: AI-generated images — start from the img element, walk up to find response
+                    const allGeneratedImgs = document.querySelectorAll('[data-testid="image-viewer"] img[src*="assets.grok.com"]');
+
+                    for (const img of allGeneratedImgs) {
+                        // Skip blurred background images (check both inline style and computed)
+                        const parentStyle = img.parentElement?.style;
+                        if (parentStyle && parentStyle.filter && parentStyle.filter.includes('blur')) continue;
+
+                        if (processedUrls.has(img.src)) continue;
+                        processedUrls.add(img.src);
+
+                        try {
+                            // Use GM fetch directly to get original file (bypasses canvas thumbnail capture)
+                            const imageData = await grok_fetchImageAsData(img.src);
+                            if (!imageData) continue;
+
+                            // Prefer DOM-position match; fallback to last assistant response
+                            let target = resolveContainer(img);
+                            if (!target) {
+                                const assistants = processedResponses.filter(r => r.sender === 'assistant');
+                                target = assistants[assistants.length - 1] || null;
+                            }
+
+                            if (target) {
+                                if (!target.capturedImages) target.capturedImages = [];
+                                target.capturedImages.push({ ...imageData, source: 'ai_generated' });
+                                console.log(`[Grok] Captured AI image for response ${target.responseId}`);
+                            }
+                        } catch (e) {
+                            console.error('[Grok] Failed to process AI image:', e);
+                        }
+                    }
+
+                    // Method 2: User-uploaded images — figure elements with preview-image URLs
+                    const allUserImages = document.querySelectorAll('figure img[src*="assets.grok.com"][src*="preview-image"]');
+
+                    for (const img of allUserImages) {
+                        if (processedUrls.has(img.src)) continue;
+                        processedUrls.add(img.src);
+
+                        try {
+                            // Strip /preview-image suffix to get full-size URL, fallback to thumbnail
+                            const thumbnailUrl = img.src;
+                            const fullSizeUrl = thumbnailUrl.includes('/preview-image')
+                                ? thumbnailUrl.split('/preview-image')[0]
+                                : thumbnailUrl;
+                            if (fullSizeUrl !== thumbnailUrl) processedUrls.add(fullSizeUrl);
+
+                            let imageData = null;
+                            if (fullSizeUrl !== thumbnailUrl) {
+                                try {
+                                    imageData = await grok_fetchImageAsData(fullSizeUrl);
+                                } catch (e) {
+                                    console.warn('[Grok] Full-size fetch failed, using thumbnail:', e.message);
+                                }
+                            }
+                            if (!imageData) {
+                                imageData = await grok_fetchImageAsData(thumbnailUrl);
+                            }
+                            if (!imageData) continue;
+
+                            // Prefer DOM-position match; fallback to last human with any attachments
+                            let target = resolveContainer(img);
+                            if (!target) {
+                                const humanResponses = processedResponses.filter(r =>
+                                    r.sender === 'human' &&
+                                    ((r.fileAttachments && r.fileAttachments.length > 0) ||
+                                     (r.imageAttachments && r.imageAttachments.length > 0))
+                                );
+                                target = humanResponses[humanResponses.length - 1] || null;
+                            }
+
+                            if (target) {
+                                if (!target.capturedImages) target.capturedImages = [];
+                                target.capturedImages.push({ ...imageData, source: 'user_upload' });
+                                console.log(`[Grok] Captured user-uploaded image for response ${target.responseId}`);
+                            } else {
+                                console.warn('[Grok] No matching response found for user-uploaded image');
+                            }
+                        } catch (e) {
+                            console.error('[Grok] Failed to process user image:', e);
+                        }
+                    }
+                }
+
+                return {
+                    conversationId,
+                    title,
+                    responses: processedResponses,
+                    conversationTree: {
+                        nodes: Array.from(nodeMap.values()),
+                        rootNodeId: responseNodes.find(n => !n.parentResponseId)?.responseId || null
+                    },
+                    exportTime: new Date().toISOString(),
+                    platform: 'grok'
+                };
+            } catch (error) {
+                console.error('[Loominary] Get conversation error:', error);
+                throw error;
+            }
+        },
+
+        addUI: (controls) => {
+            // Initialize includeImages to true by default for Grok if not set
+            if (localStorage.getItem('includeImages') === null) {
+                State.includeImages = true;
+                localStorage.setItem('includeImages', 'true');
+                console.log('[Grok] Initialized includeImages to true by default');
+            }
+
+            // Add "Include Images" toggle
+            const imageToggle = Utils.createToggle(
+                i18n.t('includeImages'),
+                'loominary-include-images-toggle',
+                State.includeImages
+            );
+            const imageToggleInput = imageToggle.querySelector('input');
+            imageToggleInput.addEventListener('change', (e) => {
+                State.includeImages = e.target.checked;
+                localStorage.setItem('includeImages', State.includeImages);
+                console.log('[Grok] Include images:', State.includeImages);
+            });
+            controls.appendChild(imageToggle);
+        },
+
+        addButtons: (controls) => {
+            controls.appendChild(Utils.createButton(
+                `${previewIcon} ${i18n.t('viewOnline')}`,
+                async (btn) => {
+                    const conversationId = GrokHandler.getCurrentConversationId();
+                    if (!conversationId) {
+                        alert(i18n.t('uuidNotFound'));
+                        return;
+                    }
+                    const original = btn.innerHTML;
+                    Utils.setButtonLoading(btn, i18n.t('loading'));
+                    try {
+                        const data = await GrokHandler.getConversation(conversationId);
+                        if (!data) throw new Error(i18n.t('fetchFailed'));
+                        const jsonString = JSON.stringify(data, null, 2);
+                        const filename = `grok_${data.title || 'conversation'}_${conversationId.substring(0, 8)}.json`;
+                        await Communicator.open(jsonString, filename);
+                    } catch (error) {
+                        ErrorHandler.handle(error, 'Preview conversation', {
+                            userMessage: `${i18n.t('loadFailed')} ${error.message}`
+                        });
+                    } finally {
+                        Utils.restoreButton(btn, original);
+                    }
+                }
+            ));
+
+            controls.appendChild(Utils.createButton(
+                `${exportIcon} ${i18n.t('exportCurrentJSON')}`,
+                async (btn) => {
+                    const conversationId = GrokHandler.getCurrentConversationId();
+                    if (!conversationId) {
+                        alert(i18n.t('uuidNotFound'));
+                        return;
+                    }
+                    const original = btn.innerHTML;
+                    Utils.setButtonLoading(btn, i18n.t('exporting'));
+                    try {
+                        const data = await GrokHandler.getConversation(conversationId);
+                        if (!data) throw new Error(i18n.t('fetchFailed'));
+                        const title = data.title || conversationId.substring(0, 8);
+                        const filename = `grok_${Utils.sanitizeFilename(title)}_${conversationId.substring(0, 8)}`;
+                        await loominaryExportMarkdown(data, filename);
+                    } catch (error) {
+                        ErrorHandler.handle(error, 'Export conversation');
+                    } finally {
+                        Utils.restoreButton(btn, original);
+                    }
+                }
+            ));
+
+            controls.appendChild(Utils.createButton(
+                `${zipIcon} ${i18n.t('exportAllConversations')}`,
+                (btn) => GrokHandler.exportAll(btn, controls)
+            ));
+        },
+
+        exportAll: async (btn, controlsArea) => {
+            if (typeof fflate === 'undefined' || typeof fflate.zipSync !== 'function' || typeof fflate.strToU8 !== 'function') {
+                const errorMsg = i18n.currentLang === 'zh'
+                    ? '批量导出功能需要压缩库支持。\n\n由于当前平台的安全策略限制,该功能暂时不可用。\n建议使用"导出当前"功能单个导出对话。'
+                    : 'Batch export requires compression library.\n\nThis feature is currently unavailable due to platform security policies.\nPlease use "Export" button to export conversations individually.';
+                alert(errorMsg);
+                return;
+            }
+
+            // 先探测对话数量
+            const original = btn.innerHTML;
+            Utils.setButtonLoading(btn, i18n.t('detectingConversations'));
+
+            let allConvs;
+            try {
+                allConvs = await GrokHandler.getAllConversations();
+                if (!allConvs || !Array.isArray(allConvs)) throw new Error(i18n.t('fetchFailed'));
+            } catch (error) {
+                ErrorHandler.handle(error, 'Detect conversations');
+                Utils.restoreButton(btn, original);
+                return;
+            }
+
+            const totalCount = allConvs.length;
+            Utils.restoreButton(btn, original);
+
+            // 弹出确认框让用户选择导出数量
+            const promptMsg = i18n.currentLang === 'zh'
+                ? `${i18n.t('foundConversations')} ${totalCount} ${i18n.t('conversations')}\n\n${i18n.t('selectExportCount')}`
+                : `${i18n.t('foundConversations')} ${totalCount} ${i18n.t('conversations')}\n\n${i18n.t('selectExportCount')}`;
+
+            const userInput = prompt(promptMsg, totalCount.toString());
+
+            // 用户取消
+            if (userInput === null) {
+                alert(i18n.t('exportCancelled'));
+                return;
+            }
+
+            // 解析用户输入
+            let exportCount = totalCount;
+            const trimmedInput = userInput.trim();
+
+            if (trimmedInput !== '' && trimmedInput !== '0') {
+                const parsed = parseInt(trimmedInput, 10);
+                if (isNaN(parsed) || parsed < 0) {
+                    alert(i18n.t('invalidNumber'));
+                    return;
+                }
+                exportCount = Math.min(parsed, totalCount);
+            }
+
+            // 开始导出
+            const progress = Utils.createProgressElem(controlsArea);
+            progress.textContent = i18n.t('preparing');
+            Utils.setButtonLoading(btn, i18n.t('exporting'));
+
+            try {
+                let exported = 0;
+                const zipEntries = {};
+
+                // 只导出最近的 exportCount 个对话
+                const convsToExport = allConvs.slice(0, exportCount);
+                console.log(`[Grok] Starting export of ${convsToExport.length} conversations (out of ${totalCount} total)`);
+
+                for (let i = 0; i < convsToExport.length; i++) {
+                    const conv = convsToExport[i];
+                    progress.textContent = `${i18n.t('gettingConversation')} ${i + 1}/${convsToExport.length}`;
+
+                    if (i > 0 && i % 5 === 0) {
+                        await new Promise(resolve => setTimeout(resolve, Config.TIMING.BATCH_EXPORT_YIELD));
+                    } else if (i > 0) {
+                        await Utils.sleep(Config.TIMING.BATCH_EXPORT_SLEEP);
+                    }
+
+                    try {
+                        const data = await GrokHandler.getConversation(conv.conversationId);
+                        if (data) {
+                            const title = Utils.sanitizeFilename(data.title || conv.conversationId);
+                            const filename = `grok_${conv.conversationId.substring(0, 8)}_${title}.json`;
+                            zipEntries[filename] = fflate.strToU8(JSON.stringify(data, null, 2));
+                            exported++;
+                        }
+                    } catch (error) {
+                        console.error(`[Lyra] Failed to process ${conv.conversationId}:`, error);
+                    }
+                }
+
+                progress.textContent = `${i18n.t('compressing')}…`;
+                const zipUint8 = fflate.zipSync(zipEntries, { level: 1 });
+                const zipBlob = new Blob([zipUint8], { type: 'application/zip' });
+
+                const zipFilename = `grok_export_${exportCount === totalCount ? 'all' : 'recent_' + exportCount}_${new Date().toISOString().slice(0, 10)}.zip`;
+                Utils.downloadFile(zipBlob, zipFilename);
+                alert(`${i18n.t('successExported')} ${exported} ${i18n.t('conversations')}`);
+            } catch (error) {
+                ErrorHandler.handle(error, 'Export all conversations');
+            } finally {
+                Utils.restoreButton(btn, original);
+                if (progress.parentNode) progress.parentNode.removeChild(progress);
+            }
+        }
+    };
+
+
+    const CopilotHandler = {
+        init: () => {
+            // Copilot doesn't require special initialization like token capture
+            console.log('[Loominary] CopilotHandler initialized');
+        },
+
+        getCurrentConversationId: () => {
+            // Copilot URL patterns:
+            // https://copilot.microsoft.com/chats/{conversationId}
+            // https://copilot.microsoft.com/sl/{conversationId}
+            const pathSegments = window.location.pathname.split('/').filter(s => s);
+
+            // Check for /chats/ or /sl/ pattern
+            const chatsIndex = pathSegments.indexOf('chats');
+            const slIndex = pathSegments.indexOf('sl');
+
+            if (chatsIndex !== -1 && pathSegments[chatsIndex + 1]) {
+                return pathSegments[chatsIndex + 1];
+            }
+            if (slIndex !== -1 && pathSegments[slIndex + 1]) {
+                return pathSegments[slIndex + 1];
+            }
+
+            // Fallback: try last segment if it looks like an ID
+            const lastSegment = pathSegments[pathSegments.length - 1];
+            if (lastSegment && lastSegment.length >= 10 && !['copilot', 'chats', 'sl'].includes(lastSegment)) {
+                return lastSegment;
+            }
+
+            return null;
+        },
+
+
+        getConversation: async (conversationId) => {
+            try {
+                // Always try to extract from DOM for Copilot
+                // API endpoints often return empty messages
+                console.log('[Copilot] Extracting conversation from DOM...');
+                const conversationData = await CopilotHandler.extractFromDOM();
+
+                if (!conversationData) {
+                    throw new Error('Could not extract conversation data from DOM');
+                }
+
+                // Get messages from the conversation data
+                let messages = conversationData.messages || conversationData.responses || [];
+
+                // Simple format without responseId and createTime
+                const processedResponses = messages.map(msg => ({
+                    sender: msg.sender || msg.author || (msg.role === 'user' ? 'human' : 'assistant'),
+                    message: msg.message || msg.content || msg.text || ''
+                }));
+
+                console.log('[Copilot] Processed responses count:', processedResponses.length);
+
+                return {
+                    conversationId,
+                    title: conversationData.title || CopilotHandler.extractTitle() || '未命名对话',
+                    responses: processedResponses,
+                    exportTime: new Date().toISOString(),
+                    platform: 'copilot'
+                };
+            } catch (error) {
+                console.error('[Loominary] Get conversation error:', error);
+                throw error;
+            }
+        },
+
+        extractFromDOM: async () => {
+            console.log('[Copilot] Starting DOM extraction...');
+
+            // Get text with Markdown formatting from DOM
+            const getFormattedText = (root) => {
+                let texts = [];
+
+                // Context for tracking list state
+                const listStack = []; // Stack of { type: 'ul'|'ol', index: number }
+
+                const getIndent = () => '    '.repeat(Math.max(0, listStack.length - 1));
+
+                const walk = (node) => {
+                    if (!node) return;
+
+                    // Text node
+                    if (node.nodeType === 3) {
+                        const text = node.textContent || '';
+                        if (text.trim()) {
+                            // Normalize whitespace but preserve single spaces
+                            texts.push(text.replace(/\s+/g, ' '));
+                        }
+                        return;
+                    }
+
+                    // Element node
+                    if (node.nodeType === 1) {
+                        const tag = node.tagName ? node.tagName.toUpperCase() : '';
+                        if (['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(tag)) return;
+
+                        // Handle specific HTML tags to preserve formatting
+                        switch (tag) {
+                            case 'BR':
+                                texts.push('\n');
+                                return;
+
+                            case 'P':
+                            case 'DIV':
+                                // Check if this is inside a list item
+                                const isInListItem = listStack.length > 0;
+
+                                // Add line break before paragraph/div (but not if inside LI)
+                                if (!isInListItem && texts.length > 0 && !texts[texts.length - 1].endsWith('\n')) {
+                                    texts.push('\n');
+                                }
+
+                                for (const child of node.childNodes) {
+                                    walk(child);
+                                }
+
+                                // Add line break after paragraph/div (but not if inside LI)
+                                if (!isInListItem && texts.length > 0 && !texts[texts.length - 1].endsWith('\n')) {
+                                    texts.push('\n');
+                                }
+                                return;
+
+                            case 'UL':
+                                // Start unordered list
+                                // Only add newline if this is a top-level list (not nested)
+                                if (listStack.length === 0 && texts.length > 0 && !texts[texts.length - 1].endsWith('\n')) {
+                                    texts.push('\n');
+                                }
+                                listStack.push({ type: 'ul', index: 0 });
+                                for (const child of node.childNodes) {
+                                    walk(child);
+                                }
+                                listStack.pop();
+                                // Add newline after top-level list
+                                if (listStack.length === 0 && texts.length > 0 && !texts[texts.length - 1].endsWith('\n')) {
+                                    texts.push('\n');
+                                }
+                                return;
+
+                            case 'OL':
+                                // Start ordered list
+                                // Only add newline if this is a top-level list (not nested)
+                                if (listStack.length === 0 && texts.length > 0 && !texts[texts.length - 1].endsWith('\n')) {
+                                    texts.push('\n');
+                                }
+                                const startAttr = node.getAttribute('start');
+                                const startIndex = startAttr ? parseInt(startAttr, 10) : 1;
+                                listStack.push({ type: 'ol', index: startIndex });
+                                for (const child of node.childNodes) {
+                                    walk(child);
+                                }
+                                listStack.pop();
+                                // Add newline after top-level list
+                                if (listStack.length === 0 && texts.length > 0 && !texts[texts.length - 1].endsWith('\n')) {
+                                    texts.push('\n');
+                                }
+                                return;
+
+                            case 'LI':
+                                // Handle list item based on parent list type
+                                const currentList = listStack[listStack.length - 1];
+                                const indent = getIndent();
+
+                                if (texts.length > 0 && !texts[texts.length - 1].endsWith('\n')) {
+                                    texts.push('\n');
+                                }
+
+                                if (currentList && currentList.type === 'ol') {
+                                    // Ordered list: use number
+                                    texts.push(`${indent}${currentList.index}. `);
+                                    currentList.index++;
+                                } else {
+                                    // Unordered list or no parent list: use bullet
+                                    texts.push(`${indent}- `);
+                                }
+
+                                // Process children, handling nested lists separately
+                                for (const child of node.childNodes) {
+                                    walk(child);
+                                }
+                                return;
+
+                            case 'STRONG':
+                            case 'B':
+                                texts.push('**');
+                                for (const child of node.childNodes) {
+                                    walk(child);
+                                }
+                                texts.push('**');
+                                return;
+
+                            case 'EM':
+                            case 'I':
+                                texts.push('*');
+                                for (const child of node.childNodes) {
+                                    walk(child);
+                                }
+                                texts.push('*');
+                                return;
+
+                            case 'DEL':
+                            case 'S':
+                                texts.push('~~');
+                                for (const child of node.childNodes) {
+                                    walk(child);
+                                }
+                                texts.push('~~');
+                                return;
+
+                            case 'CODE':
+                                // Inline code
+                                const codeText = node.textContent || '';
+                                if (codeText.trim()) {
+                                    // Use backticks, escape if content contains backticks
+                                    if (codeText.includes('`')) {
+                                        texts.push('`` ' + codeText + ' ``');
+                                    } else {
+                                        texts.push('`' + codeText + '`');
+                                    }
+                                }
+                                return;
+
+                            case 'PRE':
+                                // Code block
+                                if (texts.length > 0 && !texts[texts.length - 1].endsWith('\n')) {
+                                    texts.push('\n');
+                                }
+                                const codeEl = node.querySelector('code');
+                                const preText = (codeEl || node).textContent || '';
+                                // Try to detect language from class
+                                let lang = '';
+                                const langClass = (codeEl || node).className.match(/language-(\w+)/);
+                                if (langClass) lang = langClass[1];
+                                texts.push('```' + lang + '\n' + preText.trim() + '\n```\n');
+                                return;
+
+                            case 'A':
+                                // Links
+                                const href = node.getAttribute('href');
+                                const linkText = node.textContent || '';
+                                if (href && linkText.trim()) {
+                                    texts.push(`[${linkText.trim()}](${href})`);
+                                } else if (linkText.trim()) {
+                                    texts.push(linkText);
+                                }
+                                return;
+
+                            case 'H1':
+                            case 'H2':
+                            case 'H3':
+                            case 'H4':
+                            case 'H5':
+                            case 'H6':
+                                const level = parseInt(tag[1], 10);
+                                if (texts.length > 0 && !texts[texts.length - 1].endsWith('\n')) {
+                                    texts.push('\n');
+                                }
+                                texts.push('#'.repeat(level) + ' ');
+                                for (const child of node.childNodes) {
+                                    walk(child);
+                                }
+                                texts.push('\n');
+                                return;
+
+                            case 'BLOCKQUOTE':
+                                if (texts.length > 0 && !texts[texts.length - 1].endsWith('\n')) {
+                                    texts.push('\n');
+                                }
+                                texts.push('> ');
+                                for (const child of node.childNodes) {
+                                    walk(child);
+                                }
+                                texts.push('\n');
+                                return;
+
+                            case 'HR':
+                                texts.push('\n---\n');
+                                return;
+                        }
+
+                        // Check shadow DOM
+                        if (node.shadowRoot) {
+                            walk(node.shadowRoot);
+                        }
+
+                        // Default: process children
+                        for (const child of node.childNodes) {
+                            walk(child);
+                        }
+                    }
+                };
+
+                walk(root);
+                return texts.join('');
+            };
+
+            // Find the main conversation container
+            // Try to locate the actual conversation area, not the entire body
+            const conversationSelectors = [
+                // Copilot specific selectors (most specific first)
+                '[class*="conversation"]',
+                '[class*="chat"]',
+                '[class*="messages"]',
+                'article[role="article"]',
+                'section[role="region"]',
+                // Generic selectors (fallback)
+                'main[role="main"]',
+                '[role="main"]',
+                'main',
+                'body'
+            ];
+
+            let conversationRoot = null;
+            for (const selector of conversationSelectors) {
+                const candidate = document.querySelector(selector);
+                if (candidate) {
+                    // Verify this container has actual message content
+                    const text = candidate.textContent || '';
+                    // Must contain at least one message marker
+                    if (text.includes('你说') || text.includes('You') || text.includes('Copilot')) {
+                        conversationRoot = candidate;
+                        console.log('[Copilot] Using conversation root:', selector);
+                        break;
+                    }
+                }
+            }
+
+            // Fallback to body if no suitable container found
+            if (!conversationRoot) {
+                conversationRoot = document.body;
+                console.log('[Copilot] Using fallback: document.body');
+            }
+
+            const fullText = getFormattedText(conversationRoot || document.body);
+            console.log('[Copilot] Total text length:', fullText.length);
+            console.log('[Copilot] Text preview:', fullText.substring(0, 1000));
+
+            // Parse messages using regex patterns
+            const messages = [];
+
+            // Match patterns - support both with and without # markers
+            // Pattern matches: "你说", "You", "Copilot 说", "Copilot said", etc.
+            // Also supports heading markers like "##### 你说" or "###### Copilot 说"
+            const pattern = /(?:^|\n)(?:#{1,6}\s*)?(你说|You\s*(?:said)?|Copilot\s*说|Copilot\s*(?:said)?)/gim;
+
+            const matches = [];
+            let match;
+            while ((match = pattern.exec(fullText)) !== null) {
+                const marker = match[1].trim();
+                matches.push({
+                    // Store the full match start (including ### markers)
+                    matchStart: match.index,
+                    // Store where the actual marker text starts
+                    markerStart: match.index + match[0].indexOf(match[1]),
+                    marker: marker,
+                    fullMatch: match[0],
+                    isUser: marker.includes('你说') || marker.toLowerCase().startsWith('you')
+                });
+            }
+
+            console.log('[Copilot] Found markers:', matches.length);
+            matches.forEach(m => console.log(`  - "${m.marker}" at ${m.markerStart} (${m.isUser ? 'user' : 'assistant'})`));
+
+            // Extract content between markers
+            for (let i = 0; i < matches.length; i++) {
+                const current = matches[i];
+                const next = matches[i + 1];
+
+                // Extract content: start after current marker, end before next marker's FULL match (including ###)
+                const startIndex = current.markerStart + current.marker.length;
+                const endIndex = next ? next.matchStart : fullText.length;
+                const content = fullText.substring(startIndex, endIndex).trim();
+
+                if (content) {
+                    messages.push({
+                        sender: current.isUser ? 'human' : 'assistant',
+                        message: content,
+                        createTime: new Date().toISOString()
+                    });
+                }
+            }
+
+            console.log(`[Copilot] Extracted ${messages.length} raw messages`);
+
+            // Merge consecutive messages from the same sender
+            const mergedMessages = [];
+            for (const msg of messages) {
+                const lastMsg = mergedMessages[mergedMessages.length - 1];
+                if (lastMsg && lastMsg.sender === msg.sender) {
+                    // Same sender, merge content
+                    lastMsg.message += '\n' + msg.message;
+                } else {
+                    // Different sender or first message
+                    mergedMessages.push({
+                        sender: msg.sender,
+                        message: msg.message
+                    });
+                }
+            }
+
+            // Post-process messages to add markdown formatting
+            for (const msg of mergedMessages) {
+                let text = msg.message;
+                // Convert "第N步：XXX" patterns to headings
+                text = text.replace(/^(第[一二三四五六七八九十\d]+步[：:]\s*.+)$/gm, '\n## $1');
+                // Ensure patterns like "第N周：" are bold if not already
+                text = text.replace(/^- (第[一二三四五六七八九十\d]+周[：:]\s*)(?!\*\*)/gm, '- **$1**');
+                text = text.replace(/^- (前[一二三四五六七八九十两\d]+小时[：:]\s*)(?!\*\*)/gm, '- **$1**');
+                text = text.replace(/^- (后[一二三四五六七八九十两\d]+小时[：:]\s*)(?!\*\*)/gm, '- **$1**');
+                text = text.replace(/^- (每周[末日][：:]\s*)(?!\*\*)/gm, '- **$1**');
+                msg.message = text;
+            }
+
+            // Clean UI elements from all messages, especially the last one
+            const uiPatterns = [
+                /\n*向 Copilot 发送消息[\s\S]*$/i,
+                /\n*Send a message to Copilot[\s\S]*$/i,
+                /\n*Smart\n*预览对话[\s\S]*$/i,
+                /\n*Smart\n*🌐[\s\S]*$/i,
+                /\n*预览对话\n*导出中[\s\S]*$/i,
+                /\n*🌐\s*简体中文\**\s*$/i,
+                /\n*深度思考\s*$/i
+            ];
+
+            for (const msg of mergedMessages) {
+                let cleaned = msg.message;
+                for (const pattern of uiPatterns) {
+                    cleaned = cleaned.replace(pattern, '');
+                }
+                // Clean up trailing whitespace and newlines
+                cleaned = cleaned.replace(/[\s\n]+$/, '').trim();
+                if (cleaned !== msg.message) {
+                    console.log('[Copilot] Cleaned UI elements from message');
+                }
+                msg.message = cleaned;
+            }
+
+            // Remove empty messages after cleaning
+            const finalMessages = mergedMessages.filter(msg => msg.message.length > 0);
+            if (finalMessages.length < mergedMessages.length) {
+                console.log('[Copilot] Removed empty messages after cleaning');
+            }
+
+            console.log(`[Copilot] Final message count: ${finalMessages.length}`);
+            if (finalMessages.length > 0) {
+                console.log('[Copilot] Sample messages:', finalMessages.slice(0, 2));
+            } else {
+                console.warn('[Copilot] No messages found! Check console logs above for text content.');
+            }
+
+            return {
+                messages: finalMessages,
+                title: CopilotHandler.extractTitle() || document.title || '未命名对话'
+            };
+        },
+
+        extractTitle: () => {
+            // Try to extract conversation title
+            const titleSelectors = [
+                '[data-testid="conversation-title"]',
+                '.conversation-title',
+                'h1',
+                'h2',
+                '.title'
+            ];
+
+            for (const selector of titleSelectors) {
+                const titleEl = document.querySelector(selector);
+                if (titleEl && titleEl.textContent.trim()) {
+                    return titleEl.textContent.trim();
+                }
+            }
+
+            // Use first user message as title
+            return null;
+        },
+
+        addUI: () => {
+            // No additional UI needed for Copilot
+        },
+
+        addButtons: (controls) => {
+            controls.appendChild(Utils.createButton(
+                `${previewIcon} ${i18n.t('viewOnline')}`,
+                async (btn) => {
+                    const conversationId = CopilotHandler.getCurrentConversationId();
+                    if (!conversationId) {
+                        alert(i18n.t('uuidNotFound'));
+                        return;
+                    }
+                    const original = btn.innerHTML;
+                    Utils.setButtonLoading(btn, i18n.t('loading'));
+                    try {
+                        const data = await CopilotHandler.getConversation(conversationId);
+                        if (!data) throw new Error(i18n.t('fetchFailed'));
+                        const jsonString = JSON.stringify(data, null, 2);
+                        const filename = `copilot_${data.title || 'conversation'}_${conversationId.substring(0, 8)}.json`;
+                        await Communicator.open(jsonString, filename);
+                    } catch (error) {
+                        ErrorHandler.handle(error, 'Preview conversation', {
+                            userMessage: `${i18n.t('loadFailed')} ${error.message}`
+                        });
+                    } finally {
+                        Utils.restoreButton(btn, original);
+                    }
+                }
+            ));
+
+            controls.appendChild(Utils.createButton(
+                `${exportIcon} ${i18n.t('exportCurrentJSON')}`,
+                async (btn) => {
+                    const conversationId = CopilotHandler.getCurrentConversationId();
+                    if (!conversationId) {
+                        alert(i18n.t('uuidNotFound'));
+                        return;
+                    }
+                    const filename = prompt(i18n.t('enterFilename'), Utils.sanitizeFilename(`copilot_${conversationId.substring(0, 8)}`));
+                    if (!filename?.trim()) return;
+                    const original = btn.innerHTML;
+                    Utils.setButtonLoading(btn, i18n.t('exporting'));
+                    try {
+                        const data = await CopilotHandler.getConversation(conversationId);
+                        if (!data) throw new Error(i18n.t('fetchFailed'));
+                        Utils.downloadJSON(JSON.stringify(data, null, 2), `${filename.trim()}.json`);
+                    } catch (error) {
+                        ErrorHandler.handle(error, 'Export conversation');
+                    } finally {
+                        Utils.restoreButton(btn, original);
+                    }
+                }
+            ));
+        }
+    };
+
+
 // Version tracking system for Gemini (Optimized)
 const VersionTracker = {
     tracker: null,
@@ -1418,7 +3812,7 @@ const VersionTracker = {
         if (VersionTracker.isTracking) return;
         VersionTracker.isTracking = true;
         VersionTracker.resetTracker();
-        console.log('[LyraGemini] VersionTracker started, scan interval:', Config.TIMING.VERSION_SCAN_INTERVAL, 'ms');
+        console.log('[Gemini] VersionTracker started, scan interval:', Config.TIMING.VERSION_SCAN_INTERVAL, 'ms');
         VersionTracker.scanInterval = setInterval(() => VersionTracker.scanOnce(), Config.TIMING.VERSION_SCAN_INTERVAL);
         VersionTracker.hrefCheckInterval = setInterval(() => {
             if (location.href !== VersionTracker.currentHref) {
@@ -1528,7 +3922,7 @@ const VersionTracker = {
                 // 每 30 秒输出一次调试信息，避免刷屏
                 if (!VersionTracker._lastDebugLog || Date.now() - VersionTracker._lastDebugLog > 30000) {
                     VersionTracker._lastDebugLog = Date.now();
-                    console.log('[LyraGemini] scanOnce: no turns found. DOM selectors tried: div.conversation-turn, div.single-turn, div.conversation-container');
+                    console.log('[Gemini] scanOnce: no turns found. DOM selectors tried: div.conversation-turn, div.single-turn, div.conversation-container');
                 }
                 return;
             }
@@ -1559,7 +3953,7 @@ const VersionTracker = {
                 // 调试日志（每 30 秒最多输出一次）
                 if (!VersionTracker._lastScanDebug || Date.now() - VersionTracker._lastScanDebug > 30000) {
                     if (idx === 0) VersionTracker._lastScanDebug = Date.now();
-                    console.log(`[LyraGemini] Turn ${idx} id=${id}: userText=${userText.length}chars, assistantText=${assistantText.length}chars`,
+                    console.log(`[Gemini] Turn ${idx} id=${id}: userText=${userText.length}chars, assistantText=${assistantText.length}chars`,
                         turn.querySelector('user-query') ? 'has-user-query' : 'no-user-query',
                         turn.querySelector('message-content') ? 'has-message-content' : 'no-message-content',
                         turn.querySelector('.markdown-main-panel') ? 'has-markdown-panel' : 'no-markdown-panel');
@@ -1630,21 +4024,22 @@ const VersionTracker = {
         }
     },
 
-    buildVersionedData: (title) => {
+    buildVersionedData: (title, includeImages = true) => {
         const { turns, order } = VersionTracker.tracker;
         const result = [];
-        console.log('[LyraGemini] buildVersionedData: tracked turns =', order.length, ', turnIds =', order);
+        console.log('[Gemini] buildVersionedData: tracked turns =', order.length, ', turnIds =', order);
 
         for (const id of order) {
             const t = turns[id];
             if (!t) continue;
 
             const mapVersions = (versions, imgMap) => versions
-                .filter(v => v.text?.trim() || imgMap.get(v.version)?.length)
+                .filter(v => v.text?.trim() || v.thinking?.trim() || (includeImages && imgMap.get(v.version)?.length))
                 .map(v => {
                     const d = { version: v.version, type: v.type, text: v.text };
                     if (v.userVersion !== undefined) d.userVersion = v.userVersion;
-                    const imgs = imgMap.get(v.version);
+                    if (v.thinking) d.thinking = v.thinking;
+                    const imgs = includeImages ? imgMap.get(v.version) : null;
                     if (imgs?.length) d.images = imgs;
                     return d;
                 });
@@ -1662,8 +4057,11 @@ const VersionTracker = {
 
 VersionTracker.tracker = VersionTracker.createEmptyTracker();
 
-window.lyraGeminiExport = (title) => VersionTracker.buildVersionedData(title || 'Gemini Chat');
-window.lyraGeminiReset = () => VersionTracker.resetTracker();
+window.loominaryGeminiExport = (title) => {
+    const includeImages = document.getElementById(Config.IMAGE_SWITCH_ID)?.checked || false;
+    return VersionTracker.buildVersionedData(title || 'Gemini Chat', includeImages);
+};
+window.loominaryGeminiReset = () => VersionTracker.resetTracker();
 
 function gemini_fetchViaGM(url) {
     return new Promise((resolve, reject) => {
@@ -1681,8 +4079,27 @@ function gemini_fetchViaGM(url) {
 async function gemini_processImageElement(imgElement) {
     if (!imgElement) return null;
     const url = imgElement.src;
-    if (!url || url.startsWith('data:') || url.includes('drive-thirdparty.googleusercontent.com')
+    if (!url || url.includes('drive-thirdparty.googleusercontent.com')
         || imgElement.classList.contains('new-file-icon') || imgElement.dataset.testId === 'new-file-icon') return null;
+
+    // data: URI 直接提取 base64，无需 fetch
+    if (url.startsWith('data:')) {
+        try {
+            const commaIdx = url.indexOf(',');
+            if (commaIdx === -1) return null;
+            const header = url.slice(0, commaIdx); // e.g. "data:image/jpeg;base64"
+            const semiIdx = header.indexOf(';');
+            if (semiIdx === -1) return null;
+            const mimeType = header.slice(5, semiIdx); // after "data:"
+            if (!mimeType.startsWith('image/')) return null;
+            const base64Data = url.slice(commaIdx + 1);
+            const size = Math.round((base64Data.length * 3) / 4);
+            return { type: 'image', format: mimeType, size, data: base64Data, original_src: url.slice(0, 80) + '...' };
+        } catch (e) {
+            console.error('[Gemini] Failed to process data: URI image:', e);
+            return null;
+        }
+    }
 
     try {
         let base64Data, mimeType, size;
@@ -1715,7 +4132,7 @@ async function gemini_processImageElement(imgElement) {
 
         return { type: 'image', format: mimeType, size, data: base64Data, original_src: url };
     } catch (e) {
-        console.error('[LyraGemini] Failed to process image:', url, e);
+        console.error('[Gemini] Failed to process image:', url, e);
         return null;
     }
 }
@@ -1742,7 +4159,7 @@ function htmlToMarkdown(element) {
             const doc = parser.parseFromString(str, 'text/html');
             return doc.documentElement.textContent || str;
         } catch (e) {
-            console.error('[Lyra] HTML entity decoding failed:', e);
+            console.error('[Loominary] HTML entity decoding failed:', e);
             return str;
         }
     };
@@ -1890,6 +4307,182 @@ function htmlToMarkdown(element) {
     return result;
 }
 
+// ==================== AI Studio XHR 拦截 ====================
+const AiStudioXHR = {
+    capturedData: null,
+    capturedTimestamp: 0,
+
+    init: () => {
+        if (State.currentPlatform !== 'aistudio') return;
+        const originalOpen = XMLHttpRequest.prototype.open;
+        const originalSend = XMLHttpRequest.prototype.send;
+
+        XMLHttpRequest.prototype.open = function(method, url) {
+            this._aistudio_url = url;
+            return originalOpen.apply(this, arguments);
+        };
+
+        XMLHttpRequest.prototype.send = function(body) {
+            this.addEventListener('load', function() {
+                if (this._aistudio_url && (
+                    this._aistudio_url.includes('ResolveDriveResource') ||
+                    this._aistudio_url.includes('CreatePrompt') ||
+                    this._aistudio_url.includes('UpdatePrompt')
+                )) {
+                    try {
+                        const rawText = this.responseText.replace(/^\)\]\}'/, '').trim();
+                        let json = JSON.parse(rawText);
+                        if (Array.isArray(json) && json.length > 0) {
+                            // Normalize: ResolveDriveResource returns [[...]], CreatePrompt/UpdatePrompt returns [...]
+                            if (typeof json[0] === 'string' && json[0].startsWith('prompts/')) {
+                                json = [json];
+                            }
+                            AiStudioXHR.capturedData = json;
+                            AiStudioXHR.capturedTimestamp = Date.now();
+                            console.log('[Loominary AI Studio] XHR intercepted:', rawText.length, 'chars');
+                        }
+                    } catch (err) {
+                        console.error('[Loominary AI Studio] XHR parse error:', err.message);
+                    }
+                }
+            });
+            return originalSend.apply(this, arguments);
+        };
+        console.log('[Loominary AI Studio] XHR interceptor installed');
+    },
+
+    isTurn: (arr) => {
+        if (!Array.isArray(arr)) return false;
+        return arr.includes('user') || arr.includes('model');
+    },
+
+    findHistory: (node, depth = 0) => {
+        if (depth > 4 || !Array.isArray(node)) return null;
+        if (node.slice(0, 5).some(child => AiStudioXHR.isTurn(child))) return node;
+        for (const child of node) {
+            if (Array.isArray(child)) {
+                const result = AiStudioXHR.findHistory(child, depth + 1);
+                if (result) return result;
+            }
+        }
+        return null;
+    },
+
+    extractText: (turn) => {
+        const candidates = [];
+        const scan = (item, d = 0) => {
+            if (d > 3) return;
+            if (typeof item === 'string' && item.length > 1 && !['user', 'model', 'function'].includes(item)) {
+                candidates.push(item);
+            } else if (Array.isArray(item)) {
+                item.forEach(sub => scan(sub, d + 1));
+            }
+        };
+        scan(turn.slice(0, 3));
+        return candidates.sort((a, b) => b.length - a.length)[0] || '';
+    },
+
+    isThinking: (turn) => Array.isArray(turn) && turn.length > 19 && turn[19] === 1,
+    isResponse: (turn) => Array.isArray(turn) && turn.length > 16 && turn[16] === 1,
+    isCodeExec: (turn) => Array.isArray(turn) && turn.length > 10 && Array.isArray(turn[10]) && turn[10][0] === 1 && typeof turn[10][1] === 'string',
+    isCodeResult: (turn) => Array.isArray(turn) && turn.length > 11 && Array.isArray(turn[11]) && turn[11][0] === 1 && typeof turn[11][1] === 'string',
+
+    // 将 XHR 数据转换为 Loominary 的 conversation 格式
+    parseToConversation: () => {
+        if (!AiStudioXHR.capturedData) return null;
+        try {
+            const root = AiStudioXHR.capturedData[0];
+            const history = AiStudioXHR.findHistory(root);
+            if (!history) return null;
+
+            const pairs = [];
+            let pendingThinking = [];
+            let pendingCode = [];
+            let currentUser = null;
+
+            for (const turn of history) {
+                if (!Array.isArray(turn)) continue;
+                const isUser = turn.includes('user');
+                const isModel = turn.includes('model');
+
+                if (isUser) {
+                    const text = AiStudioXHR.extractText(turn);
+                    if (text) currentUser = text;
+                    pendingThinking = [];
+                    pendingCode = [];
+                } else if (isModel) {
+                    const thinking = AiStudioXHR.isThinking(turn);
+                    const response = AiStudioXHR.isResponse(turn);
+                    const codeExec = AiStudioXHR.isCodeExec(turn);
+                    const codeResult = AiStudioXHR.isCodeResult(turn);
+
+                    if (codeExec) pendingCode.push({ type: 'code', content: turn[10][1] });
+                    if (codeResult) pendingCode.push({ type: 'result', content: turn[11][1] });
+                    if ((codeExec || codeResult) && !response && !thinking) continue;
+
+                    if (thinking && !response) {
+                        const text = AiStudioXHR.extractText(turn);
+                        if (text) pendingThinking.push(text);
+                    } else {
+                        let text = AiStudioXHR.extractText(turn);
+                        let assistantText = '';
+
+                        // 添加代码执行（保留在正文中）
+                        if (pendingCode.length > 0) {
+                            for (const block of pendingCode) {
+                                if (block.type === 'code') {
+                                    assistantText += `<details>\n<summary><strong>Executable Code</strong></summary>\n\n\`\`\`python\n${block.content}\n\`\`\`\n\n</details>\n\n`;
+                                } else if (block.type === 'result') {
+                                    assistantText += `<details>\n<summary><strong>Code Execution Result</strong></summary>\n\n\`\`\`\n${block.content}\n\`\`\`\n\n</details>\n\n`;
+                                }
+                            }
+                            pendingCode = [];
+                        }
+
+                        if (text) assistantText += text;
+
+                        // 思考内容单独存储到 thinking 字段
+                        const thinkingText = pendingThinking.length > 0 ? pendingThinking.join('\n\n').trim() : undefined;
+                        pendingThinking = [];
+
+                        if (assistantText || thinkingText) {
+                            const assistantObj = { text: assistantText.trim() };
+                            if (thinkingText) assistantObj.thinking = thinkingText;
+                            pairs.push({
+                                human: { text: currentUser || '[No preceding user prompt found]' },
+                                assistant: assistantObj
+                            });
+                            currentUser = null;
+                        }
+                    }
+                }
+            }
+
+            // 如果最后有未配对的用户消息
+            if (currentUser) {
+                pairs.push({
+                    human: { text: currentUser },
+                    assistant: { text: '[Model response is pending]' }
+                });
+            }
+
+            return pairs.length > 0 ? pairs : null;
+        } catch (e) {
+            console.error('[Loominary AI Studio] XHR parse error:', e);
+            return null;
+        }
+    },
+
+    getTitle: () => {
+        if (!AiStudioXHR.capturedData) return null;
+        try {
+            const root = AiStudioXHR.capturedData[0];
+            if (Array.isArray(root[4]) && typeof root[4][0] === 'string') return root[4][0];
+        } catch (e) {}
+        return null;
+    }
+};
+
 function getAIStudioScroller() {
     for (const sel of ['ms-chat-session ms-autoscroll-container', 'mat-sidenav-content', '.chat-view-container']) {
         const el = document.querySelector(sel);
@@ -1907,21 +4500,43 @@ async function extractDataIncremental_AiStudio(includeImages = true) {
         const turnData = { type: 'unknown', text: '', images: [] };
 
         if (userEl) {
+            turnData.type = 'user';
             const textEl = userEl.querySelector('.user-prompt-container .turn-content');
             if (textEl) {
-                let text = textEl.innerText.trim().replace(/^User\s*[\n:]?/i, '').trim();
-                if (text) { turnData.type = 'user'; turnData.text = text; }
+                const clone = textEl.cloneNode(true);
+                // 移除 author-label（含时间戳如 "User 14:56"）
+                clone.querySelectorAll('.author-label, .turn-separator').forEach(e => e.remove());
+                let text = clone.innerText.trim();
+                if (text) turnData.text = text;
             }
             if (includeImages) {
                 const imgs = userEl.querySelectorAll('.user-prompt-container img');
+                console.log('[Loominary AI Studio DOM] user turn: img elements found:', imgs.length, [...imgs].map(i => i.src?.slice(0, 50)));
                 turnData.images = (await Promise.all([...imgs].map(gemini_processImageElement))).filter(Boolean);
+                console.log('[Loominary AI Studio DOM] user turn: images processed:', turnData.images.length);
             }
         } else if (modelEl) {
             const chunks = modelEl.querySelectorAll('ms-prompt-chunk');
-            const texts = [], imgPromises = [];
+            const texts = [], thinkingTexts = [], imgPromises = [];
 
             chunks.forEach(chunk => {
-                if (chunk.querySelector('ms-thought-chunk')) return;
+                const thoughtChunk = chunk.querySelector('ms-thought-chunk');
+                if (thoughtChunk) {
+                    const cmark = thoughtChunk.querySelector('ms-cmark-node');
+                    if (cmark) {
+                        const md = htmlToMarkdown(cmark);
+                        if (md) thinkingTexts.push(md);
+                    }
+                    return;
+                }
+                // ms-image-chunk 内的图片（模型生成的图片）
+                if (includeImages) {
+                    const imageChunk = chunk.querySelector('ms-image-chunk img');
+                    if (imageChunk) {
+                        imgPromises.push(gemini_processImageElement(imageChunk));
+                        return;
+                    }
+                }
                 const cmark = chunk.querySelector('ms-cmark-node');
                 if (cmark) {
                     const md = htmlToMarkdown(cmark);
@@ -1931,8 +4546,11 @@ async function extractDataIncremental_AiStudio(includeImages = true) {
             });
 
             const text = texts.join('\n\n').trim();
-            if (text) { turnData.type = 'model'; turnData.text = text; }
+            const thinkingText = thinkingTexts.join('\n\n').trim();
+            if (text || thinkingText) { turnData.type = 'model'; turnData.text = text; }
+            if (thinkingText) turnData.thinking = thinkingText;
             if (includeImages) turnData.images = (await Promise.all(imgPromises)).filter(Boolean);
+            console.log('[Loominary AI Studio DOM] model turn: text=' + text.length + 'chars, thinking=' + thinkingText.length + 'chars, images=' + turnData.images.length, 'chunks=' + chunks.length);
         }
 
         if (turnData.type !== 'unknown' && (turnData.text || turnData.images.length)) {
@@ -2005,60 +4623,98 @@ const ScraperHandler = {
             }
         },
 
-        notebooklm: {
-            getTitle: () => 'NotebookLM_' + new Date().toISOString().slice(0, 10),
-            extractData: async (includeImages = true) => {
-                const data = [];
-                for (const turn of document.querySelectorAll("div.chat-message-pair")) {
-                    let question = turn.querySelector("chat-message .from-user-container .message-text-content")?.innerText.trim() || "";
-                    if (question.startsWith('[Preamble] ')) question = question.substring(11).trim();
-
-                    let answer = "";
-                    const answerEl = turn.querySelector("chat-message .to-user-container .message-text-content");
-                    if (answerEl) {
-                        const parts = [];
-                        answerEl.querySelectorAll('labs-tailwind-structural-element-view-v2').forEach(el => {
-                            let line = el.querySelector('.bullet')?.innerText.trim() + ' ' || '';
-                            const para = el.querySelector('.paragraph');
-                            if (para) {
-                                let text = '';
-                                para.childNodes.forEach(n => {
-                                    if (n.nodeType === Node.TEXT_NODE) text += n.textContent;
-                                    else if (n.nodeType === Node.ELEMENT_NODE && !n.querySelector?.('.citation-marker')) {
-                                        text += n.classList?.contains('bold') ? `**${n.innerText}**` : (n.innerText || n.textContent || '');
-                                    }
-                                });
-                                line += text;
-                            }
-                            if (line.trim()) parts.push(line.trim());
-                        });
-                        answer = parts.join('\n\n');
-                    }
-
-                    let userImages = [], modelImages = [];
-                    if (includeImages) {
-                        userImages = (await Promise.all([...turn.querySelectorAll("chat-message .from-user-container img")].map(gemini_processImageElement))).filter(Boolean);
-                        modelImages = (await Promise.all([...turn.querySelectorAll("chat-message .to-user-container img")].map(gemini_processImageElement))).filter(Boolean);
-                    }
-
-                    if (question || answer || userImages.length || modelImages.length) {
-                        const human = { text: question };
-                        const assistant = { text: answer };
-                        if (userImages.length) human.images = userImages;
-                        if (modelImages.length) assistant.images = modelImages;
-                        data.push({ human, assistant });
-                    }
-                }
-                return data;
-            }
-        },
-
         aistudio: {
             getTitle: () => {
-                const input = prompt('请输入对话标题 / Enter title:', 'AI_Studio_Chat');
-                return input === null ? null : (input || 'AI_Studio_Chat');
+                return AiStudioXHR.getTitle() || 'AI_Studio_Chat';
             },
             extractData: async (includeImages = true) => {
+                console.log('[Loominary AI Studio] extractData called, includeImages:', includeImages);
+                // 优先使用 XHR 拦截数据（即时、完整）
+                const xhrResult = AiStudioXHR.parseToConversation();
+                console.log('[Loominary AI Studio] XHR result:', xhrResult ? xhrResult.length + ' pairs' : 'null');
+                if (xhrResult && xhrResult.length > 0) {
+                    console.log('[Loominary AI Studio] Using XHR path');
+                    // XHR 不含图片，通过滚动 DOM 补充提取
+                    if (includeImages) {
+                        console.log('[Loominary AI Studio] Starting DOM image collection');
+                        const turns = document.querySelectorAll('ms-chat-turn');
+                        console.log('[Loominary AI Studio] ms-chat-turn elements found:', turns.length);
+
+                        if (turns.length > 0) {
+                            const scroller = getAIStudioScroller();
+                            scroller.scrollTop = 0;
+                            await Utils.sleep(Config.TIMING.SCROLL_TOP_WAIT);
+
+                            const imageMap = new Map();
+                            const collectImages = async () => {
+                                const currentTurns = document.querySelectorAll('ms-chat-turn');
+                                for (const turn of currentTurns) {
+                                    if (imageMap.has(turn)) continue;
+                                    const allImgs = turn.querySelectorAll('ms-image-chunk img');
+                                    const userImgs = [...turn.querySelectorAll('.chat-turn-container.user ms-image-chunk img')]
+                                        .filter(img => !img.src.includes('drive-thirdparty.googleusercontent.com'));
+                                    const modelImgs = [...turn.querySelectorAll('.chat-turn-container.model ms-image-chunk img')]
+                                        .filter(img => !img.src.includes('drive-thirdparty.googleusercontent.com'));
+                                    if (allImgs.length) {
+                                        console.log('[Loominary AI Studio] Turn has', allImgs.length, 'img(s), user:', userImgs.length, 'model:', modelImgs.length,
+                                            [...allImgs].map(i => i.src?.slice(0, 60)));
+                                    }
+                                    if (userImgs.length || modelImgs.length) {
+                                        imageMap.set(turn, {
+                                            userImages: (await Promise.all(userImgs.map(gemini_processImageElement))).filter(Boolean),
+                                            modelImages: (await Promise.all(modelImgs.map(gemini_processImageElement))).filter(Boolean)
+                                        });
+                                    } else {
+                                        imageMap.set(turn, null);
+                                    }
+                                }
+                            };
+
+                            let lastScrollTop = -1;
+                            while (true) {
+                                await collectImages();
+                                if (scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 10) break;
+                                lastScrollTop = scroller.scrollTop;
+                                scroller.scrollTop += scroller.clientHeight * 0.85;
+                                await Utils.sleep(Config.TIMING.SCROLL_DELAY);
+                                if (scroller.scrollTop === lastScrollTop) break;
+                            }
+                            await collectImages();
+
+                            const totalWithImages = [...imageMap.values()].filter(v => v !== null).length;
+                            console.log('[Loominary AI Studio] Image collection done, turns with images:', totalWithImages);
+
+                            // 按 DOM 顺序合并图片到 XHR pairs
+                            let pairIdx = 0;
+                            let pendingUserImages = null;
+                            for (const turn of document.querySelectorAll('ms-chat-turn')) {
+                                const data = imageMap.get(turn);
+                                const isUser = turn.querySelector('.chat-turn-container.user');
+                                const isModel = turn.querySelector('.chat-turn-container.model');
+                                if (isUser && data?.userImages?.length) {
+                                    pendingUserImages = data.userImages;
+                                }
+                                if (isModel) {
+                                    if (pairIdx < xhrResult.length) {
+                                        if (pendingUserImages) {
+                                            xhrResult[pairIdx].human.images = pendingUserImages;
+                                            pendingUserImages = null;
+                                        }
+                                        if (data?.modelImages?.length) {
+                                            xhrResult[pairIdx].assistant.images = data.modelImages;
+                                        }
+                                    }
+                                    pairIdx++;
+                                }
+                            }
+                            console.log('[Loominary AI Studio] Image merge done, pairs processed:', pairIdx);
+                        }
+                    }
+                    return xhrResult;
+                }
+                console.log('[Loominary AI Studio] Using DOM fallback path');
+
+                // DOM 回退（滚动提取）
                 collectedData.clear();
                 const scroller = getAIStudioScroller();
                 scroller.scrollTop = 0;
@@ -2094,6 +4750,7 @@ const ScraperHandler = {
                         const human = { text: lastHuman?.text || "[No preceding user prompt found]" };
                         if (lastHuman?.images?.length) human.images = lastHuman.images;
                         const assistant = { text: item.text };
+                        if (item.thinking) assistant.thinking = item.thinking;
                         if (item.images?.length) assistant.images = item.images;
                         paired.push({ human, assistant });
                         lastHuman = null;
@@ -2119,7 +4776,8 @@ const ScraperHandler = {
             VersionTracker.isScanning = false; // 防止卡死
             await VersionTracker.scanOnce();
             VersionTracker.forceCommitAll();
-            const versionedData = VersionTracker.buildVersionedData(title);
+            const includeImagesForVersioned = document.getElementById(Config.IMAGE_SWITCH_ID)?.checked || false;
+            const versionedData = VersionTracker.buildVersionedData(title, includeImagesForVersioned);
             if (versionedData.conversation.length > 0) return versionedData;
             // 版本追踪数据为空，回退到普通提取
         }
@@ -2135,16 +4793,16 @@ const ScraperHandler = {
         const handler = ScraperHandler.handlers[platform];
         if (!handler) return;
 
-        const colors = { gemini: '#1a73e8', notebooklm: '#000000', aistudio: '#777779' };
+        const colors = { gemini: '#1a73e8', aistudio: '#777779' };
         const color = colors[platform] || '#4285f4';
-        const useInline = platform === 'notebooklm' || platform === 'gemini';
+        const useInline = platform === 'gemini';
 
         const createToggle = (label, id, state, onChange) => {
             const toggle = Utils.createToggle(label, id, state);
-            const input = toggle.querySelector('.lyra-switch input');
+            const input = toggle.querySelector('.loominary-switch input');
             if (input) {
                 input.addEventListener('change', onChange);
-                const slider = toggle.querySelector('.lyra-slider');
+                const slider = toggle.querySelector('.loominary-slider');
                 if (slider) slider.style.setProperty('--theme-color', color);
             }
             return toggle;
@@ -2172,26 +4830,24 @@ const ScraperHandler = {
             return btn;
         };
 
-        if (platform !== 'notebooklm') {
-            controlsArea.appendChild(createActionBtn(previewIcon, 'viewOnline', async btn => {
-                const title = handler.getTitle();
-                if (!title) return;
-                const original = btn.innerHTML;
-                Utils.setButtonLoading(btn, i18n.t('loading'));
-                let progress = platform === 'aistudio' ? Utils.createProgressElem(controlsArea) : null;
-                if (progress) progress.textContent = i18n.t('loading');
-                try {
-                    const json = await ScraperHandler.buildConversationJson(platform, title);
-                    const filename = `${platform}_${Utils.sanitizeFilename(title)}_${new Date().toISOString().slice(0, 10)}.json`;
-                    await Communicator.open(JSON.stringify(json, null, 2), filename);
-                } catch (e) {
-                    ErrorHandler.handle(e, 'Preview conversation', { userMessage: `${i18n.t('loadFailed')} ${e.message}` });
-                } finally {
-                    Utils.restoreButton(btn, original);
-                    progress?.remove();
-                }
-            }));
-        }
+        controlsArea.appendChild(createActionBtn(previewIcon, 'viewOnline', async btn => {
+            const title = handler.getTitle();
+            if (!title) return;
+            const original = btn.innerHTML;
+            Utils.setButtonLoading(btn, i18n.t('loading'));
+            let progress = platform === 'aistudio' ? Utils.createProgressElem(controlsArea) : null;
+            if (progress) progress.textContent = i18n.t('loading');
+            try {
+                const json = await ScraperHandler.buildConversationJson(platform, title);
+                const filename = `${platform}_${Utils.sanitizeFilename(title)}_${new Date().toISOString().slice(0, 10)}.json`;
+                await Communicator.open(JSON.stringify(json, null, 2), filename);
+            } catch (e) {
+                ErrorHandler.handle(e, 'Preview conversation', { userMessage: `${i18n.t('loadFailed')} ${e.message}` });
+            } finally {
+                Utils.restoreButton(btn, original);
+                progress?.remove();
+            }
+        }));
 
         controlsArea.appendChild(createActionBtn(exportIcon, 'exportCurrentJSON', async btn => {
             const title = handler.getTitle();
@@ -2202,8 +4858,8 @@ const ScraperHandler = {
             if (progress) progress.textContent = i18n.t('exporting');
             try {
                 const json = await ScraperHandler.buildConversationJson(platform, title);
-                const filename = `${platform}_${Utils.sanitizeFilename(title)}_${new Date().toISOString().slice(0, 10)}.json`;
-                Utils.downloadJSON(JSON.stringify(json, null, 2), filename);
+                const baseName = `${platform}_${Utils.sanitizeFilename(title)}_${new Date().toISOString().slice(0, 10)}`;
+                await loominaryExportMarkdown(json, baseName);
             } catch (e) {
                 ErrorHandler.handle(e, 'Export conversation');
             } finally {
@@ -2215,580 +4871,25 @@ const ScraperHandler = {
 };
 
 
-    // Helper function to fetch images via GM_xmlhttpRequest (routes through background proxy in extension)
-    function grok_fetchViaGM(url, headers = {}) {
-        return new Promise((resolve, reject) => {
-            if (typeof GM_xmlhttpRequest === 'undefined') {
-                return reject(new Error('GM_xmlhttpRequest not available'));
-            }
-            GM_xmlhttpRequest({
-                method: "GET",
-                url,
-                headers,
-                responseType: "blob",
-                onload: r => {
-                    if (r.status >= 200 && r.status < 300) {
-                        resolve(r.response);
-                    } else {
-                        reject(new Error(`Status: ${r.status}`));
-                    }
-                },
-                onerror: e => reject(new Error(e.statusText || 'Network error')),
-                ontimeout: () => reject(new Error('Request timeout'))
-            });
-        });
-    }
-
-    // Fetch image URL via GM proxy and return base64 data (bypasses canvas, gets original file)
-    async function grok_fetchImageAsData(url) {
-        const blob = await grok_fetchViaGM(url);
-        const base64Data = await Utils.blobToBase64(blob);
-        let mimeType = blob.type;
-        if (!mimeType || mimeType === 'application/octet-stream' || !mimeType.startsWith('image/')) {
-            const firstBytes = base64Data.substring(0, 20);
-            if (firstBytes.startsWith('iVBORw0KGgo')) mimeType = 'image/png';
-            else if (firstBytes.startsWith('/9j/')) mimeType = 'image/jpeg';
-            else if (firstBytes.startsWith('R0lGOD')) mimeType = 'image/gif';
-            else if (firstBytes.startsWith('UklGR')) mimeType = 'image/webp';
-            else mimeType = 'image/jpeg';
-        }
-        return { type: 'image', format: mimeType, size: blob.size, data: base64Data, original_src: url };
-    }
-
-    // Process image element and return base64 data
-    async function grok_processImageElement(imgElement) {
-        if (!imgElement) return null;
-
-        const url = imgElement.src;
-        if (!url || url.startsWith('data:')) return null;
-
-        try {
-            let base64Data, mimeType, size;
-
-            if (url.startsWith('blob:')) {
-                try {
-                    const blob = await fetch(url).then(r => r.ok ? r.blob() : Promise.reject());
-                    base64Data = await Utils.blobToBase64(blob);
-                    mimeType = blob.type;
-                    size = blob.size;
-                } catch (blobError) {
-                    // Canvas fallback for blob URLs
-                    const canvas = document.createElement('canvas');
-                    canvas.width = imgElement.naturalWidth || imgElement.width;
-                    canvas.height = imgElement.naturalHeight || imgElement.height;
-                    canvas.getContext('2d').drawImage(imgElement, 0, 0);
-
-                    const isPhoto = canvas.width * canvas.height > 50000;
-                    const dataURL = isPhoto ? canvas.toDataURL('image/jpeg', 0.85) : canvas.toDataURL('image/png');
-                    mimeType = isPhoto ? 'image/jpeg' : 'image/png';
-                    base64Data = dataURL.split(',')[1];
-                    size = Math.round((base64Data.length * 3) / 4);
-                }
-            } else {
-                // Try Canvas method first (more reliable for already-loaded images)
-                try {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = imgElement.naturalWidth || imgElement.width;
-                    canvas.height = imgElement.naturalHeight || imgElement.height;
-
-                    if (canvas.width === 0 || canvas.height === 0) {
-                        throw new Error('Image not loaded or has zero dimensions');
-                    }
-
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(imgElement, 0, 0);
-
-                    const isPhoto = canvas.width * canvas.height > 50000;
-                    const dataURL = isPhoto ? canvas.toDataURL('image/jpeg', 0.85) : canvas.toDataURL('image/png');
-
-                    mimeType = isPhoto ? 'image/jpeg' : 'image/png';
-                    base64Data = dataURL.split(',')[1];
-                    size = Math.round((base64Data.length * 3) / 4);
-                } catch (canvasError) {
-                    // Fallback to GM_xmlhttpRequest if Canvas fails (CORS issues)
-                    console.warn('[Grok] Canvas method failed, using GM_xmlhttpRequest fallback:', canvasError.message);
-
-                    const blob = await grok_fetchViaGM(url);
-                    base64Data = await Utils.blobToBase64(blob);
-                    mimeType = blob.type;
-                    size = blob.size;
-                }
-
-                // Fix MIME type if it's octet-stream or empty
-                if (!mimeType || mimeType === 'application/octet-stream' || !mimeType.startsWith('image/')) {
-                    if (url.includes('.jpg') || url.includes('.jpeg')) {
-                        mimeType = 'image/jpeg';
-                    } else if (url.includes('.png')) {
-                        mimeType = 'image/png';
-                    } else if (url.includes('.gif')) {
-                        mimeType = 'image/gif';
-                    } else if (url.includes('.webp')) {
-                        mimeType = 'image/webp';
-                    } else {
-                        // Detect from base64 magic bytes
-                        const firstBytes = base64Data.substring(0, 20);
-                        if (firstBytes.startsWith('iVBORw0KGgo')) mimeType = 'image/png';
-                        else if (firstBytes.startsWith('/9j/')) mimeType = 'image/jpeg';
-                        else if (firstBytes.startsWith('R0lGOD')) mimeType = 'image/gif';
-                        else if (firstBytes.startsWith('UklGR')) mimeType = 'image/webp';
-                        else mimeType = 'image/png';
-                    }
-                }
-            }
-
-            return { type: 'image', format: mimeType, size, data: base64Data, original_src: url };
-        } catch (e) {
-            console.error('[Grok] Failed to process image:', e);
-            return null;
-        }
-    }
-
-    const GrokHandler = {
-        init: () => {
-            // Grok doesn't require special initialization like token capture
-            console.log('[Lyra] GrokHandler initialized');
-        },
-
-        getCurrentConversationId: () => {
-            // Grok URL: https://grok.com/{conversationId} - ID is the last segment of path
-            const pathSegments = window.location.pathname.split('/').filter(s => s);
-            const lastSegment = pathSegments[pathSegments.length - 1];
-            // Grok conversation IDs are typically UUID-like (36 chars) or similar long strings
-            if (lastSegment && lastSegment.length >= 20) {
-                return lastSegment;
-            }
-            return null;
-        },
-
-        getAllConversations: async () => {
-            try {
-                const response = await fetch('/rest/app-chat/conversations', {
-                    credentials: 'include',
-                    headers: { 'Accept': 'application/json' }
-                });
-                if (!response.ok) throw new Error(`Failed to fetch conversations: ${response.status}`);
-                const data = await response.json();
-                return data.conversations || [];
-            } catch (error) {
-                console.error('[Lyra] Get all conversations error:', error);
-                return null;
-            }
-        },
-
-        getConversation: async (conversationId) => {
-            try {
-                // Step 1: Get all response nodes with tree structure
-                const nodeUrl = `/rest/app-chat/conversations/${conversationId}/response-node?includeThreads=true`;
-                const nodeResponse = await fetch(nodeUrl, {
-                    headers: { 'Accept': 'application/json' },
-                    credentials: 'include'
-                });
-                if (!nodeResponse.ok) throw new Error(`Failed to get response nodes: ${nodeResponse.status}`);
-                const nodeData = await nodeResponse.json();
-                const responseNodes = nodeData.responseNodes || [];
-                const responseIds = responseNodes.map(node => node.responseId);
-
-                if (!responseIds.length) {
-                    return { conversationId, responses: [], title: null, conversationTree: null };
-                }
-
-                // Step 2: Load full conversation content
-                const loadUrl = `/rest/app-chat/conversations/${conversationId}/load-responses`;
-                const loadResponse = await fetch(loadUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({ responseIds })
-                });
-                if (!loadResponse.ok) throw new Error(`Failed to load responses: ${loadResponse.status}`);
-                const conversationData = await loadResponse.json();
-
-                // Step 3: Build tree structure map
-                const nodeMap = new Map();
-                responseNodes.forEach(node => {
-                    nodeMap.set(node.responseId, {
-                        responseId: node.responseId,
-                        parentResponseId: node.parentResponseId || null,
-                        childResponseIds: node.childResponseIds || [],
-                        threadId: node.threadId || null
-                    });
-                });
-
-                // Step 4: Process and structure the data
-                const processedResponses = (conversationData.responses || [])
-                    .filter(r => !r.partial)
-                    .sort((a, b) => new Date(a.createTime) - new Date(b.createTime))
-                    .map(r => {
-                        const processed = {
-                            responseId: r.responseId,
-                            sender: r.sender,
-                            createTime: r.createTime,
-                            message: r.message || ''
-                        };
-
-                        // Add tree structure information
-                        const nodeInfo = nodeMap.get(r.responseId);
-                        if (nodeInfo) {
-                            processed.parentResponseId = nodeInfo.parentResponseId;
-                            processed.childResponseIds = nodeInfo.childResponseIds;
-                            if (nodeInfo.threadId) {
-                                processed.threadId = nodeInfo.threadId;
-                            }
-                        }
-
-                        // Process citations if present
-                        if (r.sender === 'assistant' && r.cardAttachmentsJson && r.webSearchResults) {
-                            const citations = [];
-                            try {
-                                r.cardAttachmentsJson.forEach(cardStr => {
-                                    const card = JSON.parse(cardStr);
-                                    if (card.cardType === 'citation_card' && card.url) {
-                                        const searchResult = r.webSearchResults.find(sr => sr.url === card.url);
-                                        citations.push({
-                                            id: card.id,
-                                            url: card.url,
-                                            title: searchResult?.title || 'Source'
-                                        });
-                                    }
-                                });
-                            } catch (e) {
-                                console.warn('[Lyra] Failed to parse cardAttachmentsJson:', e);
-                            }
-                            if (citations.length > 0) {
-                                processed.citations = citations;
-                            }
-                            if (r.webSearchResults) {
-                                processed.webSearchResults = r.webSearchResults;
-                            }
-                        }
-
-                        // Include other potentially useful fields
-                        if (r.attachments) processed.attachments = r.attachments;
-                        if (r.cardAttachmentsJson) processed.cardAttachmentsJson = r.cardAttachmentsJson;
-                        if (r.imageAttachments) processed.imageAttachments = r.imageAttachments;
-                        if (r.fileAttachments) processed.fileAttachments = r.fileAttachments;
-
-                        return processed;
-                    });
-
-                // Try to get conversation title from list if available
-                let title = null;
-                try {
-                    const allConvs = await GrokHandler.getAllConversations();
-                    const conv = allConvs?.find(c => c.conversationId === conversationId);
-                    title = conv?.title || null;
-                } catch (e) {
-                    console.warn('[Lyra] Could not fetch title:', e);
-                }
-
-                // Step 5: Capture images from DOM if State.includeImages is true
-                if (State.includeImages) {
-                    const processedUrls = new Set();
-
-                    // Helper: resolve DOM response container to a processedResponse entry
-                    function resolveContainer(el) {
-                        const container = el.closest('[id^="response-"]');
-                        if (!container) return null;
-                        const responseId = container.id.replace('response-', '');
-                        return processedResponses.find(r => r.responseId === responseId) || null;
-                    }
-
-                    // Method 1: AI-generated images — start from the img element, walk up to find response
-                    const allGeneratedImgs = document.querySelectorAll('[data-testid="image-viewer"] img[src*="assets.grok.com"]');
-
-                    for (const img of allGeneratedImgs) {
-                        // Skip blurred background images (check both inline style and computed)
-                        const parentStyle = img.parentElement?.style;
-                        if (parentStyle && parentStyle.filter && parentStyle.filter.includes('blur')) continue;
-
-                        if (processedUrls.has(img.src)) continue;
-                        processedUrls.add(img.src);
-
-                        try {
-                            // Use GM fetch directly to get original file (bypasses canvas thumbnail capture)
-                            const imageData = await grok_fetchImageAsData(img.src);
-                            if (!imageData) continue;
-
-                            // Prefer DOM-position match; fallback to last assistant response
-                            let target = resolveContainer(img);
-                            if (!target) {
-                                const assistants = processedResponses.filter(r => r.sender === 'assistant');
-                                target = assistants[assistants.length - 1] || null;
-                            }
-
-                            if (target) {
-                                if (!target.capturedImages) target.capturedImages = [];
-                                target.capturedImages.push({ ...imageData, source: 'ai_generated' });
-                                console.log(`[Grok] Captured AI image for response ${target.responseId}`);
-                            }
-                        } catch (e) {
-                            console.error('[Grok] Failed to process AI image:', e);
-                        }
-                    }
-
-                    // Method 2: User-uploaded images — figure elements with preview-image URLs
-                    const allUserImages = document.querySelectorAll('figure img[src*="assets.grok.com"][src*="preview-image"]');
-
-                    for (const img of allUserImages) {
-                        if (processedUrls.has(img.src)) continue;
-                        processedUrls.add(img.src);
-
-                        try {
-                            // Strip /preview-image suffix to get full-size URL, fallback to thumbnail
-                            const thumbnailUrl = img.src;
-                            const fullSizeUrl = thumbnailUrl.includes('/preview-image')
-                                ? thumbnailUrl.split('/preview-image')[0]
-                                : thumbnailUrl;
-                            if (fullSizeUrl !== thumbnailUrl) processedUrls.add(fullSizeUrl);
-
-                            let imageData = null;
-                            if (fullSizeUrl !== thumbnailUrl) {
-                                try {
-                                    imageData = await grok_fetchImageAsData(fullSizeUrl);
-                                } catch (e) {
-                                    console.warn('[Grok] Full-size fetch failed, using thumbnail:', e.message);
-                                }
-                            }
-                            if (!imageData) {
-                                imageData = await grok_fetchImageAsData(thumbnailUrl);
-                            }
-                            if (!imageData) continue;
-
-                            // Prefer DOM-position match; fallback to last human with any attachments
-                            let target = resolveContainer(img);
-                            if (!target) {
-                                const humanResponses = processedResponses.filter(r =>
-                                    r.sender === 'human' &&
-                                    ((r.fileAttachments && r.fileAttachments.length > 0) ||
-                                     (r.imageAttachments && r.imageAttachments.length > 0))
-                                );
-                                target = humanResponses[humanResponses.length - 1] || null;
-                            }
-
-                            if (target) {
-                                if (!target.capturedImages) target.capturedImages = [];
-                                target.capturedImages.push({ ...imageData, source: 'user_upload' });
-                                console.log(`[Grok] Captured user-uploaded image for response ${target.responseId}`);
-                            } else {
-                                console.warn('[Grok] No matching response found for user-uploaded image');
-                            }
-                        } catch (e) {
-                            console.error('[Grok] Failed to process user image:', e);
-                        }
-                    }
-                }
-
-                return {
-                    conversationId,
-                    title,
-                    responses: processedResponses,
-                    conversationTree: {
-                        nodes: Array.from(nodeMap.values()),
-                        rootNodeId: responseNodes.find(n => !n.parentResponseId)?.responseId || null
-                    },
-                    exportTime: new Date().toISOString(),
-                    platform: 'grok'
-                };
-            } catch (error) {
-                console.error('[Lyra] Get conversation error:', error);
-                throw error;
-            }
-        },
-
-        addUI: (controls) => {
-            // Initialize includeImages to true by default for Grok if not set
-            if (localStorage.getItem('includeImages') === null) {
-                State.includeImages = true;
-                localStorage.setItem('includeImages', 'true');
-                console.log('[Grok] Initialized includeImages to true by default');
-            }
-
-            // Add "Include Images" toggle
-            const imageToggle = Utils.createToggle(
-                i18n.t('includeImages'),
-                'lyra-include-images-toggle',
-                State.includeImages
-            );
-            const imageToggleInput = imageToggle.querySelector('input');
-            imageToggleInput.addEventListener('change', (e) => {
-                State.includeImages = e.target.checked;
-                localStorage.setItem('includeImages', State.includeImages);
-                console.log('[Grok] Include images:', State.includeImages);
-            });
-            controls.appendChild(imageToggle);
-        },
-
-        addButtons: (controls) => {
-            controls.appendChild(Utils.createButton(
-                `${previewIcon} ${i18n.t('viewOnline')}`,
-                async (btn) => {
-                    const conversationId = GrokHandler.getCurrentConversationId();
-                    if (!conversationId) {
-                        alert(i18n.t('uuidNotFound'));
-                        return;
-                    }
-                    const original = btn.innerHTML;
-                    Utils.setButtonLoading(btn, i18n.t('loading'));
-                    try {
-                        const data = await GrokHandler.getConversation(conversationId);
-                        if (!data) throw new Error(i18n.t('fetchFailed'));
-                        const jsonString = JSON.stringify(data, null, 2);
-                        const filename = `grok_${data.title || 'conversation'}_${conversationId.substring(0, 8)}.json`;
-                        await Communicator.open(jsonString, filename);
-                    } catch (error) {
-                        ErrorHandler.handle(error, 'Preview conversation', {
-                            userMessage: `${i18n.t('loadFailed')} ${error.message}`
-                        });
-                    } finally {
-                        Utils.restoreButton(btn, original);
-                    }
-                }
-            ));
-
-            controls.appendChild(Utils.createButton(
-                `${exportIcon} ${i18n.t('exportCurrentJSON')}`,
-                async (btn) => {
-                    const conversationId = GrokHandler.getCurrentConversationId();
-                    if (!conversationId) {
-                        alert(i18n.t('uuidNotFound'));
-                        return;
-                    }
-                    const filename = prompt(i18n.t('enterFilename'), Utils.sanitizeFilename(`grok_${conversationId.substring(0, 8)}`));
-                    if (!filename?.trim()) return;
-                    const original = btn.innerHTML;
-                    Utils.setButtonLoading(btn, i18n.t('exporting'));
-                    try {
-                        const data = await GrokHandler.getConversation(conversationId);
-                        if (!data) throw new Error(i18n.t('fetchFailed'));
-                        Utils.downloadJSON(JSON.stringify(data, null, 2), `${filename.trim()}.json`);
-                    } catch (error) {
-                        ErrorHandler.handle(error, 'Export conversation');
-                    } finally {
-                        Utils.restoreButton(btn, original);
-                    }
-                }
-            ));
-
-            controls.appendChild(Utils.createButton(
-                `${zipIcon} ${i18n.t('exportAllConversations')}`,
-                (btn) => GrokHandler.exportAll(btn, controls)
-            ));
-        },
-
-        exportAll: async (btn, controlsArea) => {
-            if (typeof fflate === 'undefined' || typeof fflate.zipSync !== 'function' || typeof fflate.strToU8 !== 'function') {
-                const errorMsg = i18n.currentLang === 'zh'
-                    ? '批量导出功能需要压缩库支持。\n\n由于当前平台的安全策略限制,该功能暂时不可用。\n建议使用"导出当前"功能单个导出对话。'
-                    : 'Batch export requires compression library.\n\nThis feature is currently unavailable due to platform security policies.\nPlease use "Export" button to export conversations individually.';
-                alert(errorMsg);
-                return;
-            }
-
-            // 先探测对话数量
-            const original = btn.innerHTML;
-            Utils.setButtonLoading(btn, i18n.t('detectingConversations'));
-
-            let allConvs;
-            try {
-                allConvs = await GrokHandler.getAllConversations();
-                if (!allConvs || !Array.isArray(allConvs)) throw new Error(i18n.t('fetchFailed'));
-            } catch (error) {
-                ErrorHandler.handle(error, 'Detect conversations');
-                Utils.restoreButton(btn, original);
-                return;
-            }
-
-            const totalCount = allConvs.length;
-            Utils.restoreButton(btn, original);
-
-            // 弹出确认框让用户选择导出数量
-            const promptMsg = i18n.currentLang === 'zh'
-                ? `${i18n.t('foundConversations')} ${totalCount} ${i18n.t('conversations')}\n\n${i18n.t('selectExportCount')}`
-                : `${i18n.t('foundConversations')} ${totalCount} ${i18n.t('conversations')}\n\n${i18n.t('selectExportCount')}`;
-
-            const userInput = prompt(promptMsg, totalCount.toString());
-
-            // 用户取消
-            if (userInput === null) {
-                alert(i18n.t('exportCancelled'));
-                return;
-            }
-
-            // 解析用户输入
-            let exportCount = totalCount;
-            const trimmedInput = userInput.trim();
-
-            if (trimmedInput !== '' && trimmedInput !== '0') {
-                const parsed = parseInt(trimmedInput, 10);
-                if (isNaN(parsed) || parsed < 0) {
-                    alert(i18n.t('invalidNumber'));
-                    return;
-                }
-                exportCount = Math.min(parsed, totalCount);
-            }
-
-            // 开始导出
-            const progress = Utils.createProgressElem(controlsArea);
-            progress.textContent = i18n.t('preparing');
-            Utils.setButtonLoading(btn, i18n.t('exporting'));
-
-            try {
-                let exported = 0;
-                const zipEntries = {};
-
-                // 只导出最近的 exportCount 个对话
-                const convsToExport = allConvs.slice(0, exportCount);
-                console.log(`[Grok] Starting export of ${convsToExport.length} conversations (out of ${totalCount} total)`);
-
-                for (let i = 0; i < convsToExport.length; i++) {
-                    const conv = convsToExport[i];
-                    progress.textContent = `${i18n.t('gettingConversation')} ${i + 1}/${convsToExport.length}`;
-
-                    if (i > 0 && i % 5 === 0) {
-                        await new Promise(resolve => setTimeout(resolve, Config.TIMING.BATCH_EXPORT_YIELD));
-                    } else if (i > 0) {
-                        await Utils.sleep(Config.TIMING.BATCH_EXPORT_SLEEP);
-                    }
-
-                    try {
-                        const data = await GrokHandler.getConversation(conv.conversationId);
-                        if (data) {
-                            const title = Utils.sanitizeFilename(data.title || conv.conversationId);
-                            const filename = `grok_${conv.conversationId.substring(0, 8)}_${title}.json`;
-                            zipEntries[filename] = fflate.strToU8(JSON.stringify(data, null, 2));
-                            exported++;
-                        }
-                    } catch (error) {
-                        console.error(`[Lyra] Failed to process ${conv.conversationId}:`, error);
-                    }
-                }
-
-                progress.textContent = `${i18n.t('compressing')}…`;
-                const zipUint8 = fflate.zipSync(zipEntries, { level: 1 });
-                const zipBlob = new Blob([zipUint8], { type: 'application/zip' });
-
-                const zipFilename = `grok_export_${exportCount === totalCount ? 'all' : 'recent_' + exportCount}_${new Date().toISOString().slice(0, 10)}.zip`;
-                Utils.downloadFile(zipBlob, zipFilename);
-                alert(`${i18n.t('successExported')} ${exported} ${i18n.t('conversations')}`);
-            } catch (error) {
-                ErrorHandler.handle(error, 'Export all conversations');
-            } finally {
-                Utils.restoreButton(btn, original);
-                if (progress.parentNode) progress.parentNode.removeChild(progress);
-            }
-        }
-    };
-
-
     const UI = {
 
         injectStyle: () => {
             const platformColors = {
                 claude: '#141413',
+                // #platform: chatgpt
+                chatgpt: '#10A37F',
+                // #endplatform
+                // #platform: grok
                 grok: '#000000',
+                // #endplatform
+                // #platform: copilot
+                copilot: '#151a28',
+                // #endplatform
+                // #platform: gemini
                 gemini: '#1a73e8',
-                notebooklm: '#4285f4',
+
                 aistudio: '#777779'
+                // #endplatform
             };
             const buttonColor = platformColors[State.currentPlatform] || '#4285f4';
             console.log('[Loominary] Current platform:', State.currentPlatform);
@@ -3097,7 +5198,8 @@ const ScraperHandler = {
 
             if (State.isPanelCollapsed) container.classList.add('collapsed');
 
-            if (State.currentPlatform === 'notebooklm' || State.currentPlatform === 'gemini') {
+            // #platform: gemini
+            if (State.currentPlatform === 'gemini') {
                 Object.assign(container.style, {
                     position: 'fixed',
                     top: '50%',
@@ -3115,6 +5217,7 @@ const ScraperHandler = {
                     boxSizing: 'border-box'
                 });
             }
+            // #endplatform
 
             const toggle = document.createElement('div');
             toggle.id = Config.TOGGLE_ID;
@@ -3125,20 +5228,32 @@ const ScraperHandler = {
             const controls = document.createElement('div');
             controls.className = 'loominary-main-controls';
 
-            if (State.currentPlatform === 'notebooklm' || State.currentPlatform === 'gemini') {
+            // #platform: gemini
+            if (State.currentPlatform === 'gemini') {
                 Object.assign(controls.style, {
                     marginLeft: '0px',
                     padding: '0 3px',
                     transition: 'opacity 0.7s'
                 });
             }
+            // #endplatform
 
             const title = document.createElement('div');
             title.className = 'loominary-title';
             const titles = {
                 claude: 'Claude',
+                // #platform: chatgpt
+                chatgpt: 'ChatGPT',
+                // #endplatform
+                // #platform: grok
                 grok: 'Grok',
-                gemini: 'Gemini', notebooklm: 'Note LM', aistudio: 'AI Studio'
+                // #endplatform
+                // #platform: copilot
+                copilot: 'Copilot',
+                // #endplatform
+                // #platform: gemini
+                gemini: 'Gemini', aistudio: 'AI Studio',
+                // #endplatform
             };
             title.textContent = titles[State.currentPlatform] || 'Exporter';
             controls.appendChild(title);
@@ -3161,13 +5276,29 @@ const ScraperHandler = {
                 });
                 controls.appendChild(inputLabel);
             }
+            // #platform: chatgpt
+            if (State.currentPlatform === 'chatgpt') {
+                ChatGPTHandler.addUI(controls);
+                ChatGPTHandler.addButtons(controls);
+            }
+            // #endplatform
+            // #platform: grok
             if (State.currentPlatform === 'grok') {
                 GrokHandler.addUI(controls);
                 GrokHandler.addButtons(controls);
             }
-            if (['gemini', 'notebooklm', 'aistudio'].includes(State.currentPlatform)) {
+            // #endplatform
+            // #platform: copilot
+            if (State.currentPlatform === 'copilot') {
+                CopilotHandler.addUI(controls);
+                CopilotHandler.addButtons(controls);
+            }
+            // #endplatform
+            // #platform: gemini
+            if (['gemini', 'aistudio'].includes(State.currentPlatform)) {
                 ScraperHandler.addButtons(controls, State.currentPlatform);
             }
+            // #endplatform
 
             const langToggle = document.createElement('div');
             langToggle.className = 'loominary-lang-toggle';
@@ -3199,13 +5330,24 @@ const ScraperHandler = {
         if (!State.currentPlatform) return;
 
         if (State.currentPlatform === 'claude') ClaudeHandler.init();
+        // #platform: chatgpt
+        if (State.currentPlatform === 'chatgpt') ChatGPTHandler.init();
+        // #endplatform
+        // #platform: grok
         if (State.currentPlatform === 'grok') GrokHandler.init();
+        // #endplatform
+        // #platform: copilot
+        if (State.currentPlatform === 'copilot') CopilotHandler.init();
+        // #endplatform
+        // #platform: gemini
+        if (State.currentPlatform === 'aistudio') AiStudioXHR.init();
+        // #endplatform
 
         UI.injectStyle();
 
         const initPanel = () => {
             UI.createPanel();
-            if (['claude', 'grok', 'gemini', 'notebooklm', 'aistudio'].includes(State.currentPlatform)) {
+            if (['claude'/* #platform: chatgpt */, 'chatgpt'/* #endplatform *//* #platform: grok */, 'grok'/* #endplatform *//* #platform: copilot */, 'copilot'/* #endplatform *//* #platform: gemini */, 'gemini', 'aistudio'/* #endplatform */].includes(State.currentPlatform)) {
                 let lastUrl = window.location.href;
                 let panelCheckTimer = null;
                 new MutationObserver(() => {

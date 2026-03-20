@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Loominary",
-  "version": "0.5",
+  "version": "26.3.0",
   "description": "Conversations shouldn't just live in a scroll bar. Loominary gives your Claude and SillyTavern conversations a home - a local archive of every conversation, yours to keep.",
   "author": "ClaudeAI, Laumss",
   "icons": {
@@ -21,14 +21,25 @@
     "*://*.googleusercontent.com/*",
     "*://*.googleapis.com/*",
     "*://lh3.google.com/*",
-    "*://*.grok.com/*"
+    "*://*.grok.com/*",
+    "https://notebooklm.google.com/*",
+    "https://aistudio.google.com/*",
+    "https://grok.com/*",
+    "https://chatgpt.com/*",
+    "https://chat.openai.com/*",
+    "https://copilot.microsoft.com/*"
   ],
   "content_scripts": [
     {
       "matches": [
         "https://claude.ai/*",
         "https://gemini.google.com/*",
-        "https://grok.com/*"
+        "https://grok.com/*",
+        "https://notebooklm.google.com/*",
+        "https://aistudio.google.com/*",
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*",
+        "https://copilot.microsoft.com/*"
       ],
       "js": [
         "fflate.min.js",
@@ -55,7 +66,12 @@
       "matches": [
         "https://claude.ai/*",
         "https://gemini.google.com/*",
-        "https://grok.com/*"
+        "https://grok.com/*",
+        "https://notebooklm.google.com/*",
+        "https://aistudio.google.com/*",
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*",
+        "https://copilot.microsoft.com/*"
       ]
     }
   ]
