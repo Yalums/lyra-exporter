@@ -21,6 +21,7 @@ const DEFAULTS = {
   includeTools: false,
   includeCitations: false,
   includeAttachments: true,
+  includeNotes: true,
   includeBranchMarkers: true,
   // Claude 附加信息
   includeProjectInfo: false,
@@ -63,6 +64,8 @@ const I18N = {
     citationsDesc: '网页链接等引用信息',
     attachments: '附件信息',
     attachmentsDesc: '用户上传的文件及其预览信息',
+    notes: '笔记',
+    notesDesc: '用户添加的消息笔记',
     branchMarkers: '分支标识符',
     branchMarkersDesc: '导出时包含分支标记（↳ 和 🔀）',
     sectionExportAll: '全部导出',
@@ -110,6 +113,8 @@ const I18N = {
     citationsDesc: 'Web links and reference information',
     attachments: 'Attachments',
     attachmentsDesc: 'Uploaded files and their preview info',
+    notes: 'Notes',
+    notesDesc: 'User-added message notes',
     branchMarkers: 'Branch Markers',
     branchMarkersDesc: 'Include branch markers (↳ and 🔀) in export',
     sectionExportAll: 'Export All',
@@ -189,7 +194,7 @@ function loadUI() {
   // 复选框
   const checkboxIds = [
     'includeTimestamps', 'includeThinking', 'includeArtifacts',
-    'includeTools', 'includeCitations', 'includeAttachments', 'includeBranchMarkers',
+    'includeTools', 'includeCitations', 'includeAttachments', 'includeNotes', 'includeBranchMarkers',
     'includeProjectInfo', 'includeUserMemory'
   ];
   checkboxIds.forEach(id => {
@@ -259,7 +264,7 @@ function bindEvents() {
   // 复选框
   const checkboxIds = [
     'includeTimestamps', 'includeThinking', 'includeArtifacts',
-    'includeTools', 'includeCitations', 'includeAttachments', 'includeBranchMarkers',
+    'includeTools', 'includeCitations', 'includeAttachments', 'includeNotes', 'includeBranchMarkers',
     'includeProjectInfo', 'includeUserMemory'
   ];
   checkboxIds.forEach(id => {

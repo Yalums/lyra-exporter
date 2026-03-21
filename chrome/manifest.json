@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Loominary",
-  "version": "26.3.0",
+  "version": "26.3.1",
   "description": "Conversations shouldn't just live in a scroll bar. Loominary gives your Claude and SillyTavern conversations a home - a local archive of every conversation, yours to keep.",
   "author": "ClaudeAI, Laumss",
   "icons": {
