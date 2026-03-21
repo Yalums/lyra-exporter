@@ -1,0 +1,7 @@
+fflate 库需要手动添加：
+
+1. 下载 fflate: https://cdn.jsdelivr.net/npm/fflate@0.7.4/umd/index.js
+2. 保存为 chrome/fflate.min.js
+3. 在 manifest.json 的 content_scripts.js 数组开头添加 "fflate.min.js"
+
+或者在代码中使用动态加载方式。

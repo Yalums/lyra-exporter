@@ -1,0 +1,226 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  width: 300px;
+  font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px;
+  background: #fff;
+  color: #1a1a1a;
+}
+
+/* ── Header ── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid #ebebeb;
+}
+
+.logo {
+  font-size: 14px;
+  font-weight: 700;
+  color: #141413;
+  letter-spacing: 0.2px;
+}
+
+.saved-hint {
+  font-size: 11px;
+  color: #34a853;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.saved-hint.visible {
+  opacity: 1;
+}
+
+/* ── Content area ── */
+.content {
+  padding: 8px 16px 16px;
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+/* ── Section title ── */
+.section-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: #9aa0a6;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin: 14px 0 6px;
+}
+
+.section-title:first-of-type {
+  margin-top: 8px;
+}
+
+.section-desc {
+  font-size: 11px;
+  color: #9aa0a6;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+/* ── Setting row (label + control) ── */
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.setting-label {
+  font-size: 12px;
+  color: #3c4043;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Select ── */
+select {
+  font-size: 12px;
+  padding: 4px 6px;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  background: #fff;
+  color: #1a1a1a;
+  cursor: pointer;
+  outline: none;
+  min-width: 130px;
+}
+
+select:focus {
+  border-color: #141413;
+}
+
+/* ── Theme toggle button ── */
+.theme-toggle {
+  font-size: 12px;
+  padding: 4px 10px;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  background: #fff;
+  color: #1a1a1a;
+  cursor: pointer;
+  transition: background 0.15s;
+  min-width: 80px;
+}
+
+.theme-toggle:hover {
+  background: #f1f3f4;
+}
+
+/* ── Checkbox rows ── */
+.checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 5px 0;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.checkbox-row:hover {
+  background: #f8f9fa;
+  margin: 0 -4px;
+  padding: 5px 4px;
+}
+
+.checkbox-row input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  margin-top: 1px;
+  cursor: pointer;
+  accent-color: #141413;
+  flex-shrink: 0;
+}
+
+.checkbox-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.checkbox-label {
+  font-size: 12px;
+  color: #3c4043;
+  line-height: 1.4;
+}
+
+.checkbox-desc {
+  font-size: 11px;
+  color: #9aa0a6;
+  line-height: 1.3;
+}
+
+/* ── SillyTavern export button ── */
+.st-export-btn {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+  background: #7c5cbf;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.st-export-btn:hover {
+  background: #6a4faa;
+}
+
+.st-export-btn:disabled {
+  background: #b0a0d0;
+  cursor: not-allowed;
+}
+
+.st-status {
+  font-size: 11px;
+  color: #9aa0a6;
+  margin-top: 4px;
+  min-height: 14px;
+  line-height: 1.4;
+}
+
+.st-status.error {
+  color: #d93025;
+}
+
+.st-status.ok {
+  color: #34a853;
+}
+
+/* ── More button ── */
+.more-section {
+  padding: 12px 16px;
+  border-top: 1px solid #ebebeb;
+}
+
+.more-btn {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #3c4043;
+  background: #f1f3f4;
+  border: 1px solid #dadce0;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.more-btn:hover {
+  background: #e8eaed;
+}

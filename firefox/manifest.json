@@ -1,0 +1,87 @@
+{
+  "manifest_version": 3,
+  "name": "Loominary",
+  "version": "26.3.1",
+  "description": "Conversations shouldn't just live in a scroll bar. Loominary gives your Claude and SillyTavern conversations a home - a local archive of every conversation, yours to keep.",
+  "author": "ClaudeAI, Laumss",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": [
+    "storage",
+    "activeTab",
+    "tabs",
+    "scripting",
+    "downloads"
+  ],
+  "host_permissions": [
+    "https://claude.ai/*",
+    "https://gemini.google.com/*",
+    "*://*.googleusercontent.com/*",
+    "*://*.googleapis.com/*",
+    "*://lh3.google.com/*",
+    "*://*.grok.com/*",
+    "https://notebooklm.google.com/*",
+    "https://aistudio.google.com/*",
+    "https://grok.com/*",
+    "https://chatgpt.com/*",
+    "https://chat.openai.com/*",
+    "https://copilot.microsoft.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://claude.ai/*",
+        "https://gemini.google.com/*",
+        "https://grok.com/*",
+        "https://notebooklm.google.com/*",
+        "https://aistudio.google.com/*",
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*",
+        "https://copilot.microsoft.com/*"
+      ],
+      "js": [
+        "fflate.min.js",
+        "content.js"
+      ],
+      "css": [
+        "styles.css"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "action": {
+    "default_title": "Open Loominary",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "scripts": [
+      "background.js"
+    ]
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "injected.js"
+      ],
+      "matches": [
+        "https://claude.ai/*",
+        "https://gemini.google.com/*",
+        "https://grok.com/*",
+        "https://notebooklm.google.com/*",
+        "https://aistudio.google.com/*",
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*",
+        "https://copilot.microsoft.com/*"
+      ]
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "loominary@laumss",
+      "strict_min_version": "109.0"
+    }
+  }
+}

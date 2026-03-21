@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Loominary</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="header">
+    <span class="logo">Loominary</span>
+    <span class="saved-hint" id="savedHint" data-i18n="saved">已保存</span>
+  </div>
+
+  <div class="content">
+
+    <!-- 外观 -->
+    <div class="section-title" data-i18n="sectionAppearance">外观</div>
+    <div class="setting-row">
+      <span class="setting-label" data-i18n="theme">主题</span>
+      <button class="theme-toggle" id="themeToggle"></button>
+    </div>
+
+    <!-- 导出格式 -->
+    <div class="section-title" data-i18n="sectionFormat">导出格式</div>
+
+    <div class="setting-row">
+      <span class="setting-label" data-i18n="numbering">序号</span>
+      <select id="numbering">
+        <option value="none" data-i18n="numberingNone">无</option>
+        <option value="numeric">1, 2, 3</option>
+        <option value="letter">A, B, C</option>
+        <option value="roman">I, II, III</option>
+      </select>
+    </div>
+
+    <div class="setting-row">
+      <span class="setting-label" data-i18n="senderLabel">发送者标签</span>
+      <select id="senderFormat">
+        <option value="default" data-i18n="senderDefault">默认（用户 / AI）</option>
+        <option value="human-assistant">Human / Assistant</option>
+      </select>
+    </div>
+
+    <div class="setting-row">
+      <span class="setting-label" data-i18n="headerPrefix">标题前缀</span>
+      <select id="headerPrefix">
+        <option value="none" data-i18n="headerNone">无</option>
+        <option value="1"># H1</option>
+        <option value="2">## H2</option>
+      </select>
+    </div>
+
+    <div class="setting-row">
+      <span class="setting-label" data-i18n="thinkingFormat">思考过程格式</span>
+      <select id="thinkingFormat">
+        <option value="codeblock" data-i18n="thinkingCodeblock">代码块</option>
+        <option value="xml" data-i18n="thinkingXml">XML 标签</option>
+        <option value="emoji" data-i18n="thinkingEmoji">表情符号</option>
+      </select>
+    </div>
+
+    <!-- 导出内容 -->
+    <div class="section-title" data-i18n="sectionContent">导出内容</div>
+    <p class="section-desc" data-i18n="sectionContentDesc">控制导出的 Markdown 文件中包含哪些内容</p>
+
+    <label class="checkbox-row">
+      <input type="checkbox" id="includeTimestamps">
+      <div class="checkbox-text">
+        <span class="checkbox-label" data-i18n="timestamps">时间戳</span>
+        <span class="checkbox-desc" data-i18n="timestampsDesc">包含消息的发送时间</span>
+      </div>
+    </label>
+    <label class="checkbox-row">
+      <input type="checkbox" id="includeThinking">
+      <div class="checkbox-text">
+        <span class="checkbox-label" data-i18n="thinking">思考过程</span>
+        <span class="checkbox-desc" data-i18n="thinkingDesc">Claude 的内部思考过程</span>
+      </div>
+    </label>
+    <label class="checkbox-row">
+      <input type="checkbox" id="includeArtifacts">
+      <div class="checkbox-text">
+        <span class="checkbox-label" data-i18n="artifacts">Artifacts</span>
+        <span class="checkbox-desc" data-i18n="artifactsDesc">代码、文档等生成内容</span>
+      </div>
+    </label>
+    <label class="checkbox-row">
+      <input type="checkbox" id="includeTools">
+      <div class="checkbox-text">
+        <span class="checkbox-label" data-i18n="tools">工具使用</span>
+        <span class="checkbox-desc" data-i18n="toolsDesc">搜索、计算等工具调用记录</span>
+      </div>
+    </label>
+    <label class="checkbox-row">
+      <input type="checkbox" id="includeCitations">
+      <div class="checkbox-text">
+        <span class="checkbox-label" data-i18n="citations">引用来源</span>
+        <span class="checkbox-desc" data-i18n="citationsDesc">网页链接等引用信息</span>
+      </div>
+    </label>
+    <label class="checkbox-row">
+      <input type="checkbox" id="includeAttachments">
+      <div class="checkbox-text">
+        <span class="checkbox-label" data-i18n="attachments">附件信息</span>
+        <span class="checkbox-desc" data-i18n="attachmentsDesc">用户上传的文件及其预览信息</span>
+      </div>
+    </label>
+    <label class="checkbox-row">
+      <input type="checkbox" id="includeNotes">
+      <div class="checkbox-text">
+        <span class="checkbox-label" data-i18n="notes">笔记</span>
+        <span class="checkbox-desc" data-i18n="notesDesc">用户添加的消息笔记</span>
+      </div>
+    </label>
+    <label class="checkbox-row">
+      <input type="checkbox" id="includeBranchMarkers">
+      <div class="checkbox-text">
+        <span class="checkbox-label" data-i18n="branchMarkers">分支标识符</span>
+        <span class="checkbox-desc" data-i18n="branchMarkersDesc">导出时包含分支标记（↳ 和 🔀）</span>
+      </div>
+    </label>
+
+    <!-- Claude 附加信息 -->
+    <div class="section-title">Claude 附加信息</div>
+    <p class="section-desc">导出 Markdown 时附加的上下文（仅 Claude）</p>
+
+    <label class="checkbox-row">
+      <input type="checkbox" id="includeProjectInfo">
+      <div class="checkbox-text">
+        <span class="checkbox-label">项目信息</span>
+        <span class="checkbox-desc">包含 Project 指令、记忆与知识库文件</span>
+      </div>
+    </label>
+    <label class="checkbox-row">
+      <input type="checkbox" id="includeUserMemory">
+      <div class="checkbox-text">
+        <span class="checkbox-label">用户记忆</span>
+        <span class="checkbox-desc">包含用户偏好设置与全局记忆</span>
+      </div>
+    </label>
+
+    <!-- 全部导出模式 -->
+    <div class="section-title" data-i18n="sectionExportAll">全部导出</div>
+    <div class="setting-row">
+      <span class="setting-label" data-i18n="exportAllMode">导出方式</span>
+      <select id="exportAllMode">
+        <option value="zip" data-i18n="exportAllZip">下载压缩包</option>
+        <option value="app" data-i18n="exportAllApp">打开应用（开发中）</option>
+      </select>
+    </div>
+
+    <!-- SillyTavern 导出 -->
+    <div class="section-title" data-i18n="sectionST">SillyTavern</div>
+    <p class="section-desc" data-i18n="sectionSTDesc">在 SillyTavern 标签页中打开此弹窗，可直接导出当前对话</p>
+    <button class="st-export-btn" id="stExportBtn" data-i18n="stExport">导出当前 ST 对话</button>
+    <p class="st-status" id="stStatus"></p>
+
+    <!-- 更多 -->
+    <div class="more-section">
+      <button class="more-btn" id="moreBtn" data-i18n="more">更多</button>
+    </div>
+
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

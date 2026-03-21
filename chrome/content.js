@@ -1,7 +1,7 @@
 // ============================================================
 // Loominary - Content Script
 // Version: 26.3.1
-// Built: 2026-03-22T03:33:54.131873
+// Built: 2026-03-22T04:02:44.865519
 // ============================================================
 
 (function() {
@@ -666,7 +666,7 @@ function GM_xmlhttpRequest(options) {
 
                 // Userscript mode: open GitHub Pages viewer and transfer data via postMessage
                 if (typeof LOOMINARY_ENV !== 'undefined' && LOOMINARY_ENV === 'userscript') {
-                    const GITHUB_PAGES_URL = 'https://Laumss.github.io/react';
+                    const GITHUB_PAGES_URL = 'https://Laumss.github.io/loominary';
                     // Use unsafeWindow.open so the new tab's window.opener = actual page window,
                     // not the ViolentMonkey sandbox proxy. This allows github.io to postMessage back.
                     const _opener = (typeof unsafeWindow !== 'undefined') ? unsafeWindow : window;
