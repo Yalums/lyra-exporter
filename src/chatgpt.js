@@ -437,17 +437,17 @@
                     for (const [messageId, images] of Object.entries(imageMap)) {
                         const nodeId = messageIdToNodeId[messageId];
                         if (nodeId && data.mapping[nodeId]) {
-                            if (!data.mapping[nodeId].lyra_images) {
-                                data.mapping[nodeId].lyra_images = {};
+                            if (!data.mapping[nodeId].loominary_images) {
+                                data.mapping[nodeId].loominary_images = {};
                             }
                             if (images.user) {
-                                data.mapping[nodeId].lyra_images.user = images.user;
+                                data.mapping[nodeId].loominary_images.user = images.user;
                             }
                             if (images.assistant) {
-                                data.mapping[nodeId].lyra_images.assistant = images.assistant;
+                                data.mapping[nodeId].loominary_images.assistant = images.assistant;
                             }
                             if (images.assistant_generated) {
-                                data.mapping[nodeId].lyra_images.assistant_generated = images.assistant_generated;
+                                data.mapping[nodeId].loominary_images.assistant_generated = images.assistant_generated;
                             }
                         }
                     }
@@ -469,7 +469,7 @@
                 const data = await ChatGPTHandler.getConversation(conversationId, includeImages);
                 const jsonString = JSON.stringify(data, null, 2);
                 const filename = `chatgpt_${data.title || 'conversation'}_${conversationId.substring(0, 8)}.json`;
-                await LyraCommunicator.open(jsonString, filename);
+                await Communicator.open(jsonString, filename);
             } catch (error) {
                 ErrorHandler.handle(error, 'Preview conversation', {
                     userMessage: `${i18n.t('loadFailed')} ${error.message}`
@@ -497,7 +497,8 @@
                     return;
                 }
 
-                Utils.downloadJSON(JSON.stringify(data, null, 2), `${Utils.sanitizeFilename(filename)}.json`);
+                const baseName = `chatgpt_${Utils.sanitizeFilename(filename)}_${new Date().toISOString().slice(0, 10)}`;
+                Utils.downloadJSON(JSON.stringify(data, null, 2), `${baseName}.json`);
             } catch (error) {
                 ErrorHandler.handle(error, 'Export conversation');
             } finally {
@@ -624,7 +625,7 @@
             const imageToggleInput = imageToggle.querySelector('input');
             imageToggleInput.addEventListener('change', (e) => {
                 State.includeImages = e.target.checked;
-                localStorage.setItem('lyraIncludeImages', State.includeImages);
+                localStorage.setItem('includeImages', State.includeImages);
                 console.log('[ChatGPT] Include images:', State.includeImages);
             });
 
@@ -639,12 +640,12 @@
             );
 
             const toggleInput = workspaceToggle.querySelector('input');
-            const toggleLabel = workspaceToggle.querySelector('.lyra-toggle-label');
+            const toggleLabel = workspaceToggle.querySelector('.loominary-toggle-label');
 
             toggleInput.addEventListener('change', (e) => {
                 State.chatgptWorkspaceType = e.target.checked ? 'team' : 'user';
-                localStorage.setItem('lyraChatGPTWorkspaceType', State.chatgptWorkspaceType);
-                toggleLabel.textContent = e.target.checked ? i18n.t('teamWorkspace') : i18n.t('userWorkspace');
+                localStorage.setItem('chatGPTWorkspaceType', State.chatgptWorkspaceType);
+                if (toggleLabel) toggleLabel.textContent = e.target.checked ? i18n.t('teamWorkspace') : i18n.t('userWorkspace');
                 console.log('[ChatGPT] Workspace type changed to:', State.chatgptWorkspaceType);
                 UI.recreatePanel();
             });
@@ -669,7 +670,7 @@
             ));
 
             const idLabel = document.createElement('div');
-            idLabel.className = 'lyra-input-trigger';
+            idLabel.className = 'loominary-input-trigger';
 
             if (State.chatgptWorkspaceType === 'user') {
                 idLabel.textContent = `${i18n.t('manualUserId')}`;
@@ -677,7 +678,7 @@
                     const newId = prompt(i18n.t('enterUserId'));
                     if (newId?.trim()) {
                         State.chatgptUserId = newId.trim();
-                        localStorage.setItem('lyraChatGPTUserId', State.chatgptUserId);
+                        localStorage.setItem('chatGPTUserId', State.chatgptUserId);
                         alert(i18n.t('userIdSaved'));
                     }
                 });
@@ -687,7 +688,7 @@
                     const newId = prompt(i18n.t('enterWorkspaceId'));
                     if (newId?.trim()) {
                         State.chatgptWorkspaceId = newId.trim();
-                        localStorage.setItem('lyraChatGPTWorkspaceId', State.chatgptWorkspaceId);
+                        localStorage.setItem('chatGPTWorkspaceId', State.chatgptWorkspaceId);
                         alert(i18n.t('workspaceIdSaved'));
                     }
                 });

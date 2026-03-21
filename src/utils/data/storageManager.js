@@ -18,13 +18,13 @@
  * StorageManager.setMarks(fileUuid, newMarks);
  */
 
-const STORAGE_PREFIX = 'lyra_';
+const STORAGE_PREFIX = 'loominary_';
 
 class StorageManager {
   /**
    * 从 localStorage 读取数据
    * @template T
-   * @param {string} key - 存储键（自动添加 lyra_ 前缀）
+   * @param {string} key - 存储键（自动添加 loominary_ 前缀）
    * @param {T} defaultValue - 默认值
    * @returns {T} 存储的值或默认值
    */

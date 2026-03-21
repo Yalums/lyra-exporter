@@ -8,10 +8,20 @@ import StorageManager from './data/storageManager';
  */
 export const ThemeUtils = {
   /**
-   * 获取当前主题
+   * 检测系统偏好主题
+   */
+  getSystemTheme() {
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+      return 'light';
+    }
+    return 'dark';
+  },
+
+  /**
+   * 获取当前主题（优先存储值，否则跟随系统）
    */
   getCurrentTheme() {
-    return StorageManager.get('app-theme', 'dark');
+    return StorageManager.get('app-theme', null) || this.getSystemTheme();
   },
 
   /**

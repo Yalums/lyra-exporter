@@ -45,7 +45,8 @@ const FloatingActionButton = ({ onClick, title = "导出", hidden = false }) => 
   };
 
   return (
-    <button 
+    <button
+      className="floating-action-btn"
       style={buttonStyle}
       onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}

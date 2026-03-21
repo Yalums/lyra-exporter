@@ -164,6 +164,11 @@ export const extractGeminiData = (jsonData, fileName) => {
         assistantMessage.raw_text = assistantContent.text || '';
         assistantMessage.display_text = assistantContent.text || '';
 
+        // 思考内容
+        if (assistantContent.thinking) {
+          assistantMessage.thinking = assistantContent.thinking;
+        }
+
         // 挂载可选的 Canvas 内容
         if (typeof assistantContent.canvas === 'string' && assistantContent.canvas.trim()) {
           assistantMessage.canvas = assistantContent.canvas.trim();
@@ -322,6 +327,11 @@ const extractGeminiMultiBranchData = (jsonData, fileName) => {
         assistantMessage._version = assistantVersion.version;
         assistantMessage._version_type = assistantVersion.type || 'normal';
         assistantMessage._user_version = userVersion;
+
+        // 思考内容
+        if (assistantVersion.thinking) {
+          assistantMessage.thinking = assistantVersion.thinking;
+        }
 
         // 处理 canvas 内容
         if (assistantVersion.canvas && assistantVersion.canvas.length > 0) {

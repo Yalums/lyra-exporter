@@ -86,10 +86,7 @@
                     console.log('[Loominary] Platform detected: gemini');
                     return 'gemini';
                 }
-                if (host.includes('notebooklm')) {
-                    console.log('[Loominary] Platform detected: notebooklm');
-                    return 'notebooklm';
-                }
+
                 if (host.includes('aistudio')) {
                     console.log('[Loominary] Platform detected: aistudio');
                     return 'aistudio';
@@ -98,7 +95,7 @@
                 console.log('[Loominary] Platform detected: null (unknown)');
                 return null;
             })(),
-            isPanelCollapsed: localStorage.getItem('exporterCollapsed') === 'true',
+            isPanelCollapsed: localStorage.getItem('exporterCollapsed') !== 'false',
             includeImages: localStorage.getItem('includeImages') === 'true',
             capturedUserId: localStorage.getItem('claudeUserId') || '',
             // #platform: chatgpt

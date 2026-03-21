@@ -12,7 +12,20 @@ import { getRenameManager } from '../utils/data/renameManager.js';
 import BranchSwitcher from './BranchSwitcher';
 import SystemContextCard from './SystemContextCard';
 import { analyzeBranches, filterDisplayMessages, ROOT_UUID, findMessageByLocator, computeBranchFiltersForMessage } from '../utils/branchAnalysis';
-import { Copy, ClipboardCheck, Star, Trash2, Pencil, ChevronsDown, RotateCcw, ChevronUp, ChevronDown, GitBranch, Filter, Image, Check, Search } from 'lucide-react';
+import { Copy, ClipboardCheck, Star, Trash2, Pencil, ChevronsDown, RotateCcw, ChevronUp, ChevronDown, ChevronLeft, GitBranch, Filter, Image, Check, Search } from 'lucide-react';
+
+const MOBILE_BREAKPOINT = 768;
+
+function useIsMobile(breakpoint = MOBILE_BREAKPOINT) {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= breakpoint);
+  useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${breakpoint}px)`);
+    const handler = (e) => setIsMobile(e.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, [breakpoint]);
+  return isMobile;
+}
 
 // 时间线预览卡片的 Markdown 渲染配置（模块级常量，避免每次渲染重新创建）
 const TIMELINE_MD_COMPONENTS = {
@@ -33,7 +46,7 @@ const TIMELINE_MD_COMPONENTS = {
   a: ({ children }) => <span>{children}</span>,
   ul: ({ children }) => <span>{children}</span>,
   ol: ({ children }) => <span>{children}</span>,
-  li: ({ children }) => <span>• {children}</span>
+  li: ({ children }) => <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '0.25em' }}><span>•</span><span>{children}</span></span>
 };
 
 // ==================== 重命名对话框组件 ====================
@@ -194,26 +207,26 @@ const MessageDetailPanel = ({
               }
             }}
           >
-            {copiedMessageIndex === selectedMessageIndex ? <><ClipboardCheck size={14} /> {t('timeline.actions.copied')}</> : <><Copy size={14} /> {t('timeline.actions.copyMessage')}</>}
+            {copiedMessageIndex === selectedMessageIndex ? <><ClipboardCheck size={14} /><span className="btn-label"> {t('timeline.actions.copied')}</span></> : <><Copy size={14} /><span className="btn-label"> {t('timeline.actions.copyMessage')}</span></>}
           </button>
 
           <button
             className={`btn-secondary${markActions.isMarked(selectedMessageIndex, 'completed') ? ' active' : ''}`}
             onClick={() => markActions.toggleMark(selectedMessageIndex, 'completed')}
           >
-            <Check size={14} /> {markActions.isMarked(selectedMessageIndex, 'completed') ? t('timeline.actions.unmarkCompleted') : t('timeline.actions.markCompleted')}
+            <Check size={14} /><span className="btn-label"> {markActions.isMarked(selectedMessageIndex, 'completed') ? t('timeline.actions.unmarkCompleted') : t('timeline.actions.markCompleted')}</span>
           </button>
           <button
             className={`btn-secondary${markActions.isMarked(selectedMessageIndex, 'important') ? ' active' : ''}`}
             onClick={() => markActions.toggleMark(selectedMessageIndex, 'important')}
           >
-            <Star size={14} /> {markActions.isMarked(selectedMessageIndex, 'important') ? t('timeline.actions.unmarkImportant') : t('timeline.actions.markImportant')}
+            <Star size={14} /><span className="btn-label"> {markActions.isMarked(selectedMessageIndex, 'important') ? t('timeline.actions.unmarkImportant') : t('timeline.actions.markImportant')}</span>
           </button>
           <button
             className={`btn-secondary${markActions.isMarked(selectedMessageIndex, 'deleted') ? ' active' : ''}`}
             onClick={() => markActions.toggleMark(selectedMessageIndex, 'deleted')}
           >
-            <Trash2 size={14} /> {markActions.isMarked(selectedMessageIndex, 'deleted') ? t('timeline.actions.unmarkDeleted') : t('timeline.actions.markDeleted')}
+            <Trash2 size={14} /><span className="btn-label"> {markActions.isMarked(selectedMessageIndex, 'deleted') ? t('timeline.actions.unmarkDeleted') : t('timeline.actions.markDeleted')}</span>
           </button>
         </div>
       )}
@@ -240,6 +253,7 @@ const ConversationTimeline = ({
   exportContext = null // 新增:系统上下文（project信息/用户记忆）
 }) => {
   const { t } = useI18n();
+  const isMobile = useIsMobile();
 
   const [selectedMessageIndex, setSelectedMessageIndex] = useState(null);
   const [isSystemContextSelected, setIsSystemContextSelected] = useState(false);
@@ -248,6 +262,43 @@ const ConversationTimeline = ({
   const [branchFilters, setBranchFilters] = useState(new Map());
   const [showAllBranches, setShowAllBranches] = useState(branchState?.showAllBranches || false);
   const [copiedMessageIndex, setCopiedMessageIndex] = useState(null);
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
+
+  // 切换到桌面端时自动关闭移动抽屉
+  useEffect(() => {
+    if (!isMobile) setMobileDetailOpen(false);
+  }, [isMobile]);
+
+  // 移动端详情打开时锁住外部滚动、隐藏 FAB
+  useEffect(() => {
+    if (mobileDetailOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.classList.add('mobile-detail-open');
+    } else {
+      document.body.style.overflow = '';
+      document.body.classList.remove('mobile-detail-open');
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.classList.remove('mobile-detail-open');
+    };
+  }, [mobileDetailOpen]);
+
+  // 移动端：计算当前消息的可用 tabs（用于 toolbar 内联显示）
+  const mobileTabs = useMemo(() => {
+    if (!isMobile || isSystemContextSelected) return [];
+    const msg = data?.messages?.[selectedMessageIndex];
+    if (!msg) return [];
+    const tabs = [{ id: 'content', label: t('messageDetail.tabs.content') }];
+    if (msg.sender !== 'human') {
+      if (msg.thinking) tabs.push({ id: 'thinking', label: t('messageDetail.tabs.thinking') });
+      if (msg.artifacts?.length > 0) tabs.push({ id: 'artifacts', label: 'Artifacts' });
+    } else {
+      const attachments = msg.attachments?.filter(a => !a.is_embedded_image && !(a.file_type?.startsWith('image/'))) || [];
+      if (attachments.length > 0) tabs.push({ id: 'attachments', label: t('messageDetail.tabs.attachments') });
+    }
+    return tabs;
+  }, [isMobile, isSystemContextSelected, data, selectedMessageIndex, t]);
 
   // 重命名相关状态
   const [showRenameDialog, setShowRenameDialog] = useState(false);
@@ -631,12 +682,14 @@ const ConversationTimeline = ({
     setSelectedMessageIndex(messageIndex);
     setIsSystemContextSelected(false);
     setActiveTab('content');
+    if (isMobile) setMobileDetailOpen(true);
   };
 
   const handleSystemContextSelect = () => {
     setIsSystemContextSelected(true);
     setSelectedMessageIndex(null);
     setActiveTab('instructions');
+    if (isMobile) setMobileDetailOpen(true);
   };
 
   const handleNavigateMessage = (direction) => {
@@ -1018,7 +1071,7 @@ const ConversationTimeline = ({
                     >
                       <div className="timeline-header">
                         <div className="timeline-sender">
-                          <div className={`timeline-avatar ${getPlatformAvatarClass(msg.sender, conversationInfo?.platform)}${format === 'jsonl_chat' && inferJsonlModelKey(msg.model_id) ? ' model-icon-white-bg' : ''}`}>
+                          <div className={`timeline-avatar ${getPlatformAvatarClass(msg.sender, conversationInfo?.platform)}${format === 'jsonl_chat' && ['chatgpt', 'gemini', 'grok', 'copilot', 'minimax', 'kimi', 'glm', 'deepseek'].includes(inferJsonlModelKey(msg.model_id)) ? ' model-icon-white-bg' : ''}`}>
                             {msg.sender === 'human' ? '👤' : (
                               <PlatformIcon
                                 platform={conversationInfo?.platform?.toLowerCase() || 'claude'}
@@ -1157,8 +1210,87 @@ const ConversationTimeline = ({
         </div>
 
         {/* 右侧消息详情 */}
-        <div className="timeline-right-panel">
-          <div className="message-detail-container">
+        <div className={`timeline-right-panel ${mobileDetailOpen ? 'mobile-open' : ''}`}>
+          <div className="mobile-detail-toolbar">
+            <button className="mobile-detail-back" onClick={() => setMobileDetailOpen(false)}>
+              <ChevronLeft size={20} />
+            </button>
+            <div className="mobile-msg-tabs">
+              {exportContext && (
+                <button
+                  className={`mobile-msg-tab system ${isSystemContextSelected ? 'active' : ''}`}
+                  ref={el => {
+                    if (el && isSystemContextSelected) {
+                      el.scrollIntoView({ inline: 'center', block: 'nearest' });
+                    }
+                  }}
+                  onClick={() => handleSystemContextSelect()}
+                >
+                  0
+                </button>
+              )}
+              {displayMessages.map((msg, i) => (
+                <button
+                  key={msg.index}
+                  className={`mobile-msg-tab ${msg.sender === 'human' ? 'human' : 'assistant'} ${!isSystemContextSelected && selectedMessageIndex === msg.index ? 'active' : ''}`}
+                  ref={el => {
+                    if (el && !isSystemContextSelected && selectedMessageIndex === msg.index) {
+                      el.scrollIntoView({ inline: 'center', block: 'nearest' });
+                    }
+                  }}
+                  onClick={() => handleMessageSelect(msg.index)}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
+            {/* 内联 detail-tabs */}
+            {mobileTabs.length > 1 && (
+              <div className="mobile-detail-tabs">
+                {mobileTabs.map(tab => (
+                  <button
+                    key={tab.id}
+                    className={`mobile-detail-tab ${activeTab === tab.id ? 'active' : ''}`}
+                    onClick={() => setActiveTab(tab.id)}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="mobile-detail-nav">
+              <button
+                onClick={() => handleNavigateMessage('prev')}
+                disabled={!displayMessages.length || displayMessages.findIndex(m => m.index === selectedMessageIndex) <= 0}
+              >
+                <ChevronUp size={18} />
+              </button>
+              <button
+                onClick={() => handleNavigateMessage('next')}
+                disabled={!displayMessages.length || displayMessages.findIndex(m => m.index === selectedMessageIndex) >= displayMessages.length - 1}
+              >
+                <ChevronDown size={18} />
+              </button>
+            </div>
+          </div>
+          {isMobile ? (
+              <MessageDetailPanel
+                data={data}
+                selectedMessageIndex={selectedMessageIndex}
+                activeTab={activeTab}
+                searchQuery={searchQuery}
+                format={format}
+                onTabChange={setActiveTab}
+                showTabs={false}
+                markActions={markActions}
+                displayMessages={displayMessages}
+                copiedMessageIndex={copiedMessageIndex}
+                onCopyMessage={handleCopyMessage}
+                t={t}
+                systemContext={isSystemContextSelected ? exportContext : null}
+              />
+          ) : (
+            <div className="message-detail-container">
               <MessageDetailPanel
                 data={data}
                 selectedMessageIndex={selectedMessageIndex}
@@ -1174,6 +1306,7 @@ const ConversationTimeline = ({
                 systemContext={isSystemContextSelected ? exportContext : null}
               />
             </div>
+          )}
           </div>
       </div>
 

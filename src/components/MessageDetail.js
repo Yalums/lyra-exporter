@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect, Component } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { getImageDisplayData, formatFileSize } from '../utils/fileParser';
+import { FileText, FileType2, BookOpen, Paperclip } from 'lucide-react';
 import { useI18n } from '../index.js';
 
 import remarkMath from 'remark-math';
@@ -220,7 +221,7 @@ const MessageDetail = ({
       }
     } else {
       // 助手消息：思考过程
-      if (format === 'claude' || format === 'claude_code' || format === 'jsonl_chat' || format === 'chatgpt' || format === 'grok' || !format) {
+      if (format === 'claude' || format === 'claude_code' || format === 'jsonl_chat' || format === 'chatgpt' || format === 'grok' || format === 'gemini_notebooklm' || !format) {
         if (currentMessage.thinking) {
           baseTabs.push({ id: 'thinking', label: t('messageDetail.tabs.thinking') });
         }
@@ -615,9 +616,9 @@ const MessageDetail = ({
           <div key={index} className="attachment-item">
             <div className="attachment-header">
               <span className="attachment-icon">
-                {getFileExtension(attachment.file_name) === 'md' ? '📝' :
-                 getFileExtension(attachment.file_name) === 'docx' ? '📄' :
-                 getFileExtension(attachment.file_name) === 'pdf' ? '📕' : '📎'}
+                {getFileExtension(attachment.file_name) === 'md' ? <FileText size={16} /> :
+                 getFileExtension(attachment.file_name) === 'docx' ? <FileType2 size={16} /> :
+                 getFileExtension(attachment.file_name) === 'pdf' ? <BookOpen size={16} /> : <Paperclip size={16} />}
               </span>
               <span className="attachment-name">{attachment.file_name || t('messageDetail.attachments.unknownFile')}</span>
               <span className="attachment-size">({formatFileSize(attachment.file_size)})</span>
@@ -761,7 +762,7 @@ const MessageDetail = ({
         );
 
       case 'thinking':
-        if (format !== 'claude' && format !== 'claude_code' && format !== 'chatgpt' && format !== 'jsonl_chat' && format !== 'grok' && format) {
+        if (format !== 'claude' && format !== 'claude_code' && format !== 'chatgpt' && format !== 'jsonl_chat' && format !== 'grok' && format !== 'gemini_notebooklm' && format) {
           return <div className="placeholder">{t('messageDetail.placeholder.formatNotSupported.thinking')}</div>;
         }
         return (

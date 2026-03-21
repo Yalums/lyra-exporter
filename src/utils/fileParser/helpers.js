@@ -59,7 +59,7 @@ class LocaleCache {
     // 监听 storage 事件以自动更新
     if (typeof window !== 'undefined') {
       window.addEventListener('storage', (e) => {
-        if (e.key === 'lyra_exporter_language') {
+        if (e.key === 'loominary_exporter_language') {
           this._initLocale();
         }
       });

@@ -34,6 +34,57 @@
       "starredCount": "星标对话"
     },
     "export": {
+      "title": "导出选项",
+      "button": "导出",
+      "exportToMarkdown": "导出为 Markdown",
+      "previewAndExport": "预览并导出",
+      "exportToPDF": "导出为 PDF",
+      "format": {
+        "title": "导出格式",
+        "markdown": "Markdown 文档",
+        "markdownDesc": "导出为纯文本 Markdown 格式",
+        "screenshot": "对话长截图",
+        "screenshotDesc": "导出为长截图，支持编辑和预览",
+        "pdf": "PDF 文档",
+        "pdfDesc": "导出为可搜索的纯文本 PDF（不支持图片）"
+      },
+      "scope": {
+        "title": "导出范围",
+        "current": "当前时间线文件",
+        "currentDesc": "仅导出当前正在查看的单个文件",
+        "currentBranch": "时间线当前分支",
+        "currentBranchDesc": "仅导出当前时间线显示的分支",
+        "operated": "有操作的文件",
+        "operatedDesc": "导出所有有标记或排序操作的文件",
+        "all": "所有已加载文件",
+        "allDesc": "导出当前所有已加载的文件，无论是否有操作",
+        "hint": {
+          "enterTimeline": "请先进入时间线视图",
+          "markFirst": "请先标记或排序消息",
+          "showAllBranches": "显示所有分支时无法选择"
+        }
+      },
+      "filters": {
+        "title": "标记筛选",
+        "excludeDeleted": "排除「已删除」标记",
+        "excludeDeletedDesc": "不导出标记为已删除的消息",
+        "includeCompleted": "仅导出「已完成」标记",
+        "includeCompletedDesc": "只导出标记为已完成的消息",
+        "includeImportant": "仅导出「重要」标记",
+        "includeImportantDesc": "只导出标记为重要的消息",
+        "importantAndCompleted": "（同时需要已完成）"
+      },
+      "stats": {
+        "files": "文件统计：",
+        "filesDesc": "{{fileCount}} 个文件，{{conversationCount}} 个对话，{{totalMessages}} 条消息",
+        "marks": "标记统计：",
+        "marksDesc": "已完成 {{completed}} · 重要 {{important}} · 已删除 {{deleted}}",
+        "stars": "星标统计：",
+        "starsDesc": "{{starred}} 个已星标对话",
+        "content": "当前内容设置：",
+        "contentDesc": "{{settings}}",
+        "basicOnly": "仅基础内容"
+      },
       "segments": {
         "currentBranch": "当前分支",
         "allBranches": "全部分支",

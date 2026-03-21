@@ -110,25 +110,61 @@ function _parseGrok(d) {
 }
 
 // ─── Gemini / scraped parser ──────────────────────────────────────────────────
+function _attachGeminiImages(msg, images) {
+    if (!Array.isArray(images) || !images.length) return;
+    msg.images = images.map(img => ({
+        link: 'data:' + (img.format || 'image/png') + ';base64,' + img.data,
+        is_embedded_image: true
+    }));
+}
+
 function _parseGemini(d) {
     const platform = d.platform || 'gemini';
+    const platLabel = platform.charAt(0).toUpperCase() + platform.slice(1);
     const meta = { title: d.title || 'Untitled', created_at: _fmtDate(d.exportedAt), uuid: platform + '_' + Date.now(), platform };
     const history = [];
     let idx = 0;
-    (d.conversation || []).forEach(item => {
-        if (item.human) {
-            const hc = typeof item.human === 'string' ? { text: item.human } : item.human;
-            const msg = _blankMsg(idx++, 'h_' + idx, '', 'human', 'User', meta.created_at);
-            msg.display_text = hc.text || '';
-            history.push(msg);
-        }
-        if (item.assistant) {
-            const ac = typeof item.assistant === 'string' ? { text: item.assistant } : item.assistant;
-            const msg = _blankMsg(idx++, 'a_' + idx, '', 'assistant', platform.charAt(0).toUpperCase() + platform.slice(1), meta.created_at);
-            msg.display_text = ac.text || '';
-            history.push(msg);
+
+    (d.conversation || []).forEach((item, turnIdx) => {
+        // 多分支版本格式（VersionTracker 输出）
+        if (item.turnIndex !== undefined && (item.human?.versions || item.assistant?.versions)) {
+            (item.human?.versions || []).forEach(hv => {
+                const msg = _blankMsg(idx++, `h_t${turnIdx}_v${hv.version}`, '', 'human', 'User', meta.created_at);
+                msg.display_text = hv.text || '';
+                if (hv.version > 0) msg.is_branch_point = true;
+                _attachGeminiImages(msg, hv.images);
+                history.push(msg);
+            });
+
+            (item.assistant?.versions || []).forEach(av => {
+                const parentUuid = `h_t${turnIdx}_v${av.userVersion ?? 0}`;
+                const msg = _blankMsg(idx++, `a_t${turnIdx}_v${av.version}`, parentUuid, 'assistant', platLabel, meta.created_at);
+                msg.display_text = av.text || '';
+                if (av.version > 0) msg.is_branch_point = true;
+                if (av.thinking) msg.thinking = av.thinking;
+                _attachGeminiImages(msg, av.images);
+                history.push(msg);
+            });
+        } else {
+            // 普通格式（scraper 输出）
+            if (item.human) {
+                const hc = typeof item.human === 'string' ? { text: item.human } : item.human;
+                const msg = _blankMsg(idx++, 'h_' + idx, '', 'human', 'User', meta.created_at);
+                msg.display_text = hc.text || '';
+                _attachGeminiImages(msg, hc.images);
+                history.push(msg);
+            }
+            if (item.assistant) {
+                const ac = typeof item.assistant === 'string' ? { text: item.assistant } : item.assistant;
+                const msg = _blankMsg(idx++, 'a_' + idx, '', 'assistant', platLabel, meta.created_at);
+                msg.display_text = ac.text || '';
+                if (ac.thinking) msg.thinking = ac.thinking;
+                _attachGeminiImages(msg, ac.images);
+                history.push(msg);
+            }
         }
     });
+
     return { meta_info: meta, chat_history: history, format: platform };
 }
 
@@ -269,7 +305,7 @@ function _generateMarkdown(processedData, cfg) {
         const num = i + 1;
         const bm = cfg.includeBranchMarkers !== false ? _branchMarker(msg) : '';
         let msgHeader = hLevel;
-        if (cfg.includeNumbering !== false) {
+        if (cfg.includeNumbering !== false && cfg.numberingFormat !== 'none') {
             const fmt = cfg.numberingFormat || 'numeric';
             if (fmt === 'letter') msgHeader += _toExcelCol(num) + '. ';
             else if (fmt === 'roman') msgHeader += _toRoman(num) + '. ';

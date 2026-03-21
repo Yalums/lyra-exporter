@@ -20,8 +20,8 @@ const detectMimeType = (base64Data, defaultType = 'image/png') => {
   return defaultType;
 };
 
-// 处理 Lyra 导出的图片数据
-const processLyraImage = (img, idx, prefix, metaInfo) => {
+// 处理 Loominary 导出的图片数据
+const processLoominaryImage = (img, idx, prefix, metaInfo) => {
   if (img.type !== 'image' || !img.data) return null;
   let mimeType = img.format || 'image/png';
   if (mimeType === 'application/octet-stream' || !mimeType.startsWith('image/')) {
@@ -29,7 +29,7 @@ const processLyraImage = (img, idx, prefix, metaInfo) => {
   }
   const fileExt = mimeType.split('/')[1] || 'png';
   return {
-    id: `lyra_${prefix}_${idx}`,
+    id: `loominary_${prefix}_${idx}`,
     file_name: `${prefix}_${idx}.${fileExt}`,
     file_size: img.size || 0,
     file_type: mimeType,
@@ -38,6 +38,25 @@ const processLyraImage = (img, idx, prefix, metaInfo) => {
     has_link: true,
     is_embedded_image: true
   };
+};
+
+// 处理 content_references 引用替换
+// ChatGPT 消息中的 citeturnXviewYturnZsearchW 等引用文本替换为 markdown 链接
+const applyContentReferences = (text, metadata) => {
+  if (!text || !metadata) return text;
+  const refs = metadata.content_references;
+  if (!Array.isArray(refs) || refs.length === 0) return text;
+
+  let result = text;
+  // 按 matched_text 长度降序排列，避免短匹配替换掉长匹配的一部分
+  const sorted = refs
+    .filter(ref => ref && ref.matched_text && ref.alt)
+    .sort((a, b) => b.matched_text.length - a.matched_text.length);
+
+  for (const ref of sorted) {
+    result = result.split(ref.matched_text).join(ref.alt);
+  }
+  return result;
 };
 
 // ==================== ChatGPT 解析器 ====================
@@ -202,6 +221,9 @@ export const extractChatGPTData = (jsonData, fileName = '') => {
             rawText = content.content || (Array.isArray(content.parts) ? content.parts.join('') : '');
           }
 
+          // 替换 content_references 引用
+          rawText = applyContentReferences(rawText, metadata);
+
           const messageData = new MessageBuilder(messageIndex++, uuid, parentUuid, 'human', 'User', timestamp)
             .setContent(rawText)
             .addCitations(metadata)
@@ -210,12 +232,12 @@ export const extractChatGPTData = (jsonData, fileName = '') => {
 
           messageData._node_id = nodeId;
 
-          // 处理 Lyra 导出的图片数据
-          if (node.lyra_images) {
-            if (Array.isArray(node.lyra_images.user)) {
+          // 处理 Loominary 导出的图片数据
+          if (node.loominary_images) {
+            if (Array.isArray(node.loominary_images.user)) {
               messageData.attachments = messageData.attachments.filter(att => !att.is_embedded_image);
-              node.lyra_images.user.forEach((img, idx) => {
-                const attachment = processLyraImage(img, idx, 'user_image');
+              node.loominary_images.user.forEach((img, idx) => {
+                const attachment = processLoominaryImage(img, idx, 'user_image');
                 if (attachment) {
                   messageData.attachments.push(attachment);
                   metaInfo.has_embedded_images = true;
@@ -223,8 +245,8 @@ export const extractChatGPTData = (jsonData, fileName = '') => {
                 }
               });
             }
-            if (Array.isArray(node.lyra_images.assistant_generated)) {
-              pendingAssistantGeneratedImages = node.lyra_images.assistant_generated;
+            if (Array.isArray(node.loominary_images.assistant_generated)) {
+              pendingAssistantGeneratedImages = node.loominary_images.assistant_generated;
             }
           }
 
@@ -314,6 +336,9 @@ export const extractChatGPTData = (jsonData, fileName = '') => {
               try { rawText = JSON.stringify(content); } catch (e) { rawText = ''; }
             }
 
+            // 替换 content_references 引用
+            rawText = applyContentReferences(rawText, metadata);
+
             const messageData = new MessageBuilder(messageIndex++, uuid, parentUuid, 'assistant', 'ChatGPT', timestamp)
               .setContent(rawText)
               .setThinking(pendingThinking)
@@ -332,7 +357,7 @@ export const extractChatGPTData = (jsonData, fileName = '') => {
             // 处理之前缓存的助手生成图片
             if (pendingAssistantGeneratedImages.length > 0) {
               pendingAssistantGeneratedImages.forEach((img, idx) => {
-                const attachment = processLyraImage(img, idx, 'generated');
+                const attachment = processLoominaryImage(img, idx, 'generated');
                 if (attachment) {
                   messageData.attachments.push(attachment);
                   metaInfo.has_embedded_images = true;
@@ -342,11 +367,11 @@ export const extractChatGPTData = (jsonData, fileName = '') => {
               pendingAssistantGeneratedImages = [];
             }
 
-            // 处理 Lyra 导出的助手图片数据
-            if (node.lyra_images && Array.isArray(node.lyra_images.assistant)) {
+            // 处理 Loominary 导出的助手图片数据
+            if (node.loominary_images && Array.isArray(node.loominary_images.assistant)) {
               messageData.attachments = messageData.attachments.filter(att => !att.is_embedded_image);
-              node.lyra_images.assistant.forEach((img, idx) => {
-                const attachment = processLyraImage(img, idx, 'assistant_image');
+              node.loominary_images.assistant.forEach((img, idx) => {
+                const attachment = processLoominaryImage(img, idx, 'assistant_image');
                 if (attachment) {
                   messageData.attachments.push(attachment);
                   metaInfo.has_embedded_images = true;

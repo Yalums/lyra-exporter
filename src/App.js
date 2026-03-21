@@ -10,7 +10,6 @@ import FloatingActionButton from './components/FloatingActionButton';
 import SearchOverlay from './components/SearchOverlay';
 import { CardGrid } from './components/UnifiedCard';
 import SettingsPanel from './components/SettingsPanel';
-
 // 工具函数导入
 import { ThemeUtils } from './utils/themeManager';
 import { DataProcessor } from './utils/data';
@@ -192,7 +191,7 @@ function NavSearchBox({ onSearch, onExpand, onGlobalSearch, disabled = false }) 
 
   const radius = 6;
   return (
-    <div style={{ flex: 1, maxWidth: 600, margin: '4px 0', alignSelf: 'stretch', display: 'flex', alignItems: 'stretch' }}>
+    <div className="nav-search-box" style={{ flex: 1, maxWidth: 600, margin: '4px 0', alignSelf: 'stretch', display: 'flex', alignItems: 'stretch' }}>
       <div style={{
         flex: 1, display: 'flex', alignItems: 'stretch',
         background: 'var(--bg-secondary)',
@@ -288,20 +287,20 @@ const useFileManager = () => {
 
       // 检查是否有预处理的合并数据
       if (file._mergedProcessedData) {
-        console.log('[Lyra] 使用预处理的合并数据');
+        console.log('[Loominary] 使用预处理的合并数据');
         setProcessedData(file._mergedProcessedData);
       } else {
-        console.log('[Lyra processCurrentFile] parsing file:', file.name, file.size, 'bytes');
+        console.log('[Loominary processCurrentFile] parsing file:', file.name, file.size, 'bytes');
         const jsonData = await parseFile(file);
-        console.log('[Lyra processCurrentFile] parseFile OK - top-level keys:', Array.isArray(jsonData) ? `Array[${jsonData.length}]` : Object.keys(jsonData));
+        console.log('[Loominary processCurrentFile] parseFile OK - top-level keys:', Array.isArray(jsonData) ? `Array[${jsonData.length}]` : Object.keys(jsonData));
         let data = extractChatData(jsonData, file.name);
-        console.log('[Lyra processCurrentFile] extractChatData OK - format:', data?.format, 'chat_history length:', data?.chat_history?.length);
+        console.log('[Loominary processCurrentFile] extractChatData OK - format:', data?.format, 'chat_history length:', data?.chat_history?.length);
         data = detectBranches(data);
-        console.log('[Lyra processCurrentFile] detectBranches OK');
+        console.log('[Loominary processCurrentFile] detectBranches OK');
         setProcessedData(data);
       }
     } catch (err) {
-      console.error('[Lyra processCurrentFile] 处理文件出错:', err);
+      console.error('[Loominary processCurrentFile] 处理文件出错:', err);
       setError(err.message);
       setProcessedData(null);
     } finally {
@@ -407,7 +406,7 @@ const useFileManager = () => {
     const chatIdHashToGroup = new Map();        // chat_id_hash -> groupKey
     const mainChatToGroup = new Map();          // main_chat 值 -> groupKey
 
-    console.log('[Lyra] 开始分组，共', filesData.length, '个文件');
+    console.log('[Loominary] 开始分组，共', filesData.length, '个文件');
 
     // 第一遍：收集所有主文件的信息
     filesData.forEach(fd => {
@@ -416,7 +415,7 @@ const useFileManager = () => {
       const mainChat = metadata?.main_chat;
       const chatIdHash = metadata?.chat_id_hash;
 
-      console.log('[Lyra] 文件:', fd.fileName, {
+      console.log('[Loominary] 文件:', fd.fileName, {
         integrity: integrity?.substring(0, 16) + '...',
         mainChat,
         chatIdHash
@@ -446,7 +445,7 @@ const useFileManager = () => {
       }
     });
 
-    console.log('[Lyra] 主文件映射:', {
+    console.log('[Loominary] 主文件映射:', {
       fileNameToIntegrity: Array.from(fileNameToIntegrity.keys()),
       mainChatToGroup: Array.from(mainChatToGroup.keys())
     });
@@ -507,7 +506,7 @@ const useFileManager = () => {
         }
       }
 
-      console.log('[Lyra] 分组:', fd.fileName, '->', groupKey?.substring?.(0, 20) || groupKey, `(${matchMethod})`);
+      console.log('[Loominary] 分组:', fd.fileName, '->', groupKey?.substring?.(0, 20) || groupKey, `(${matchMethod})`);
 
       if (!groups.has(groupKey)) {
         groups.set(groupKey, []);
@@ -516,7 +515,7 @@ const useFileManager = () => {
     });
 
     const result = Array.from(groups.values());
-    console.log('[Lyra] 分组结果:', result.map(g => ({
+    console.log('[Loominary] 分组结果:', result.map(g => ({
       count: g.length,
       files: g.map(f => f.fileName)
     })));
@@ -1135,10 +1134,10 @@ function App() {
         const convUrl = treeMode
           ? `${ctx.baseUrl}/api/organizations/${ctx.userId}/chat_conversations/${item.uuid}?tree=True&rendering_mode=messages&render_all_tools=true`
           : `${ctx.baseUrl}/api/organizations/${ctx.userId}/chat_conversations/${item.uuid}`;
-        console.log('[Lyra App] Fetching conversation via proxy:', convUrl);
+        console.log('[Loominary] Fetching conversation via proxy:', convUrl);
         const resp = await fetchViaProxy(convUrl);
         if (!resp?.success) {
-          console.error('[Lyra App] Failed to fetch conversation:', item.uuid, resp?.status, resp?.error);
+          console.error('[Loominary] Failed to fetch conversation:', item.uuid, resp?.status, resp?.error);
           return;
         }
         const data = resp.data;
@@ -1174,10 +1173,10 @@ function App() {
           }
           setPendingExportContext(exportCtx);
         } catch (ctxErr) {
-          console.warn('[Lyra App] Failed to fetch export context:', ctxErr);
+          console.warn('[Loominary] Failed to fetch export context:', ctxErr);
         }
       } else {
-        console.error('[Lyra App] No zip data and no API context for card:', item.uuid);
+        console.error('[Loominary] No zip data and no API context for card:', item.uuid);
         return;
       }
 
@@ -1222,7 +1221,7 @@ function App() {
       if (cardIdx !== -1) setBrowseAllCurrentIndex(cardIdx);
       setViewMode('timeline');
     } catch (e) {
-      console.error('[Lyra App] Error loading conversation:', e);
+      console.error('[Loominary] Error loading conversation:', e);
     }
   }, [setViewMode, files, sortedBrowseCards]);
 
@@ -1643,7 +1642,7 @@ function App() {
       );
       await downloadMarkdownExport(exportResult);
     } catch (err) {
-      console.error('[Lyra App] Export failed:', err);
+      console.error('[Loominary] Export failed:', err);
     }
   };
 
@@ -1813,12 +1812,14 @@ function App() {
             const file = new File([blob], filename, { type: 'application/json', lastModified: Date.now() });
             pendingSelectIndexRef.current = 0;
             fileActionsRef.current.loadFiles([file], { replace: true });
+            try { StorageManager.set('singlefile_session', { content: jsonData, filename }); } catch (_) {}
           }
+          setViewModeRef.current('timeline');
           if (payload.exportContext) {
             setPendingExportContext(payload.exportContext);
           }
         } catch (err) {
-          console.error('[Lyra App] postMessage load failed:', err);
+          console.error('[Loominary] postMessage load failed:', err);
           setErrorRef.current('Failed to load data: ' + err.message);
         }
       }
@@ -1832,11 +1833,11 @@ function App() {
   useEffect(() => {
     if (!isExtension) return;
 
-    console.log('[Lyra App] Running in Chrome extension mode');
+    console.log('[Loominary] Running in Chrome extension mode');
 
     const loadFromData = (pendingData) => {
       if (dataLoadedRef.current) {
-        console.log('[Lyra App] Data already loaded, skipping duplicate load');
+        console.log('[Loominary] Data already loaded, skipping duplicate load');
         return;
       }
       dataLoadedRef.current = true;
@@ -1848,7 +1849,7 @@ function App() {
             const blob = new Blob([data], { type: 'application/jsonl' });
             return new File([blob], filename, { type: 'application/jsonl', lastModified: Date.now() });
           });
-          console.log('[Lyra App] Loading', fileObjs.length, 'ST branch files:', fileObjs.map(f => f.name));
+          console.log('[Loominary] Loading', fileObjs.length, 'ST branch files:', fileObjs.map(f => f.name));
           fileActionsRef.current.loadMergedJSONLFiles(fileObjs);
         } else {
           // Single file: existing path
@@ -1857,10 +1858,10 @@ function App() {
           const blob = new Blob([jsonData], { type: 'application/json' });
           const file = new File([blob], filename, { type: 'application/json', lastModified: Date.now() });
           fileActionsRef.current.loadFiles([file]);
-          console.log('[Lyra App] Data loaded successfully:', filename);
+          console.log('[Loominary] Data loaded successfully:', filename);
         }
       } catch (error) {
-        console.error('[Lyra App] Error loading data from extension:', error);
+        console.error('[Loominary] Error loading data from extension:', error);
         setErrorRef.current('Failed to load data from extension: ' + error.message);
       }
     };
@@ -1879,7 +1880,7 @@ function App() {
 
       if (result.loominary_pending_data) {
         const pendingData = result.loominary_pending_data;
-        console.log('[Lyra App] Found pending data from extension:', pendingData.files ? `[${pendingData.files.length} files]` : pendingData.filename);
+        console.log('[Loominary] Found pending data from extension:', pendingData.files ? `[${pendingData.files.length} files]` : pendingData.filename);
 
         // sessionStorage restore: only for single-file (multi-file may exceed 5MB limit)
         if (!pendingData.files && !pendingData.action) {
@@ -1910,7 +1911,7 @@ function App() {
                 try { window.close(); } catch (_) { /* Firefox 可能阻止 window.close() */ }
               }, 800);
             } catch (err) {
-              console.error('[Lyra App] Markdown export failed:', err);
+              console.error('[Loominary] Markdown export failed:', err);
               setErrorRef.current('Markdown export failed: ' + err.message);
             }
           })();
@@ -1935,7 +1936,7 @@ function App() {
           starManagerRef.current = new StarManager(true, pendingData.userId);
           setStarredConversations(new Map(starManagerRef.current.getStarredConversations()));
           setViewModeRef.current('conversations');
-          console.log('[Lyra App] Browse all: loaded', cards.length, 'conversation cards');
+          console.log('[Loominary] Browse all: loaded', cards.length, 'conversation cards');
         } else {
           // 存储随预览数据一起传入的导出上下文（project 信息 / 用户记忆）
           if (pendingData.exportContext) {
@@ -1949,13 +1950,13 @@ function App() {
           const sessionRaw = sessionStorage.getItem('loominary_session_data');
           if (sessionRaw) {
             const sessionData = JSON.parse(sessionRaw);
-            console.log('[Lyra App] Restoring data from sessionStorage:', sessionData.filename);
+            console.log('[Loominary] Restoring data from sessionStorage:', sessionData.filename);
             loadFromData(sessionData);
           } else {
-            console.warn('[Lyra App] No pending data found');
+            console.warn('[Loominary] No pending data found');
           }
         } catch (e) {
-          console.warn('[Lyra App] No pending data found in chrome.storage.local');
+          console.warn('[Loominary] No pending data found in chrome.storage.local');
         }
       }
     });
@@ -1972,12 +1973,17 @@ function App() {
   // Chrome 扩展模式：监听文件加载完成，自动切换到时间线视图（browse_all 模式下不触发）
   useEffect(() => {
     if (isExtension && files.length > 0 && viewMode !== 'timeline' && browseAllCards.length === 0) {
-      console.log('[Lyra App] Files loaded in extension mode, switching to timeline view');
+      console.log('[Loominary] Files loaded in extension mode, switching to timeline view');
       setViewMode('timeline');
       fileActions.switchFile(0);
       setSelectedFileIndex(0);
     }
   }, [isExtension, files, viewMode, fileActions, browseAllCards.length]);
+
+  useEffect(() => {
+    const title = fileMetadata[files[currentFileIndex]?.name]?.title;
+    document.title = title ? `${title} - Loominary` : 'Loominary';
+  }, [currentFileIndex, files, fileMetadata]);
 
   return (
     <div className="app-redesigned">
@@ -2003,7 +2009,7 @@ function App() {
                 </div>
               )}
 
-              {(viewMode !== 'conversations' || hasZipData) && (
+              {(viewMode === 'timeline' || hasZipData) && (
               <NavSearchBox
                 onSearch={(query) => {
                   setSearchOverlayQuery(query);
@@ -2026,6 +2032,7 @@ function App() {
                   {loadingProgress.current}/{loadingProgress.total}
                 </span>
               )}
+
             </div>
 
             {/* 设置按钮 - 仅非扩展模式（GitHub Pages 独立版）显示 */}
@@ -2049,8 +2056,8 @@ function App() {
             <div className="timeline-filter-panel">
               {/* 导出格式切换（UI预留，暂无实现） */}
               <div className="segment-group segment-group--branch">
-                {['Markdown', 'PDF', '长截图'].map((mode) => (
-                  <button key={mode} className="segment-btn" disabled title="即将推出">
+                {['Markdown', 'PDF', 'ScreenShot'].map((mode) => (
+                  <button key={mode} className="segment-btn" disabled title="On the way now">
                     {mode}
                   </button>
                 ))}

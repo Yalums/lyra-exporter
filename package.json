@@ -31,6 +31,7 @@
     "start:local": "cross-env PORT=3789 react-scripts start",
     "start:network": "cross-env HOST=0.0.0.0 PORT=3789 react-scripts start",
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=4096 react-scripts build",
+    "postbuild": "node -e \"const fs=require('fs');fs.mkdirSync('build/welcome',{recursive:true});let h=fs.readFileSync('build/index.html','utf8');h=h.replace(/\\.\\//g,'../');fs.writeFileSync('build/welcome/index.html',h)\"",
     "build:extension": "cross-env NODE_OPTIONS=--max-old-space-size=4096 react-scripts build",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build",
@@ -58,8 +59,6 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.7",
-    "@tauri-apps/api": "^2.5.0",
-    "@tauri-apps/cli": "^2.5.0",
     "autoprefixer": "^10.4.21",
     "concurrently": "^9.1.2",
     "cross-env": "^7.0.3",

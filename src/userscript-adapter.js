@@ -2,6 +2,8 @@
 // Provides the same GM_* API surface as extension-adapter.js but uses native
 // Greasemonkey/Tampermonkey/Violentmonkey APIs instead of chrome.* messaging.
 
+if (window.self !== window.top) throw new Error('[Loominary] iframe context, skipping');
+
 const LOOMINARY_ENV = 'userscript';
 console.log('[Loominary] userscript-adapter loaded, unsafeWindow available:', typeof unsafeWindow !== 'undefined');
 

@@ -59,7 +59,7 @@ const VersionTracker = {
         if (VersionTracker.isTracking) return;
         VersionTracker.isTracking = true;
         VersionTracker.resetTracker();
-        console.log('[LyraGemini] VersionTracker started, scan interval:', Config.TIMING.VERSION_SCAN_INTERVAL, 'ms');
+        console.log('[Gemini] VersionTracker started, scan interval:', Config.TIMING.VERSION_SCAN_INTERVAL, 'ms');
         VersionTracker.scanInterval = setInterval(() => VersionTracker.scanOnce(), Config.TIMING.VERSION_SCAN_INTERVAL);
         VersionTracker.hrefCheckInterval = setInterval(() => {
             if (location.href !== VersionTracker.currentHref) {
@@ -169,7 +169,7 @@ const VersionTracker = {
                 // 每 30 秒输出一次调试信息，避免刷屏
                 if (!VersionTracker._lastDebugLog || Date.now() - VersionTracker._lastDebugLog > 30000) {
                     VersionTracker._lastDebugLog = Date.now();
-                    console.log('[LyraGemini] scanOnce: no turns found. DOM selectors tried: div.conversation-turn, div.single-turn, div.conversation-container');
+                    console.log('[Gemini] scanOnce: no turns found. DOM selectors tried: div.conversation-turn, div.single-turn, div.conversation-container');
                 }
                 return;
             }
@@ -200,7 +200,7 @@ const VersionTracker = {
                 // 调试日志（每 30 秒最多输出一次）
                 if (!VersionTracker._lastScanDebug || Date.now() - VersionTracker._lastScanDebug > 30000) {
                     if (idx === 0) VersionTracker._lastScanDebug = Date.now();
-                    console.log(`[LyraGemini] Turn ${idx} id=${id}: userText=${userText.length}chars, assistantText=${assistantText.length}chars`,
+                    console.log(`[Gemini] Turn ${idx} id=${id}: userText=${userText.length}chars, assistantText=${assistantText.length}chars`,
                         turn.querySelector('user-query') ? 'has-user-query' : 'no-user-query',
                         turn.querySelector('message-content') ? 'has-message-content' : 'no-message-content',
                         turn.querySelector('.markdown-main-panel') ? 'has-markdown-panel' : 'no-markdown-panel');
@@ -271,21 +271,22 @@ const VersionTracker = {
         }
     },
 
-    buildVersionedData: (title) => {
+    buildVersionedData: (title, includeImages = true) => {
         const { turns, order } = VersionTracker.tracker;
         const result = [];
-        console.log('[LyraGemini] buildVersionedData: tracked turns =', order.length, ', turnIds =', order);
+        console.log('[Gemini] buildVersionedData: tracked turns =', order.length, ', turnIds =', order);
 
         for (const id of order) {
             const t = turns[id];
             if (!t) continue;
 
             const mapVersions = (versions, imgMap) => versions
-                .filter(v => v.text?.trim() || imgMap.get(v.version)?.length)
+                .filter(v => v.text?.trim() || v.thinking?.trim() || (includeImages && imgMap.get(v.version)?.length))
                 .map(v => {
                     const d = { version: v.version, type: v.type, text: v.text };
                     if (v.userVersion !== undefined) d.userVersion = v.userVersion;
-                    const imgs = imgMap.get(v.version);
+                    if (v.thinking) d.thinking = v.thinking;
+                    const imgs = includeImages ? imgMap.get(v.version) : null;
                     if (imgs?.length) d.images = imgs;
                     return d;
                 });
@@ -303,8 +304,11 @@ const VersionTracker = {
 
 VersionTracker.tracker = VersionTracker.createEmptyTracker();
 
-window.lyraGeminiExport = (title) => VersionTracker.buildVersionedData(title || 'Gemini Chat');
-window.lyraGeminiReset = () => VersionTracker.resetTracker();
+window.loominaryGeminiExport = (title) => {
+    const includeImages = document.getElementById(Config.IMAGE_SWITCH_ID)?.checked || false;
+    return VersionTracker.buildVersionedData(title || 'Gemini Chat', includeImages);
+};
+window.loominaryGeminiReset = () => VersionTracker.resetTracker();
 
 function gemini_fetchViaGM(url) {
     return new Promise((resolve, reject) => {
@@ -322,8 +326,27 @@ function gemini_fetchViaGM(url) {
 async function gemini_processImageElement(imgElement) {
     if (!imgElement) return null;
     const url = imgElement.src;
-    if (!url || url.startsWith('data:') || url.includes('drive-thirdparty.googleusercontent.com')
+    if (!url || url.includes('drive-thirdparty.googleusercontent.com')
         || imgElement.classList.contains('new-file-icon') || imgElement.dataset.testId === 'new-file-icon') return null;
+
+    // data: URI 直接提取 base64，无需 fetch
+    if (url.startsWith('data:')) {
+        try {
+            const commaIdx = url.indexOf(',');
+            if (commaIdx === -1) return null;
+            const header = url.slice(0, commaIdx); // e.g. "data:image/jpeg;base64"
+            const semiIdx = header.indexOf(';');
+            if (semiIdx === -1) return null;
+            const mimeType = header.slice(5, semiIdx); // after "data:"
+            if (!mimeType.startsWith('image/')) return null;
+            const base64Data = url.slice(commaIdx + 1);
+            const size = Math.round((base64Data.length * 3) / 4);
+            return { type: 'image', format: mimeType, size, data: base64Data, original_src: url.slice(0, 80) + '...' };
+        } catch (e) {
+            console.error('[Gemini] Failed to process data: URI image:', e);
+            return null;
+        }
+    }
 
     try {
         let base64Data, mimeType, size;
@@ -356,7 +379,7 @@ async function gemini_processImageElement(imgElement) {
 
         return { type: 'image', format: mimeType, size, data: base64Data, original_src: url };
     } catch (e) {
-        console.error('[LyraGemini] Failed to process image:', url, e);
+        console.error('[Gemini] Failed to process image:', url, e);
         return null;
     }
 }
@@ -383,7 +406,7 @@ function htmlToMarkdown(element) {
             const doc = parser.parseFromString(str, 'text/html');
             return doc.documentElement.textContent || str;
         } catch (e) {
-            console.error('[Lyra] HTML entity decoding failed:', e);
+            console.error('[Loominary] HTML entity decoding failed:', e);
             return str;
         }
     };
@@ -531,6 +554,182 @@ function htmlToMarkdown(element) {
     return result;
 }
 
+// ==================== AI Studio XHR 拦截 ====================
+const AiStudioXHR = {
+    capturedData: null,
+    capturedTimestamp: 0,
+
+    init: () => {
+        if (State.currentPlatform !== 'aistudio') return;
+        const originalOpen = XMLHttpRequest.prototype.open;
+        const originalSend = XMLHttpRequest.prototype.send;
+
+        XMLHttpRequest.prototype.open = function(method, url) {
+            this._aistudio_url = url;
+            return originalOpen.apply(this, arguments);
+        };
+
+        XMLHttpRequest.prototype.send = function(body) {
+            this.addEventListener('load', function() {
+                if (this._aistudio_url && (
+                    this._aistudio_url.includes('ResolveDriveResource') ||
+                    this._aistudio_url.includes('CreatePrompt') ||
+                    this._aistudio_url.includes('UpdatePrompt')
+                )) {
+                    try {
+                        const rawText = this.responseText.replace(/^\)\]\}'/, '').trim();
+                        let json = JSON.parse(rawText);
+                        if (Array.isArray(json) && json.length > 0) {
+                            // Normalize: ResolveDriveResource returns [[...]], CreatePrompt/UpdatePrompt returns [...]
+                            if (typeof json[0] === 'string' && json[0].startsWith('prompts/')) {
+                                json = [json];
+                            }
+                            AiStudioXHR.capturedData = json;
+                            AiStudioXHR.capturedTimestamp = Date.now();
+                            console.log('[Loominary AI Studio] XHR intercepted:', rawText.length, 'chars');
+                        }
+                    } catch (err) {
+                        console.error('[Loominary AI Studio] XHR parse error:', err.message);
+                    }
+                }
+            });
+            return originalSend.apply(this, arguments);
+        };
+        console.log('[Loominary AI Studio] XHR interceptor installed');
+    },
+
+    isTurn: (arr) => {
+        if (!Array.isArray(arr)) return false;
+        return arr.includes('user') || arr.includes('model');
+    },
+
+    findHistory: (node, depth = 0) => {
+        if (depth > 4 || !Array.isArray(node)) return null;
+        if (node.slice(0, 5).some(child => AiStudioXHR.isTurn(child))) return node;
+        for (const child of node) {
+            if (Array.isArray(child)) {
+                const result = AiStudioXHR.findHistory(child, depth + 1);
+                if (result) return result;
+            }
+        }
+        return null;
+    },
+
+    extractText: (turn) => {
+        const candidates = [];
+        const scan = (item, d = 0) => {
+            if (d > 3) return;
+            if (typeof item === 'string' && item.length > 1 && !['user', 'model', 'function'].includes(item)) {
+                candidates.push(item);
+            } else if (Array.isArray(item)) {
+                item.forEach(sub => scan(sub, d + 1));
+            }
+        };
+        scan(turn.slice(0, 3));
+        return candidates.sort((a, b) => b.length - a.length)[0] || '';
+    },
+
+    isThinking: (turn) => Array.isArray(turn) && turn.length > 19 && turn[19] === 1,
+    isResponse: (turn) => Array.isArray(turn) && turn.length > 16 && turn[16] === 1,
+    isCodeExec: (turn) => Array.isArray(turn) && turn.length > 10 && Array.isArray(turn[10]) && turn[10][0] === 1 && typeof turn[10][1] === 'string',
+    isCodeResult: (turn) => Array.isArray(turn) && turn.length > 11 && Array.isArray(turn[11]) && turn[11][0] === 1 && typeof turn[11][1] === 'string',
+
+    // 将 XHR 数据转换为 Loominary 的 conversation 格式
+    parseToConversation: () => {
+        if (!AiStudioXHR.capturedData) return null;
+        try {
+            const root = AiStudioXHR.capturedData[0];
+            const history = AiStudioXHR.findHistory(root);
+            if (!history) return null;
+
+            const pairs = [];
+            let pendingThinking = [];
+            let pendingCode = [];
+            let currentUser = null;
+
+            for (const turn of history) {
+                if (!Array.isArray(turn)) continue;
+                const isUser = turn.includes('user');
+                const isModel = turn.includes('model');
+
+                if (isUser) {
+                    const text = AiStudioXHR.extractText(turn);
+                    if (text) currentUser = text;
+                    pendingThinking = [];
+                    pendingCode = [];
+                } else if (isModel) {
+                    const thinking = AiStudioXHR.isThinking(turn);
+                    const response = AiStudioXHR.isResponse(turn);
+                    const codeExec = AiStudioXHR.isCodeExec(turn);
+                    const codeResult = AiStudioXHR.isCodeResult(turn);
+
+                    if (codeExec) pendingCode.push({ type: 'code', content: turn[10][1] });
+                    if (codeResult) pendingCode.push({ type: 'result', content: turn[11][1] });
+                    if ((codeExec || codeResult) && !response && !thinking) continue;
+
+                    if (thinking && !response) {
+                        const text = AiStudioXHR.extractText(turn);
+                        if (text) pendingThinking.push(text);
+                    } else {
+                        let text = AiStudioXHR.extractText(turn);
+                        let assistantText = '';
+
+                        // 添加代码执行（保留在正文中）
+                        if (pendingCode.length > 0) {
+                            for (const block of pendingCode) {
+                                if (block.type === 'code') {
+                                    assistantText += `<details>\n<summary><strong>Executable Code</strong></summary>\n\n\`\`\`python\n${block.content}\n\`\`\`\n\n</details>\n\n`;
+                                } else if (block.type === 'result') {
+                                    assistantText += `<details>\n<summary><strong>Code Execution Result</strong></summary>\n\n\`\`\`\n${block.content}\n\`\`\`\n\n</details>\n\n`;
+                                }
+                            }
+                            pendingCode = [];
+                        }
+
+                        if (text) assistantText += text;
+
+                        // 思考内容单独存储到 thinking 字段
+                        const thinkingText = pendingThinking.length > 0 ? pendingThinking.join('\n\n').trim() : undefined;
+                        pendingThinking = [];
+
+                        if (assistantText || thinkingText) {
+                            const assistantObj = { text: assistantText.trim() };
+                            if (thinkingText) assistantObj.thinking = thinkingText;
+                            pairs.push({
+                                human: { text: currentUser || '[No preceding user prompt found]' },
+                                assistant: assistantObj
+                            });
+                            currentUser = null;
+                        }
+                    }
+                }
+            }
+
+            // 如果最后有未配对的用户消息
+            if (currentUser) {
+                pairs.push({
+                    human: { text: currentUser },
+                    assistant: { text: '[Model response is pending]' }
+                });
+            }
+
+            return pairs.length > 0 ? pairs : null;
+        } catch (e) {
+            console.error('[Loominary AI Studio] XHR parse error:', e);
+            return null;
+        }
+    },
+
+    getTitle: () => {
+        if (!AiStudioXHR.capturedData) return null;
+        try {
+            const root = AiStudioXHR.capturedData[0];
+            if (Array.isArray(root[4]) && typeof root[4][0] === 'string') return root[4][0];
+        } catch (e) {}
+        return null;
+    }
+};
+
 function getAIStudioScroller() {
     for (const sel of ['ms-chat-session ms-autoscroll-container', 'mat-sidenav-content', '.chat-view-container']) {
         const el = document.querySelector(sel);
@@ -548,21 +747,43 @@ async function extractDataIncremental_AiStudio(includeImages = true) {
         const turnData = { type: 'unknown', text: '', images: [] };
 
         if (userEl) {
+            turnData.type = 'user';
             const textEl = userEl.querySelector('.user-prompt-container .turn-content');
             if (textEl) {
-                let text = textEl.innerText.trim().replace(/^User\s*[\n:]?/i, '').trim();
-                if (text) { turnData.type = 'user'; turnData.text = text; }
+                const clone = textEl.cloneNode(true);
+                // 移除 author-label（含时间戳如 "User 14:56"）
+                clone.querySelectorAll('.author-label, .turn-separator').forEach(e => e.remove());
+                let text = clone.innerText.trim();
+                if (text) turnData.text = text;
             }
             if (includeImages) {
                 const imgs = userEl.querySelectorAll('.user-prompt-container img');
+                console.log('[Loominary AI Studio DOM] user turn: img elements found:', imgs.length, [...imgs].map(i => i.src?.slice(0, 50)));
                 turnData.images = (await Promise.all([...imgs].map(gemini_processImageElement))).filter(Boolean);
+                console.log('[Loominary AI Studio DOM] user turn: images processed:', turnData.images.length);
             }
         } else if (modelEl) {
             const chunks = modelEl.querySelectorAll('ms-prompt-chunk');
-            const texts = [], imgPromises = [];
+            const texts = [], thinkingTexts = [], imgPromises = [];
 
             chunks.forEach(chunk => {
-                if (chunk.querySelector('ms-thought-chunk')) return;
+                const thoughtChunk = chunk.querySelector('ms-thought-chunk');
+                if (thoughtChunk) {
+                    const cmark = thoughtChunk.querySelector('ms-cmark-node');
+                    if (cmark) {
+                        const md = htmlToMarkdown(cmark);
+                        if (md) thinkingTexts.push(md);
+                    }
+                    return;
+                }
+                // ms-image-chunk 内的图片（模型生成的图片）
+                if (includeImages) {
+                    const imageChunk = chunk.querySelector('ms-image-chunk img');
+                    if (imageChunk) {
+                        imgPromises.push(gemini_processImageElement(imageChunk));
+                        return;
+                    }
+                }
                 const cmark = chunk.querySelector('ms-cmark-node');
                 if (cmark) {
                     const md = htmlToMarkdown(cmark);
@@ -572,8 +793,11 @@ async function extractDataIncremental_AiStudio(includeImages = true) {
             });
 
             const text = texts.join('\n\n').trim();
-            if (text) { turnData.type = 'model'; turnData.text = text; }
+            const thinkingText = thinkingTexts.join('\n\n').trim();
+            if (text || thinkingText) { turnData.type = 'model'; turnData.text = text; }
+            if (thinkingText) turnData.thinking = thinkingText;
             if (includeImages) turnData.images = (await Promise.all(imgPromises)).filter(Boolean);
+            console.log('[Loominary AI Studio DOM] model turn: text=' + text.length + 'chars, thinking=' + thinkingText.length + 'chars, images=' + turnData.images.length, 'chunks=' + chunks.length);
         }
 
         if (turnData.type !== 'unknown' && (turnData.text || turnData.images.length)) {
@@ -646,60 +870,98 @@ const ScraperHandler = {
             }
         },
 
-        notebooklm: {
-            getTitle: () => 'NotebookLM_' + new Date().toISOString().slice(0, 10),
-            extractData: async (includeImages = true) => {
-                const data = [];
-                for (const turn of document.querySelectorAll("div.chat-message-pair")) {
-                    let question = turn.querySelector("chat-message .from-user-container .message-text-content")?.innerText.trim() || "";
-                    if (question.startsWith('[Preamble] ')) question = question.substring(11).trim();
-
-                    let answer = "";
-                    const answerEl = turn.querySelector("chat-message .to-user-container .message-text-content");
-                    if (answerEl) {
-                        const parts = [];
-                        answerEl.querySelectorAll('labs-tailwind-structural-element-view-v2').forEach(el => {
-                            let line = el.querySelector('.bullet')?.innerText.trim() + ' ' || '';
-                            const para = el.querySelector('.paragraph');
-                            if (para) {
-                                let text = '';
-                                para.childNodes.forEach(n => {
-                                    if (n.nodeType === Node.TEXT_NODE) text += n.textContent;
-                                    else if (n.nodeType === Node.ELEMENT_NODE && !n.querySelector?.('.citation-marker')) {
-                                        text += n.classList?.contains('bold') ? `**${n.innerText}**` : (n.innerText || n.textContent || '');
-                                    }
-                                });
-                                line += text;
-                            }
-                            if (line.trim()) parts.push(line.trim());
-                        });
-                        answer = parts.join('\n\n');
-                    }
-
-                    let userImages = [], modelImages = [];
-                    if (includeImages) {
-                        userImages = (await Promise.all([...turn.querySelectorAll("chat-message .from-user-container img")].map(gemini_processImageElement))).filter(Boolean);
-                        modelImages = (await Promise.all([...turn.querySelectorAll("chat-message .to-user-container img")].map(gemini_processImageElement))).filter(Boolean);
-                    }
-
-                    if (question || answer || userImages.length || modelImages.length) {
-                        const human = { text: question };
-                        const assistant = { text: answer };
-                        if (userImages.length) human.images = userImages;
-                        if (modelImages.length) assistant.images = modelImages;
-                        data.push({ human, assistant });
-                    }
-                }
-                return data;
-            }
-        },
-
         aistudio: {
             getTitle: () => {
-                const input = prompt('请输入对话标题 / Enter title:', 'AI_Studio_Chat');
-                return input === null ? null : (input || 'AI_Studio_Chat');
+                return AiStudioXHR.getTitle() || 'AI_Studio_Chat';
             },
             extractData: async (includeImages = true) => {
+                console.log('[Loominary AI Studio] extractData called, includeImages:', includeImages);
+                // 优先使用 XHR 拦截数据（即时、完整）
+                const xhrResult = AiStudioXHR.parseToConversation();
+                console.log('[Loominary AI Studio] XHR result:', xhrResult ? xhrResult.length + ' pairs' : 'null');
+                if (xhrResult && xhrResult.length > 0) {
+                    console.log('[Loominary AI Studio] Using XHR path');
+                    // XHR 不含图片，通过滚动 DOM 补充提取
+                    if (includeImages) {
+                        console.log('[Loominary AI Studio] Starting DOM image collection');
+                        const turns = document.querySelectorAll('ms-chat-turn');
+                        console.log('[Loominary AI Studio] ms-chat-turn elements found:', turns.length);
+
+                        if (turns.length > 0) {
+                            const scroller = getAIStudioScroller();
+                            scroller.scrollTop = 0;
+                            await Utils.sleep(Config.TIMING.SCROLL_TOP_WAIT);
+
+                            const imageMap = new Map();
+                            const collectImages = async () => {
+                                const currentTurns = document.querySelectorAll('ms-chat-turn');
+                                for (const turn of currentTurns) {
+                                    if (imageMap.has(turn)) continue;
+                                    const allImgs = turn.querySelectorAll('ms-image-chunk img');
+                                    const userImgs = [...turn.querySelectorAll('.chat-turn-container.user ms-image-chunk img')]
+                                        .filter(img => !img.src.includes('drive-thirdparty.googleusercontent.com'));
+                                    const modelImgs = [...turn.querySelectorAll('.chat-turn-container.model ms-image-chunk img')]
+                                        .filter(img => !img.src.includes('drive-thirdparty.googleusercontent.com'));
+                                    if (allImgs.length) {
+                                        console.log('[Loominary AI Studio] Turn has', allImgs.length, 'img(s), user:', userImgs.length, 'model:', modelImgs.length,
+                                            [...allImgs].map(i => i.src?.slice(0, 60)));
+                                    }
+                                    if (userImgs.length || modelImgs.length) {
+                                        imageMap.set(turn, {
+                                            userImages: (await Promise.all(userImgs.map(gemini_processImageElement))).filter(Boolean),
+                                            modelImages: (await Promise.all(modelImgs.map(gemini_processImageElement))).filter(Boolean)
+                                        });
+                                    } else {
+                                        imageMap.set(turn, null);
+                                    }
+                                }
+                            };
+
+                            let lastScrollTop = -1;
+                            while (true) {
+                                await collectImages();
+                                if (scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 10) break;
+                                lastScrollTop = scroller.scrollTop;
+                                scroller.scrollTop += scroller.clientHeight * 0.85;
+                                await Utils.sleep(Config.TIMING.SCROLL_DELAY);
+                                if (scroller.scrollTop === lastScrollTop) break;
+                            }
+                            await collectImages();
+
+                            const totalWithImages = [...imageMap.values()].filter(v => v !== null).length;
+                            console.log('[Loominary AI Studio] Image collection done, turns with images:', totalWithImages);
+
+                            // 按 DOM 顺序合并图片到 XHR pairs
+                            let pairIdx = 0;
+                            let pendingUserImages = null;
+                            for (const turn of document.querySelectorAll('ms-chat-turn')) {
+                                const data = imageMap.get(turn);
+                                const isUser = turn.querySelector('.chat-turn-container.user');
+                                const isModel = turn.querySelector('.chat-turn-container.model');
+                                if (isUser && data?.userImages?.length) {
+                                    pendingUserImages = data.userImages;
+                                }
+                                if (isModel) {
+                                    if (pairIdx < xhrResult.length) {
+                                        if (pendingUserImages) {
+                                            xhrResult[pairIdx].human.images = pendingUserImages;
+                                            pendingUserImages = null;
+                                        }
+                                        if (data?.modelImages?.length) {
+                                            xhrResult[pairIdx].assistant.images = data.modelImages;
+                                        }
+                                    }
+                                    pairIdx++;
+                                }
+                            }
+                            console.log('[Loominary AI Studio] Image merge done, pairs processed:', pairIdx);
+                        }
+                    }
+                    return xhrResult;
+                }
+                console.log('[Loominary AI Studio] Using DOM fallback path');
+
+                // DOM 回退（滚动提取）
                 collectedData.clear();
                 const scroller = getAIStudioScroller();
                 scroller.scrollTop = 0;
@@ -735,6 +997,7 @@ const ScraperHandler = {
                         const human = { text: lastHuman?.text || "[No preceding user prompt found]" };
                         if (lastHuman?.images?.length) human.images = lastHuman.images;
                         const assistant = { text: item.text };
+                        if (item.thinking) assistant.thinking = item.thinking;
                         if (item.images?.length) assistant.images = item.images;
                         paired.push({ human, assistant });
                         lastHuman = null;
@@ -760,7 +1023,8 @@ const ScraperHandler = {
             VersionTracker.isScanning = false; // 防止卡死
             await VersionTracker.scanOnce();
             VersionTracker.forceCommitAll();
-            const versionedData = VersionTracker.buildVersionedData(title);
+            const includeImagesForVersioned = document.getElementById(Config.IMAGE_SWITCH_ID)?.checked || false;
+            const versionedData = VersionTracker.buildVersionedData(title, includeImagesForVersioned);
             if (versionedData.conversation.length > 0) return versionedData;
             // 版本追踪数据为空，回退到普通提取
         }
@@ -776,16 +1040,16 @@ const ScraperHandler = {
         const handler = ScraperHandler.handlers[platform];
         if (!handler) return;
 
-        const colors = { gemini: '#1a73e8', notebooklm: '#000000', aistudio: '#777779' };
+        const colors = { gemini: '#1a73e8', aistudio: '#777779' };
         const color = colors[platform] || '#4285f4';
-        const useInline = platform === 'notebooklm' || platform === 'gemini';
+        const useInline = platform === 'gemini';
 
         const createToggle = (label, id, state, onChange) => {
             const toggle = Utils.createToggle(label, id, state);
-            const input = toggle.querySelector('.lyra-switch input');
+            const input = toggle.querySelector('.loominary-switch input');
             if (input) {
                 input.addEventListener('change', onChange);
-                const slider = toggle.querySelector('.lyra-slider');
+                const slider = toggle.querySelector('.loominary-slider');
                 if (slider) slider.style.setProperty('--theme-color', color);
             }
             return toggle;
@@ -813,26 +1077,24 @@ const ScraperHandler = {
             return btn;
         };
 
-        if (platform !== 'notebooklm') {
-            controlsArea.appendChild(createActionBtn(previewIcon, 'viewOnline', async btn => {
-                const title = handler.getTitle();
-                if (!title) return;
-                const original = btn.innerHTML;
-                Utils.setButtonLoading(btn, i18n.t('loading'));
-                let progress = platform === 'aistudio' ? Utils.createProgressElem(controlsArea) : null;
-                if (progress) progress.textContent = i18n.t('loading');
-                try {
-                    const json = await ScraperHandler.buildConversationJson(platform, title);
-                    const filename = `${platform}_${Utils.sanitizeFilename(title)}_${new Date().toISOString().slice(0, 10)}.json`;
-                    await Communicator.open(JSON.stringify(json, null, 2), filename);
-                } catch (e) {
-                    ErrorHandler.handle(e, 'Preview conversation', { userMessage: `${i18n.t('loadFailed')} ${e.message}` });
-                } finally {
-                    Utils.restoreButton(btn, original);
-                    progress?.remove();
-                }
-            }));
-        }
+        controlsArea.appendChild(createActionBtn(previewIcon, 'viewOnline', async btn => {
+            const title = handler.getTitle();
+            if (!title) return;
+            const original = btn.innerHTML;
+            Utils.setButtonLoading(btn, i18n.t('loading'));
+            let progress = platform === 'aistudio' ? Utils.createProgressElem(controlsArea) : null;
+            if (progress) progress.textContent = i18n.t('loading');
+            try {
+                const json = await ScraperHandler.buildConversationJson(platform, title);
+                const filename = `${platform}_${Utils.sanitizeFilename(title)}_${new Date().toISOString().slice(0, 10)}.json`;
+                await Communicator.open(JSON.stringify(json, null, 2), filename);
+            } catch (e) {
+                ErrorHandler.handle(e, 'Preview conversation', { userMessage: `${i18n.t('loadFailed')} ${e.message}` });
+            } finally {
+                Utils.restoreButton(btn, original);
+                progress?.remove();
+            }
+        }));
 
         controlsArea.appendChild(createActionBtn(exportIcon, 'exportCurrentJSON', async btn => {
             const title = handler.getTitle();

@@ -150,61 +150,65 @@ html.navbar-hidden .navbar-redesigned {
   gap: 4px;
 }
 
-/* Branch group：互斥选择，有边框容器 */
+/* Branch group：macOS segmented control 风格 */
 .segment-group {
   display: flex;
   align-items: center;
-  border: 1px solid var(--border-primary);
-  border-radius: 6px;
-  overflow: hidden;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 0;
+  border: none;
+  overflow: visible;
 }
 
 .segment-btn {
   display: inline-flex;
   align-items: center;
   padding: 0 11px;
-  height: 26px;
+  height: 22px;
   border: none;
-  border-radius: 0;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 12px;
   white-space: nowrap;
   font-weight: 400;
   background: transparent;
   color: var(--text-tertiary);
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
 }
 
 .segment-btn + .segment-btn {
-  border-left: 1px solid var(--border-primary);
+  border-left: none;
 }
 
 .segment-btn:hover {
-  background: var(--bg-secondary);
+  background: var(--bg-primary);
   color: var(--text-primary);
 }
 
-/* Branch group: 未选中白底深色文字，选中深底白字 */
+/* Branch group: active 卡片高亮 */
 .segment-group--branch .segment-btn {
-  background: #ffffff;
-  color: #141413;
+  background: transparent;
+  color: var(--text-secondary);
 }
 
 .segment-group--branch .segment-btn:hover {
-  background: #f0f0f0;
-  color: #141413;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .segment-group--branch .segment-btn.active {
-  background: #141413;
-  color: #ffffff;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   font-weight: 500;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 0 0 0.5px var(--border-primary);
 }
 
 .segment-group--branch .segment-btn:disabled {
-  background: #f5f5f5;
-  color: #aaaaaa;
+  color: var(--text-quaternary);
   cursor: not-allowed;
+  background: transparent;
 }
 
 /* Filter group：独立 toggle，无边框容器，各自是 pill */
@@ -404,6 +408,15 @@ html.navbar-hidden .navbar-redesigned {
 .view-content-whiteboard {
   height: 100%;
   min-height: 0;
+}
+
+.view-content-welcome {
+  padding: 0;
+}
+@media (min-width: 1024px) {
+  .view-content-welcome {
+    padding-top: 0;
+  }
 }
 
 .view-content:has(.enhanced-timeline-container),

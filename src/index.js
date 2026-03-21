@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
+import WelcomePage from './WelcomePage';
 
 import enTranslations from './langs/en.json';
 import zhTranslations from './langs/zh.json';
@@ -65,12 +66,15 @@ export const useI18n = () => {
 // React 应用启动：先读语言再渲染
 // =============================================================================
 
+const isWelcomePage = window.location.pathname.endsWith('/welcome') || window.location.pathname.endsWith('/welcome/')
+  || window.location.hash === '#/welcome';
+
 function boot(lang) {
   resolvedLang = TRANSLATIONS[lang] ? lang : DEFAULT_LANG;
   const root = ReactDOM.createRoot(document.getElementById('root'));
   root.render(
     <React.StrictMode>
-      <App />
+      {isWelcomePage ? <WelcomePage /> : <App />}
     </React.StrictMode>
   );
 }

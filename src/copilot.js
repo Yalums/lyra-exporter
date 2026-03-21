@@ -1,7 +1,7 @@
     const CopilotHandler = {
         init: () => {
             // Copilot doesn't require special initialization like token capture
-            console.log('[Lyra] CopilotHandler initialized');
+            console.log('[Loominary] CopilotHandler initialized');
         },
 
         getCurrentConversationId: () => {
@@ -61,7 +61,7 @@
                     platform: 'copilot'
                 };
             } catch (error) {
-                console.error('[Lyra] Get conversation error:', error);
+                console.error('[Loominary] Get conversation error:', error);
                 throw error;
             }
         },
@@ -497,7 +497,7 @@
                         if (!data) throw new Error(i18n.t('fetchFailed'));
                         const jsonString = JSON.stringify(data, null, 2);
                         const filename = `copilot_${data.title || 'conversation'}_${conversationId.substring(0, 8)}.json`;
-                        await LyraCommunicator.open(jsonString, filename);
+                        await Communicator.open(jsonString, filename);
                     } catch (error) {
                         ErrorHandler.handle(error, 'Preview conversation', {
                             userMessage: `${i18n.t('loadFailed')} ${error.message}`

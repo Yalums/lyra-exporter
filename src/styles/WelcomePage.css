@@ -1,0 +1,347 @@
+/* WelcomePage.css — uses app CSS variables for theme support */
+
+/* ── Root container ── */
+.wp-root {
+  --wp-font-serif: 'Noto Serif SC', 'Noto Serif', serif;
+  --wp-font-sans: 'Poppins', system-ui, sans-serif;
+
+  font-family: var(--wp-font-sans);
+  font-weight: 300;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-font-smoothing: antialiased;
+  position: relative;
+  transition: background 0.3s, color 0.3s;
+}
+
+/* ── Fixed background gradient ── */
+.wp-bg-fixed {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 50% at 10% 15%, var(--accent-primary, #d97706) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 60% at 85% 80%, var(--accent-secondary, #C2C0B6) 0%, transparent 50%);
+  opacity: 0.04;
+  transition: opacity 0.3s;
+}
+
+/* ── Shimmer bar ── */
+.wp-shimmer-bar {
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    var(--accent-primary) 25%,
+    var(--accent-secondary) 50%,
+    var(--accent-primary) 75%,
+    transparent 100%);
+  background-size: 200% 100%;
+  animation: wp-shimmer 8s linear infinite;
+  opacity: 0.4;
+}
+@keyframes wp-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+/* ── Glass card ── */
+.wp-glass {
+  background: var(--card-bg);
+  border: 1px solid var(--border-primary);
+  border-radius: 0.625rem;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  position: relative;
+  overflow: hidden;
+}
+.wp-glass:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-secondary);
+}
+
+/* ── Aura pseudo-elements ── */
+.wp-aura-primary::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; z-index: 0; pointer-events: none;
+  background: radial-gradient(ellipse at 20% 30%, var(--accent-primary), transparent 65%);
+  opacity: 0.06;
+}
+.wp-aura-secondary::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; z-index: 0; pointer-events: none;
+  background: radial-gradient(ellipse at 80% 20%, var(--accent-secondary), transparent 60%);
+  opacity: 0.06;
+}
+.wp-aura-accent::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; z-index: 0; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 80%, var(--accent-primary), transparent 55%);
+  opacity: 0.04;
+}
+
+/* ── Anchor glyph ── */
+.wp-anchor-glyph {
+  font-family: var(--wp-font-serif);
+  font-weight: 900;
+  font-size: clamp(7rem, 14vw, 11rem);
+  line-height: 0.85;
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--border-secondary);
+  user-select: none;
+  transition: -webkit-text-stroke-color 0.5s ease;
+  opacity: 0.5;
+}
+
+/* ── Tag pill ── */
+.wp-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  border-radius: 2rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  font-family: var(--wp-font-sans);
+}
+
+/* ── Platform icon ── */
+.wp-platform-icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  color: var(--text-secondary);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+.wp-platform-icon:hover {
+  background: var(--bg-secondary);
+  border-color: var(--border-secondary);
+  transform: scale(1.08);
+  color: var(--text-primary);
+}
+
+/* SVG monochrome rendering via mask-image */
+.wp-platform-svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  display: block;
+  /* Hide the original image colors, show as mask with currentColor-like bg */
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  background-color: var(--text-secondary);
+  transition: background-color 0.3s;
+}
+.wp-platform-icon:hover .wp-platform-svg {
+  background-color: var(--text-primary);
+}
+
+/* ── Typography ── */
+.wp-label {
+  font-family: var(--wp-font-sans);
+  font-size: 0.75rem;
+  font-weight: 300;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--accent-primary);
+}
+.wp-logo-text {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.wp-nav-link {
+  font-size: 0.75rem;
+  font-weight: 300;
+  color: var(--text-tertiary);
+  text-decoration: none;
+  transition: color 0.3s;
+}
+.wp-nav-link:hover { color: var(--text-primary); }
+.wp-nav-btn {
+  padding: 0.375rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-primary);
+  text-decoration: none;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 0.5rem;
+  transition: all 0.3s;
+}
+.wp-nav-btn:hover {
+  border-color: var(--border-secondary);
+  background: var(--bg-tertiary);
+}
+.wp-hero-sub {
+  font-family: var(--wp-font-sans);
+  font-weight: 200;
+  font-size: clamp(1.1rem, 2.2vw, 1.5rem);
+  color: var(--text-secondary);
+  letter-spacing: 0.06em;
+}
+.wp-hero-desc {
+  font-size: 0.875rem;
+  font-weight: 300;
+  line-height: 1.7;
+  max-width: 32rem;
+  color: var(--text-secondary);
+}
+.wp-card-title {
+  font-family: var(--wp-font-serif);
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+.wp-card-desc {
+  font-size: 0.72rem;
+  font-weight: 300;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+.wp-text-muted {
+  font-size: 0.75rem;
+  font-weight: 200;
+  color: var(--text-tertiary);
+}
+.wp-icon-accent {
+  color: var(--accent-primary);
+  opacity: 0.7;
+}
+
+/* ── Export format sub-card ── */
+.wp-export-format-card {
+  text-align: center;
+  padding: 0.875rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: 0.5rem;
+}
+
+/* ── Workflow section ── */
+.wp-workflow-section {
+  position: relative;
+  padding: 5rem 0;
+  margin: 3rem 0;
+}
+.wp-workflow-backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-primary);
+  border-bottom: 1px solid var(--border-primary);
+  opacity: 0.8;
+}
+.wp-step-line {
+  position: absolute;
+  left: 0.875rem;
+  top: 2rem;
+  bottom: -1.25rem;
+  width: 1px;
+  background: linear-gradient(to bottom, var(--accent-primary), transparent);
+  opacity: 0.3;
+}
+.wp-step-dot {
+  position: absolute;
+  left: 0.375rem;
+  top: 0.35rem;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  border: 1.5px solid var(--accent-primary);
+  background: var(--bg-secondary);
+  opacity: 0.6;
+}
+.wp-step-badge {
+  font-family: var(--wp-font-sans);
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  background: var(--bg-tertiary);
+  color: var(--accent-primary);
+  white-space: nowrap;
+}
+
+/* ── Quick start icon ── */
+.wp-quickstart-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  margin: 0 auto 0.75rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+}
+
+/* ── Footer ── */
+.wp-footer {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  padding: 3.5rem 1.5rem;
+  border-top: 1px solid var(--border-primary);
+}
+.wp-footer-link {
+  font-size: 0.75rem;
+  font-weight: 300;
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: color 0.3s;
+}
+.wp-footer-link:hover { opacity: 0.8; }
+.wp-footer-bottom {
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-primary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.6rem;
+  font-weight: 200;
+  color: var(--text-tertiary);
+}
+
+/* ── Asymmetric grid ── */
+.wp-asym-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 2.5rem;
+  align-items: start;
+}
+@media (max-width: 767px) {
+  .wp-asym-grid,
+  .wp-workflow-section [style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+  }
+  .wp-anchor-glyph { font-size: 4rem; }
+}
+@media (max-width: 1023px) {
+  .wp-anchor-glyph { font-size: clamp(4rem, 10vw, 7rem); }
+}
+
+/* ── Scrollbar ── */
+.wp-root::-webkit-scrollbar { width: 6px; }
+.wp-root::-webkit-scrollbar-track { background: transparent; }
+.wp-root::-webkit-scrollbar-thumb {
+  background: var(--accent-primary);
+  border-radius: 3px;
+  opacity: 0.25;
+}

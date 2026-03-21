@@ -14,7 +14,7 @@
                 // #endplatform
                 // #platform: gemini
                 gemini: '#1a73e8',
-                notebooklm: '#4285f4',
+
                 aistudio: '#777779'
                 // #endplatform
             };
@@ -326,7 +326,7 @@
             if (State.isPanelCollapsed) container.classList.add('collapsed');
 
             // #platform: gemini
-            if (State.currentPlatform === 'notebooklm' || State.currentPlatform === 'gemini') {
+            if (State.currentPlatform === 'gemini') {
                 Object.assign(container.style, {
                     position: 'fixed',
                     top: '50%',
@@ -356,7 +356,7 @@
             controls.className = 'loominary-main-controls';
 
             // #platform: gemini
-            if (State.currentPlatform === 'notebooklm' || State.currentPlatform === 'gemini') {
+            if (State.currentPlatform === 'gemini') {
                 Object.assign(controls.style, {
                     marginLeft: '0px',
                     padding: '0 3px',
@@ -379,7 +379,7 @@
                 copilot: 'Copilot',
                 // #endplatform
                 // #platform: gemini
-                gemini: 'Gemini', notebooklm: 'Note LM', aistudio: 'AI Studio',
+                gemini: 'Gemini', aistudio: 'AI Studio',
                 // #endplatform
             };
             title.textContent = titles[State.currentPlatform] || 'Exporter';
@@ -422,7 +422,7 @@
             }
             // #endplatform
             // #platform: gemini
-            if (['gemini', 'notebooklm', 'aistudio'].includes(State.currentPlatform)) {
+            if (['gemini', 'aistudio'].includes(State.currentPlatform)) {
                 ScraperHandler.addButtons(controls, State.currentPlatform);
             }
             // #endplatform
@@ -466,12 +466,15 @@
         // #platform: copilot
         if (State.currentPlatform === 'copilot') CopilotHandler.init();
         // #endplatform
+        // #platform: gemini
+        if (State.currentPlatform === 'aistudio') AiStudioXHR.init();
+        // #endplatform
 
         UI.injectStyle();
 
         const initPanel = () => {
             UI.createPanel();
-            if (['claude'/* #platform: chatgpt */, 'chatgpt'/* #endplatform *//* #platform: grok */, 'grok'/* #endplatform *//* #platform: copilot */, 'copilot'/* #endplatform *//* #platform: gemini */, 'gemini', 'notebooklm', 'aistudio'/* #endplatform */].includes(State.currentPlatform)) {
+            if (['claude'/* #platform: chatgpt */, 'chatgpt'/* #endplatform *//* #platform: grok */, 'grok'/* #endplatform *//* #platform: copilot */, 'copilot'/* #endplatform *//* #platform: gemini */, 'gemini', 'aistudio'/* #endplatform */].includes(State.currentPlatform)) {
                 let lastUrl = window.location.href;
                 let panelCheckTimer = null;
                 new MutationObserver(() => {

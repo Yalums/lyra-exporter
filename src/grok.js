@@ -129,7 +129,7 @@
     const GrokHandler = {
         init: () => {
             // Grok doesn't require special initialization like token capture
-            console.log('[Lyra] GrokHandler initialized');
+            console.log('[Loominary] GrokHandler initialized');
         },
 
         getCurrentConversationId: () => {
@@ -153,7 +153,7 @@
                 const data = await response.json();
                 return data.conversations || [];
             } catch (error) {
-                console.error('[Lyra] Get all conversations error:', error);
+                console.error('[Loominary] Get all conversations error:', error);
                 return null;
             }
         },
@@ -235,7 +235,7 @@
                                     }
                                 });
                             } catch (e) {
-                                console.warn('[Lyra] Failed to parse cardAttachmentsJson:', e);
+                                console.warn('[Loominary] Failed to parse cardAttachmentsJson:', e);
                             }
                             if (citations.length > 0) {
                                 processed.citations = citations;
@@ -261,7 +261,7 @@
                     const conv = allConvs?.find(c => c.conversationId === conversationId);
                     title = conv?.title || null;
                 } catch (e) {
-                    console.warn('[Lyra] Could not fetch title:', e);
+                    console.warn('[Loominary] Could not fetch title:', e);
                 }
 
                 // Step 5: Capture images from DOM if State.includeImages is true
@@ -373,7 +373,7 @@
                     platform: 'grok'
                 };
             } catch (error) {
-                console.error('[Lyra] Get conversation error:', error);
+                console.error('[Loominary] Get conversation error:', error);
                 throw error;
             }
         },
@@ -389,7 +389,7 @@
             // Add "Include Images" toggle
             const imageToggle = Utils.createToggle(
                 i18n.t('includeImages'),
-                'lyra-include-images-toggle',
+                'loominary-include-images-toggle',
                 State.includeImages
             );
             const imageToggleInput = imageToggle.querySelector('input');
