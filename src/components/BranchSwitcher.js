@@ -180,7 +180,7 @@ const BranchSwitcher = ({
             top: `${listPosition.top}px`,
             left: `${listPosition.left}px`,
             width: `${listPosition.width}px`,
-            zIndex: 99999
+            zIndex: 1500
           }}
         >
           {/* 显示全部分支选项 */}

@@ -92,7 +92,9 @@ const MessageDetail = ({
   format,
   onTabChange,
   showTabs = true,
-  systemContext = null  // system context 模式
+  systemContext = null,  // system context 模式
+  notes = {},
+  onNoteChange = null
 }) => {
   const { t } = useI18n();
   const contentRef = useRef(null);
@@ -238,6 +240,9 @@ const MessageDetail = ({
       }
     }
     
+    // 笔记 tab（所有消息都有，system context 除外）
+    baseTabs.push({ id: 'notes', label: t('messageDetail.tabs.notes') });
+
     return baseTabs;
   };
 
@@ -833,6 +838,18 @@ const MessageDetail = ({
             ) : (
               <div className="placeholder">{t('messageDetail.placeholder.noCanvas') || '暂无 Canvas 内容'}</div>
             )}
+          </div>
+        );
+
+      case 'notes':
+        return (
+          <div className="notes-content">
+            <textarea
+              className="notes-textarea"
+              value={notes[selectedMessageIndex] || ''}
+              onChange={(e) => onNoteChange && onNoteChange(selectedMessageIndex, e.target.value)}
+              placeholder={t('messageDetail.placeholder.notesPlaceholder')}
+            />
           </div>
         );
 

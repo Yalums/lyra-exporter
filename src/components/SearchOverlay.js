@@ -132,12 +132,19 @@ const SearchOverlay = ({ isOpen, onClose, onNavigateToMessage, initialQuery = ''
     }
   }, [isOpen, initialQuery]);
 
+  // 打开时锁住外部滚动，防止滚动穿透到 Conversation Timeline
+  useEffect(() => {
+    if (!isOpen) return;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, [isOpen]);
+
   // Esc 关闭 + 浏览器回退
   useEffect(() => {
     if (!isOpen) return;
-    window.history.pushState({ view: 'search-overlay' }, '');
+    window.history.pushState({ loominarySearch: true }, '');
     const handlePop = () => onClose();
-    const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
+    const handleKey = (e) => { if (e.key === 'Escape') window.history.back(); };
     window.addEventListener('popstate', handlePop);
     window.addEventListener('keydown', handleKey);
     return () => {
@@ -247,7 +254,7 @@ const SearchOverlay = ({ isOpen, onClose, onNavigateToMessage, initialQuery = ''
   if (!isOpen) return null;
 
   return (
-    <div className="so-backdrop" onClick={onClose}>
+    <div className="so-backdrop" onClick={() => window.history.back()}>
       <div className="so-panel" onClick={e => e.stopPropagation()}>
 
         {/* 搜索输入行 */}

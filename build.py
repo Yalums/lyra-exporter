@@ -37,7 +37,7 @@ if sys.platform == 'win32':
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
 # 版本号（统一管理）
-VERSION = "0.6.1"
+VERSION = "26.3.1"
 
 # ============================================================
 # Claude 镜像域名配置
@@ -75,9 +75,7 @@ PLATFORMS = {
     'copilot': {
         'name': 'Copilot',
         'matches': [
-            'https://copilot.microsoft.com/*',
-            'https://www.bing.com/*',
-            'https://bing.com/*'
+            'https://copilot.microsoft.com/*'
         ],
         'connect': [
             'copilot.microsoft.com',
@@ -90,12 +88,10 @@ PLATFORMS = {
         'name': 'Gemini',
         'matches': [
             'https://gemini.google.com/*',
-            'https://notebooklm.google.com/*',
             'https://aistudio.google.com/*'
         ],
         'includes': [
             '*://gemini.google.com/*',
-            '*://notebooklm.google.com/*',
             '*://aistudio.google.com/*'
         ]
     }
@@ -263,8 +259,8 @@ def extract_styles_from_ui(ui_code):
         return '\n'.join(cleaned_lines)
     return ""
 
-# Userscript 只发布 claude, grok, gemini 三个平台
-USERSCRIPT_PLATFORMS = ['claude', 'grok', 'gemini']
+# Userscript 发布的平台
+USERSCRIPT_PLATFORMS = ['claude', 'chatgpt', 'grok', 'gemini']
 
 def generate_userscript_header(platforms):
     """生成 Userscript 的 ==UserScript== 元数据块"""
@@ -277,19 +273,42 @@ def generate_userscript_header(platforms):
 
     return f"""\
 // ==UserScript==
-// @name         Loominary
+// @name         Loominary (One-Click AI Chat Backup)
+// @name:zh-CN   支持Claude、ChatGPT、Grok、Gemini等多平台的全功能AI对话跨分支全局搜索文档PDF长截图导出管理工具
+// @name:zh-TW   Loominary (一鍵 AI 對話備份)
+// @name:ja      Loominary (ワンクリック AI チャットバックアップ)
+// @name:ko      Loominary (원클릭 AI 채팅 백업)
+// @name:es      Loominary (Backup de Chat AI con Un Clic)
+// @name:pt      Loominary (Backup de Chat AI com Um Clique)
+// @name:fr      Loominary (Sauvegarde de Chat AI en Un Clic)
+// @name:de      Loominary (Ein-Klick AI-Chat-Backup)
 // @namespace    https://github.com/Laumss/loominary
 // @version      {VERSION}
-// @description  Export AI chat conversations from Claude, Grok, and Gemini. Preview them on the Loominary web viewer.
+// @description One-click export for Claude, ChatGPT, Grok, Gemini , Google AI Studio. Backups all chat branches, artifacts, and attachments. Exports to JSON/Markdown/PDF/Editable Screenshots. The ultimate companion for Lyra Exporter to build your local AI knowledge base.
+// @description:zh-CN  一键导出 Claude/ChatGPT/Gemini/Grok/Google AI Studio 对话记录（支持分支、PDF、长截图）。保留完整对话分支、附加图片、LaTeX 公式、Artifacts、附件与思考过程。Lyra Exporter 的最佳搭档，打造您的本地 AI 知识库。
+// @description:zh-TW 一鍵匯出 Claude、ChatGPT、Grok、Gemini、Google AI Studio 的對話。備份所有聊天分支、Artifacts 和附件。匯出為 JSON/Markdown/PDF/可編輯截圖。Lyra Exporter 的終極配套工具，用於建構本地 AI 知識庫。
+// @description:ja Claude、ChatGPT、Grok、Gemini、Google AI Studio のワンクリックエクスポート。すべてのチャットブランチ、アーティファクト、添付ファイルをバックアップ。JSON/Markdown/PDF/編集可能なスクリーンショットにエクスポート。ローカル AI ナレッジベース構築のための Lyra Exporter の究極のコンパニオン。
+// @description:ko Claude, ChatGPT, Grok, Gemini, Google AI Studio 원클릭 내보내기. 모든 채팅 브랜치, 아티팩트 및 첨부 파일 백업. JSON/Markdown/PDF/편집 가능한 스크린샷으로 내보내기. 로컬 AI 지식 베이스 구축을 위한 Lyra Exporter의 궁극적인 동반자.
+// @description:es Exportación con un clic para Claude, ChatGPT, Grok, Gemini, Google AI Studio. Respalda todas las ramas de chat, artefactos y adjuntos. Exporta a JSON/Markdown/PDF/Capturas editables. El compañero definitivo de Lyra Exporter para construir tu base de conocimiento de IA local.
+// @description:pt Exportação com um clique para Claude, ChatGPT, Grok, Gemini, Google AI Studio. Faz backup de todas as ramificações de chat, artefatos e anexos. Exporta para JSON/Markdown/PDF/Capturas editáveis. O companheiro definitivo do Lyra Exporter para construir sua base de conhecimento de IA local.
+// @description:fr Exportation en un clic pour Claude, ChatGPT, Grok, Gemini, Google AI Studio. Sauvegarde toutes les branches de chat, artefacts et pièces jointes. Exporte vers JSON/Markdown/PDF/Captures modifiables. Le compagnon ultime de Lyra Exporter pour construire votre base de connaissances IA locale.
+// @description:de Ein-Klick-Export für Claude, ChatGPT, Grok, Gemini, Google AI Studio. Sichert alle Chat-Branches, Artefakte und Anhänge. Exportiert nach JSON/Markdown/PDF/Bearbeitbare Screenshots. Der ultimative Begleiter für Lyra Exporter zum Aufbau Ihrer lokalen AI-Wissensdatenbank.
 // @author       Laumss
-// @homepage     https://laumss.github.io/loominary
+// @homepage     https://laumss.github.io/react/welcome
 // @supportURL   https://github.com/Laumss/loominary/issues
-{match_lines}
+// @match        https://claude.ai/*
+// @match        https://chatgpt.com/*
+// @match        https://chat.openai.com/*
+// @match        https://grok.com/*
+// @match        https://gemini.google.com/*
+// @match        https://aistudio.google.com/*
 // @grant        GM_addStyle
 // @grant        GM_xmlhttpRequest
 // @grant        unsafeWindow
-// @run-at       document-idle
+// @run-at       document-start
 // @license      MIT
+// @downloadURL  https://update.greasyfork.org/scripts/539579/Loominary%20%28One-Click%20AI%20Chat%20Backup%29.user.js
+// @updateURL    https://update.greasyfork.org/scripts/539579/Loominary%20%28One-Click%20AI%20Chat%20Backup%29.meta.js
 // ==/UserScript==
 """
 
@@ -317,7 +336,7 @@ def build_userscript(platforms=None):
     # Bundle fflate inline from node_modules (avoids @require CDN dependency)
     # Use raw UMD: it sets (self/window).fflate, accessible as global within IIFE
     fflate_umd = read_file(Path('node_modules/fflate/umd/index.js'))
-    fflate_inline = "// Inline fflate (bundled from node_modules)\n" + fflate_umd
+    fflate_inline = "// Inline fflate (bundled from node_modules)\n" + fflate_umd.rstrip() + " // eslint-disable-line"
 
     # Strip non-target platform code from shared modules
     strip_targets = us_platforms if len(us_platforms) < len(PLATFORMS) else None

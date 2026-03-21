@@ -25,6 +25,7 @@ import StorageManager from './utils/data/storageManager.js';
 import { getGlobalSearchManager } from './utils/globalSearchManager';
 import { getRenameManager } from './utils/data/renameManager.js';
 import { prepareMarkdownExport, downloadMarkdownExport } from './utils/markdownExporter';
+import { pdfExportManager } from './utils/export/pdfExportManager';
 import { useI18n, setResolvedLang } from './index.js';
 
 
@@ -707,6 +708,8 @@ function App() {
     actions: fileActions
   } = useFileManager();
 
+  const [pdfProgress, setPdfProgress] = useState(null); // null = idle, string = generating
+
   // 状态管理
   const [selectedMessageIndex, setSelectedMessageIndex] = useState(null);
   const [showSearchOverlay, setShowSearchOverlay] = useState(false);
@@ -805,6 +808,19 @@ function App() {
   const [showSettings, setShowSettings] = useState(() =>
     !!(new URLSearchParams(window.location.search).get('settings'))
   );
+
+  // 设置面板：浏览器返回手势支持
+  const closingSettingsRef = useRef(false);
+  useEffect(() => {
+    if (!showSettings) return;
+    window.history.pushState({ loominarySettings: true }, '');
+    const handlePopState = () => {
+      closingSettingsRef.current = true;
+      setShowSettings(false);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [showSettings]);
 
   // 搜索状态
   const [searchQuery, setSearchQuery] = useState('');
@@ -909,17 +925,43 @@ function App() {
     }
   }, []);
 
+  // Bug 8 修复：封装 timeline 切换，同时 pushState 保证返回手势回到 conversations
+  const switchToTimeline = useCallback((fileIdx, convUuid) => {
+    setViewMode('timeline');
+    // 仅在从 conversations 首次进入时 push（避免重复 push）
+    const currentState = window.history.state;
+    if (!currentState || currentState.view !== 'timeline') {
+      window.history.pushState(
+        { view: 'timeline', fileIndex: fileIdx ?? null, convUuid: convUuid ?? null },
+        ''
+      );
+    }
+  }, []);
+  const switchToTimelineRef = useRef(switchToTimeline);
+  switchToTimelineRef.current = switchToTimeline;
+
   useEffect(() => {
     const handlePopState = (event) => {
       const state = event.state;
 
       // 忽略 detail 视图的状态变化（由 ConversationTimeline 处理）
-      if (state && state.view === 'detail') {
+      if (state && (state.view === 'detail' || state.loominaryDetail)) {
         return;
       }
 
       // 忽略面板视图的状态变化（由各面板组件自身的 popstate 处理器处理）
       if (state && (state.view === 'action-panel' || state.view === 'settings-panel' || state.view === 'screenshot-preview')) {
+        return;
+      }
+
+      // 忽略设置面板的历史记录（由 showSettings 的 popstate 处理器处理）
+      if (state && state.loominarySettings) {
+        return;
+      }
+
+      // 设置面板通过返回手势关闭时，跳过本次 popstate（已由 settings handler 处理）
+      if (closingSettingsRef.current) {
+        closingSettingsRef.current = false;
         return;
       }
 
@@ -989,8 +1031,8 @@ function App() {
     // 记录当前文件索引，用于判断是否需要切换文件
     const needFileSwitch = fileIndex !== selectedFileIndex || fileIndex !== currentFileIndex;
 
-    // 切换到时间线视图
-    setViewMode('timeline');
+    // 切换到时间线视图（pushState 确保返回手势回到 conversations）
+    switchToTimeline(fileIndex, conversationUuid);
 
     // 切换文件（如果需要）
     if (needFileSwitch) {
@@ -1043,7 +1085,7 @@ function App() {
         }
       }));
     }, delay);
-  }, [selectedFileIndex, currentFileIndex, selectedConversationUuid, setViewMode, setSelectedFileIndex, setSelectedConversationUuid, fileActions]);
+  }, [selectedFileIndex, currentFileIndex, selectedConversationUuid, switchToTimeline, setSelectedFileIndex, setSelectedConversationUuid, fileActions]);
 
 
   // 当卡片点击加载新文件后，files 数组更新时自动选中新文件
@@ -1073,13 +1115,84 @@ function App() {
         const newFileIdx = fileActionsRef.current ? files.length : 0;
         pendingSelectIndexRef.current = newFileIdx;
         fileActionsRef.current.loadFiles([file]);
-        setViewMode('timeline');
+        switchToTimeline(newFileIdx, null);
       } catch (err) {
         console.error('[SingleFile] Failed to load file:', err);
       }
     };
     input.click();
   }, [files.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleImportFolder = useCallback(async () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,.jsonl';
+    input.multiple = true;
+    input.webkitdirectory = true;
+    input.onchange = async (e) => {
+      const fileList = Array.from(e.target.files || []);
+      if (fileList.length === 0) return;
+      try {
+        // 按文件夹分组，用第一级子文件夹名作为 project
+        const cards = [];
+        for (const file of fileList) {
+          if (!file.name.endsWith('.json') && !file.name.endsWith('.jsonl')) continue;
+          try {
+            const jsonStr = await file.text();
+            const isJsonl = file.name.endsWith('.jsonl');
+            const jsonData = isJsonl ? parseJSONL(jsonStr) : JSON.parse(jsonStr);
+            const parsed = extractChatData(jsonData, file.name);
+            const meta = parsed.meta_info || {};
+            // webkitRelativePath: "FolderName/sub/file.jsonl" → 取第一段为 project
+            const parts = (file.webkitRelativePath || '').split('/');
+            const folderName = parts.length > 1 ? parts[0] : null;
+            const project = meta.project || jsonData.project ||
+              (folderName ? { uuid: `folder:${folderName}`, name: folderName } : null);
+            cards.push({
+              type: 'conversation',
+              uuid: meta.uuid || jsonData.uuid || file.name,
+              name: meta.title || jsonData.name || file.name.replace(/\.(json|jsonl)$/, ''),
+              format: parsed.format || 'claude',
+              created_at: meta.created_at || jsonData.created_at || null,
+              updated_at: meta.updated_at || jsonData.updated_at || null,
+              project,
+              project_uuid: meta.project_uuid || jsonData.project_uuid || null,
+              organization_id: meta.organization_id || null,
+              platform: parsed.platform || 'claude',
+              messageCount: parsed.chat_history?.length || 0,
+              size: file.size,
+              _zipData: jsonStr
+            });
+          } catch (parseErr) {
+            console.warn('[ImportFolder] 跳过无法解析的文件:', file.name, parseErr);
+          }
+        }
+        if (cards.length === 0) return;
+        cardFileIndexMapRef.current = new Map();
+        uuidMapRef.current = { toFile: new Map(), toCard: new Map() };
+        openedCardUuidRef.current = null;
+        setBrowseAllCurrentIndex(null);
+        StorageManager.remove('singlefile_session');
+        setBrowseAllCards(prev => {
+          const existingUuids = new Set(prev.map(c => c.uuid));
+          const newCards = cards.filter(c => !existingUuids.has(c.uuid));
+          return [...prev, ...newCards];
+        });
+        setHasZipData(true);
+        const zipFiles = cards.map(card => {
+          const blob = new Blob([card._zipData], { type: 'application/json' });
+          const safeName = (card.name || card.uuid).replace(/[<>:"\/\\|?*\x00-\x1F]/g, '') + '.json';
+          return new File([blob], safeName, { type: 'application/json', lastModified: Date.now() });
+        });
+        if (zipFiles.length > 0) fileActionsRef.current.loadFiles(zipFiles);
+        setViewMode('conversations');
+        console.log('[ImportFolder] 成功导入', cards.length, '个对话');
+      } catch (err) {
+        console.error('[ImportFolder] 导入文件夹失败:', err);
+      }
+    };
+    input.click();
+  }, [setViewMode]);
 
   const handleMarkToggle = (messageIndex, markType) => {
     if (markManagerRef.current) {
@@ -1192,7 +1305,7 @@ function App() {
         setSelectedConversationUuid(null);
         const cardIdx = sortedBrowseCards.findIndex(c => c.uuid === item.uuid);
         if (cardIdx !== -1) setBrowseAllCurrentIndex(cardIdx);
-        setViewMode('timeline');
+        switchToTimeline(existingIdx, null);
         return;
       }
 
@@ -1219,11 +1332,11 @@ function App() {
       fileActionsRef.current.loadFiles([file]);
       const cardIdx = sortedBrowseCards.findIndex(c => c.uuid === item.uuid);
       if (cardIdx !== -1) setBrowseAllCurrentIndex(cardIdx);
-      setViewMode('timeline');
+      switchToTimeline(newFileIdx, null);
     } catch (e) {
       console.error('[Loominary] Error loading conversation:', e);
     }
-  }, [setViewMode, files, sortedBrowseCards]);
+  }, [switchToTimeline, files, sortedBrowseCards]);
 
   const handleBrowseAllExport = useCallback(async () => {
     const ctx = browseAllContextRef.current || {};
@@ -1403,26 +1516,38 @@ function App() {
 
         const cards = [];
         for (const [filename, data] of Object.entries(unzipped)) {
-          if (!filename.endsWith('.json') || isProjectsMetaFile(filename) || filename === '_renames.json') continue;
+          const isJson = filename.endsWith('.json');
+          const isJsonl = filename.endsWith('.jsonl');
+          if ((!isJson && !isJsonl) || isProjectsMetaFile(filename) || filename === '_renames.json') continue;
           try {
             const jsonStr = strFromU8(data);
-            const jsonData = JSON.parse(jsonStr);
+            const jsonData = isJsonl ? parseJSONL(jsonStr) : JSON.parse(jsonStr);
             const parsed = extractChatData(jsonData, filename);
             const meta = parsed.meta_info || {};
+            const baseName = filename.replace(/\.(json|jsonl)$/, '').split('/').pop();
+            // 从文件路径的文件夹名推断 project（仅当 JSON 本身没有 project 信息时）
+            const folderProject = (() => {
+              const slashIdx = filename.lastIndexOf('/');
+              if (slashIdx > 0) {
+                const folderName = filename.slice(0, slashIdx).split('/').pop();
+                if (folderName) return { uuid: `folder:${folderName}`, name: folderName };
+              }
+              return null;
+            })();
             cards.push({
               type: 'conversation',
               uuid: meta.uuid || jsonData.uuid || filename,
-              name: meta.title || jsonData.name || filename.replace(/\.json$/, ''),
+              name: meta.title || jsonData.name || baseName,
               format: parsed.format || 'claude',
               created_at: meta.created_at || jsonData.created_at || null,
               updated_at: meta.updated_at || jsonData.updated_at || null,
-              project: meta.project || jsonData.project || null,
+              project: meta.project || jsonData.project || folderProject,
               project_uuid: meta.project_uuid || jsonData.project_uuid || null,
               organization_id: meta.organization_id || null,
               platform: parsed.platform || 'claude',
               messageCount: parsed.chat_history?.length || 0,
               size: data.length,
-              _zipData: jsonStr // 保留原始 JSON 用于打开对话
+              _zipData: jsonStr
             });
           } catch (parseErr) {
             console.warn('[ZipImport] 跳过无法解析的文件:', filename, parseErr);
@@ -1646,6 +1771,32 @@ function App() {
     }
   };
 
+  const handlePdfExportClick = async () => {
+    if (!processedData || pdfProgress !== null) return;
+    try {
+      const messages = exportOptions.scope !== 'currentBranch'
+        ? (processedData.chat_history || [])
+        : timelineDisplayMessages.length > 0
+          ? timelineDisplayMessages
+          : (processedData.chat_history || []);
+      const meta = {
+        name: processedData.meta_info?.title || processedData.meta_info?.name || 'Conversation',
+        platform: processedData.meta_info?.platform || 'claude',
+        created_at: processedData.meta_info?.created_at || '',
+        updated_at: processedData.meta_info?.updated_at || '',
+      };
+      await pdfExportManager.exportToPDF(messages, meta, {
+        includeThinking: exportOptions.includeThinking ?? false,
+        includeArtifacts: exportOptions.includeArtifacts ?? true,
+        includeTimestamps: exportOptions.includeTimestamps ?? false,
+        includeTools: exportOptions.includeTools ?? true,
+      }, setPdfProgress);
+    } catch (err) {
+      console.error('[Loominary] PDF export failed:', err);
+      setPdfProgress(null);
+    }
+  };
+
   // 标记操作
   const markActions = {
     toggleMark: handleMarkToggle,
@@ -1744,8 +1895,15 @@ function App() {
   const dataLoadedRef = useRef(false);
 
   // 单文件会话恢复：刷新页面时从 localStorage 还原上次打开的 JSON
+  // 从 WelcomePage 进入时带 ?fresh=1，跳过恢复
   useEffect(() => {
     if (isExtension) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('fresh')) {
+      // 清除 URL 参数，避免刷新时再次触发
+      window.history.replaceState({}, '', window.location.pathname);
+      return;
+    }
     const session = StorageManager.get('singlefile_session');
     if (!session?.content || !session?.filename) return;
     if (dataLoadedRef.current) return;
@@ -1754,7 +1912,7 @@ function App() {
       const file = new File([blob], session.filename, { type: 'application/json', lastModified: Date.now() });
       pendingSelectIndexRef.current = 0;
       fileActionsRef.current.loadFiles([file]);
-      setViewMode('timeline');
+      switchToTimeline(0, null);
     } catch (err) {
       console.error('[SingleFile] Failed to restore session:', err);
       StorageManager.remove('singlefile_session');
@@ -1814,7 +1972,7 @@ function App() {
             fileActionsRef.current.loadFiles([file], { replace: true });
             try { StorageManager.set('singlefile_session', { content: jsonData, filename }); } catch (_) {}
           }
-          setViewModeRef.current('timeline');
+          switchToTimelineRef.current(0, null);
           if (payload.exportContext) {
             setPendingExportContext(payload.exportContext);
           }
@@ -1974,7 +2132,7 @@ function App() {
   useEffect(() => {
     if (isExtension && files.length > 0 && viewMode !== 'timeline' && browseAllCards.length === 0) {
       console.log('[Loominary] Files loaded in extension mode, switching to timeline view');
-      setViewMode('timeline');
+      switchToTimeline(0, null);
       fileActions.switchFile(0);
       setSelectedFileIndex(0);
     }
@@ -2056,9 +2214,19 @@ function App() {
             <div className="timeline-filter-panel">
               {/* 导出格式切换（UI预留，暂无实现） */}
               <div className="segment-group segment-group--branch">
-                {['Markdown', 'PDF', 'ScreenShot'].map((mode) => (
-                  <button key={mode} className="segment-btn" disabled title="On the way now">
-                    {mode}
+                {[
+                  { label: 'Markdown', value: 'markdown' },
+                  { label: 'PDF', value: 'pdf' },
+                  { label: 'ScreenShot', value: 'screenshot', disabled: true },
+                ].map(({ label, value, disabled }) => (
+                  <button
+                    key={value}
+                    className={`segment-btn ${exportOptions.exportFormat === value ? 'active' : ''}`}
+                    disabled={disabled}
+                    title={disabled ? 'On the way now' : undefined}
+                    onClick={() => !disabled && setExportOptions(prev => ({ ...prev, exportFormat: value }))}
+                  >
+                    {label}
                   </button>
                 ))}
               </div>
@@ -2071,10 +2239,11 @@ function App() {
                   <button
                     key={label}
                     className={`segment-btn ${active ? 'active' : ''}`}
-                    onClick={() => setExportOptions(prev => ({
-                      ...prev,
-                      scope: prev.scope === 'currentBranch' ? 'current' : 'currentBranch'
-                    }))}
+                    onClick={() => {
+                      const newScope = exportOptions.scope === 'currentBranch' ? 'allBranches' : 'currentBranch';
+                      setExportOptions(prev => ({ ...prev, scope: newScope }));
+                      setCurrentBranchState(prev => ({ ...prev, showAllBranches: newScope === 'allBranches' }));
+                    }}
                   >
                     {label}
                   </button>
@@ -2139,7 +2308,8 @@ function App() {
                   hasZipData,
                   onZipImport: handleZipImport,
                   onZipSync: handleZipSync,
-                  onOpenSingleJson: handleOpenSingleJson
+                  onOpenSingleJson: handleOpenSingleJson,
+                  onImportFolder: handleImportFolder
                 }}
               />
               ) : (
@@ -2172,9 +2342,42 @@ function App() {
           </div>
 
           <FloatingActionButton
-            onClick={viewMode === 'conversations' ? handleBrowseAllExport : () => handleExportClick()}
+            onClick={viewMode === 'conversations' ? handleBrowseAllExport : exportOptions.exportFormat === 'pdf' ? handlePdfExportClick : handleExportClick}
             title={viewMode === 'conversations' ? t('filter.actions.exportProject') || '导出全部' : t('app.export.button')}
+            disabled={pdfProgress !== null}
           />
+
+          {/* PDF 导出进度 overlay */}
+          {pdfProgress !== null && (
+            <div style={{
+              position: 'fixed', inset: 0, zIndex: 99999,
+              background: 'rgba(0,0,0,0.45)',
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center', gap: 12,
+            }}>
+              <div style={{
+                background: 'var(--bg-primary, #fff)', borderRadius: 12,
+                padding: '24px 36px', textAlign: 'center',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                maxWidth: 320,
+              }}>
+                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>PDF 导出中</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary, #666)', marginBottom: 16 }}>{pdfProgress}</div>
+                <div style={{
+                  height: 4, borderRadius: 2,
+                  background: 'var(--bg-secondary, #eee)', overflow: 'hidden',
+                }}>
+                  <div style={{
+                    height: '100%', width: '100%',
+                    background: 'var(--accent, #4a90e2)',
+                    animation: 'pdf-indeterminate 1.4s ease-in-out infinite',
+                    transformOrigin: 'left',
+                  }} />
+                </div>
+              </div>
+              <style>{`@keyframes pdf-indeterminate{0%{transform:scaleX(0.1) translateX(0)}50%{transform:scaleX(0.6) translateX(60%)}100%{transform:scaleX(0.1) translateX(900%)}}`}</style>
+            </div>
+          )}
 
           {/* 搜索浮层 */}
           <SearchOverlay
@@ -2187,7 +2390,11 @@ function App() {
           {/* 设置面板（仅独立/GitHub Pages 模式） */}
           {!isExtension && showSettings && (
             <SettingsPanel
-              onClose={() => setShowSettings(false)}
+              onClose={() => {
+                closingSettingsRef.current = true;
+                setShowSettings(false);
+                window.history.back();
+              }}
               exportOptions={exportOptions}
               setExportOptions={setExportOptions}
             />

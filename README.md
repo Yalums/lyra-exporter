@@ -46,7 +46,7 @@ Loominary goes beyond the chat and captures the context around each conversation
   * **Global Search:** Search across all conversations by content, title, or semantically (if you connect your own embedding model). Filter by images, thinking processes, Artifacts, or tool calls.
   * **Branch Navigation:** Loominary automatically detects branches and displays them on a timeline. Jump to the latest branch with a single click.
   * **Tagging:** Tag messages as completed, important, or deleted. Tags persist across sessions and carry through to your exports.
-  * **Flexible Exports:** Export to Markdown~~, PDF (with LaTeX and image support), or long screenshots~~. Choose exactly what to include: timestamps, thinking processes, Artifacts, tool calls, or citations.
+  * **Flexible Exports:** Export to Markdown, PDF (with LaTeX and image support)~~, or long screenshots~~. Choose exactly what to include: timestamps, thinking processes, Artifacts, tool calls, or citations.
   * **Batch Processing:** Batch export hundreds of conversations into a ZIP file, or choose to export only the latest branch of each when you don't need the full history (perfect for handling massive Claude account exports).
   * **Favorites:** Loominary preserves Claude's native conversation favorites and allows you to add your own.
 
@@ -57,10 +57,10 @@ Loominary goes beyond the chat and captures the context around each conversation
 | Platform | Load Chats | Project&Memories | Realtime Branches |
 |---|---|---|---|
 | Claude | Yes | Yes | Yes |
-| ChatGPT | Yes | Yes | Yes |
+| ChatGPT | Yes | — | Yes |
 | Gemini | Yes | — | Yes |
 | Grok | Yes | — | Yes |
-| NotebookLM | Yes | — | — |
+| NotebookLM | Yes | — | Whiteboard mode |
 | Google AI Studio | Yes | — | — |
 | SillyTavern | Yes | Yes | Merged branch files |
 
@@ -70,14 +70,7 @@ Loominary goes beyond the chat and captures the context around each conversation
 
 Try it online at [Loominary](https://laumss.github.io/react/welcome/).
 
-Or build it locally:
-
-``` bash
-git clone https://github.com/Laumss/Loominary.git
-cd Loominary
-npm install
-npm start
-```
+[Greasyfork](https://greasyfork.org/en/scripts/539579-loominary-one-click-ai-chat-backup)
 
 -----
 

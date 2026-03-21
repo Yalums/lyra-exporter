@@ -208,10 +208,12 @@
     "tabs": {
       "content": "Content",
       "thinking": "Thinking Process",
-      "attachments": "Attachments"
+      "attachments": "Attachments",
+      "notes": "Notes"
     },
     "placeholder": {
       "selectMessage": "Select a message to view details",
+      "notesPlaceholder": "Add your notes here...",
       "noArtifacts": "This message does not use Artifacts",
       "noAttachments": "This message has no attachments",
       "noThinking": "This message has no thinking process recorded",
@@ -271,7 +273,9 @@
       "exportProject": "Export Project",
       "exportProjectTitle": "Save current file list as project config",
       "importProject": "Import Project",
-      "importProjectTitle": "Load file list from project config"
+      "importProjectTitle": "Load file list from project config",
+      "importFolder": "Import Folder",
+      "importFolderTitle": "Import folder; subfolder names become project names"
     },
     "search": {
       "label": "Search conversations",
@@ -608,6 +612,15 @@
     }
   },
   "exportManager": {
+    "progress": {
+      "initPdf": "Initializing PDF...",
+      "loadingFonts": "Loading fonts (first time ~30s)...",
+      "renderingDoc": "Rendering document structure...",
+      "renderingMessage": "Rendering message {{current}} / {{total}}",
+      "generatingToc": "Generating table of contents...",
+      "addingFooter": "Adding footers...",
+      "savingFile": "Saving file..."
+    },
     "metadata": {
       "defaultTitle": "Conversation Record",
       "created": "Created",

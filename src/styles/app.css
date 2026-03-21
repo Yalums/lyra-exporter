@@ -33,7 +33,7 @@
   }
 }
 
-/* 移动端：自然文档流 */
+/* 移动端：文档流布局（ConversationTimeline 依赖页面自然滚动） */
 @media (max-width: 1023px) {
   .app-redesigned {
     height: auto;
@@ -371,12 +371,12 @@ html.navbar-hidden .navbar-redesigned {
   min-height: 0;
 }
 
-/* 移动端：自然高度 */
+/* 移动端布局 */
 @media (max-width: 1023px) {
   .main-container {
     height: auto;
     min-height: 0;
-    overflow-x: hidden; /* 防止水平溢出导致界面被拉伸 */
+    overflow-x: hidden;
     overflow-y: visible;
   }
 
@@ -384,6 +384,12 @@ html.navbar-hidden .navbar-redesigned {
     overflow-x: hidden;
     overflow-y: visible;
     height: auto;
+    min-height: 0; /* Bug 7 修复：移除桌面端 min-height:400px，允许内容自然流动 */
+  }
+
+  /* Bug 7 修复：卡片列表视图 — 确保触摸滚动顺畅 */
+  .view-content-conversations {
+    -webkit-overflow-scrolling: touch;
   }
 }
 

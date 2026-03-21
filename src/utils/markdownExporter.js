@@ -15,6 +15,7 @@ import {
   toRoman
 } from './formatHelpers';
 import { t } from '../index.js';
+import StorageManager from './data/storageManager.js';
 import * as fflateStatic from 'fflate';
 
 const gt = (key) => t(`exportManager.${key}`);
@@ -26,6 +27,7 @@ export const ExportConfig = {
     includeArtifacts: true,
     includeCitations: true,
     includeAttachments: true,
+    includeNotes: true,
     includeTimestamps: false,
     excludeDeleted: true,
     includeCompleted: false,
@@ -138,6 +140,14 @@ export class MarkdownGenerator {
     }
     if (msg.citations?.length > 0 && this.config.includeCitations) {
       lines.push(formatCitationsHelper(msg.citations, gt));
+    }
+    // 笔记
+    if (this.config.includeNotes && this.config.notes && this.config.notes[msg.index]) {
+      lines.push('');
+      lines.push('```note');
+      lines.push(this.config.notes[msg.index]);
+      lines.push('```');
+      lines.push('');
     }
     return lines.join('\n');
   }
@@ -292,6 +302,10 @@ function processImagesInMessages(messages) {
  * 从 popup config 对象构建 MarkdownGenerator 的 config
  */
 function buildGeneratorConfig(exportConfig) {
+  // 读取笔记数据
+  const conversationUuid = exportConfig.conversationUuid || null;
+  const notes = conversationUuid ? StorageManager.getNotes(conversationUuid) : {};
+
   return {
     includeTimestamps: !!exportConfig.includeTimestamps,
     includeThinking: !!exportConfig.includeThinking,
@@ -299,6 +313,7 @@ function buildGeneratorConfig(exportConfig) {
     includeTools: !!exportConfig.includeTools,
     includeCitations: !!exportConfig.includeCitations,
     includeAttachments: !!exportConfig.includeAttachments,
+    includeNotes: exportConfig.includeNotes !== false,
     includeBranchMarkers: exportConfig.includeBranchMarkers !== false,
     includeNumbering: exportConfig.includeNumbering !== false,
     numberingFormat: exportConfig.numberingFormat || 'numeric',
@@ -308,7 +323,8 @@ function buildGeneratorConfig(exportConfig) {
     includeHeaderPrefix: exportConfig.includeHeaderPrefix !== false,
     headerLevel: exportConfig.headerLevel || 2,
     thinkingFormat: exportConfig.thinkingFormat || 'codeblock',
-    conversationUuid: exportConfig.conversationUuid || null,
+    conversationUuid,
+    notes,
   };
 }
 

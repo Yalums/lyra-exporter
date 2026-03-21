@@ -7,13 +7,14 @@ import chatgptIcon from './assets/icons/ChatGPT.svg';
 import geminiIcon from './assets/icons/Gemini.svg';
 import grokIcon from './assets/icons/Grok.svg';
 import notebookLMIcon from './assets/icons/NotebookLM.svg';
+import sillyTavernIcon from './assets/icons/SillyTavern.png';
 
 // Lucide-react icons to replace Font Awesome
 import {
   Search, Tag, GitBranch, Star,
   FileOutput, Image, Box, Wrench, Quote, Layers,
   Puzzle, Download, Sparkles, Brain,
-  FileText, FlaskConical,
+  FileText,
 } from 'lucide-react';
 
 function useInView(threshold = 0.1) {
@@ -53,10 +54,10 @@ function TagPill({ children }) {
   return <span className="wp-tag">{children}</span>;
 }
 
-function PlatformIcon({ src, title }) {
+function PlatformIcon({ src, title, mono }) {
   return (
     <div title={title} className="wp-platform-icon">
-      <img src={src} alt={title} style={{ width:"20px", height:"20px", objectFit:"contain" }} />
+      <img src={src} alt={title} className={`wp-platform-img${mono ? ' wp-platform-img-mono' : ''}`} />
     </div>
   );
 }
@@ -85,11 +86,12 @@ const steps = [
 ];
 
 const platforms = [
-  { src: claudeIcon, title: "Claude" },
-  { src: chatgptIcon, title: "ChatGPT" },
+  { src: claudeIcon, title: "Claude", mono: true },
+  { src: chatgptIcon, title: "ChatGPT", mono: true },
   { src: geminiIcon, title: "Gemini" },
-  { src: grokIcon, title: "Grok" },
+  { src: grokIcon, title: "Grok", mono: true },
   { src: notebookLMIcon, title: "NotebookLM" },
+  { src: sillyTavernIcon, title: "SillyTavern" },
 ];
 
 // Detect system preferred color scheme
@@ -202,7 +204,7 @@ export default function LoominaryLanding() {
               </div>
               <div style={{ display:"flex",alignItems:"center",gap:"1.25rem" }}>
                 <a href="https://github.com/Yalums/lyra-exporter" target="_blank" rel="noreferrer" className="wp-nav-link">GitHub</a>
-                <a href="https://yalums.github.io/lyra-exporter/" target="_blank" rel="noreferrer" className="wp-nav-btn">Open App</a>
+                <a href="../index.html?fresh=1" className="wp-nav-btn">Open App</a>
               </div>
             </nav>
 
@@ -217,11 +219,7 @@ export default function LoominaryLanding() {
               <Anim delay={0.3}><p className="wp-hero-desc">A feature-rich tool to manage and export conversations from Claude, ChatGPT, Gemini, Grok, NotebookLM &amp; AI Studio.</p></Anim>
               <Anim delay={0.4}>
                 <div style={{ display:"flex",alignItems:"center",gap:"0.625rem",marginTop:"2rem",flexWrap:"wrap" }}>
-                  {platforms.map(p => <PlatformIcon key={p.title} src={p.src} title={p.title} />)}
-                  {/* SillyTavern, use lucide icon */}
-                  <div title="SillyTavern" className="wp-platform-icon">
-                    <FlaskConical size={20} />
-                  </div>
+                  {platforms.map(p => <PlatformIcon key={p.title} src={p.src} title={p.title} mono={p.mono} />)}
                 </div>
               </Anim>
             </div>
@@ -408,6 +406,9 @@ export default function LoominaryLanding() {
             <div className="wp-footer-bottom">
               <span>&copy; 2026 Loominary. MIT License.</span>
               <span style={{ letterSpacing:"0.1em" }}>WEAVE LIGHT. WALK FORWARD.</span>
+            </div>
+            <div className="wp-footer-attribution">
+              PDF export uses <a href="https://hyperos.mi.com/font" target="_blank" rel="noopener noreferrer">MiSans</a> font, &copy; Xiaomi. Used under the MiSans Font IP License.
             </div>
           </div>
         </footer>

@@ -9,6 +9,7 @@ import PlatformIcon, { inferJsonlModelKey } from './PlatformIcon';
 import { PlatformUtils, DateTimeUtils, TextUtils } from '../utils/fileParser';
 import { useI18n } from '../index.js';
 import { getRenameManager } from '../utils/data/renameManager.js';
+import StorageManager from '../utils/data/storageManager.js';
 import BranchSwitcher from './BranchSwitcher';
 import SystemContextCard from './SystemContextCard';
 import { analyzeBranches, filterDisplayMessages, ROOT_UUID, findMessageByLocator, computeBranchFiltersForMessage } from '../utils/branchAnalysis';
@@ -152,7 +153,9 @@ const MessageDetailPanel = ({
   onCopyMessage,
   t,
   showTabs = true, // 新增:控制是否显示标签页
-  systemContext = null // 新增:system context 模式
+  systemContext = null, // 新增:system context 模式
+  notes = {},
+  onNoteChange = null
 }) => {
   // system context 模式：渲染专属面板
   if (systemContext) {
@@ -191,6 +194,8 @@ const MessageDetailPanel = ({
           format={format}
           onTabChange={onTabChange}
           showTabs={showTabs}
+          notes={notes}
+          onNoteChange={onNoteChange}
         />
       </div>
 
@@ -264,19 +269,57 @@ const ConversationTimeline = ({
   const [copiedMessageIndex, setCopiedMessageIndex] = useState(null);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
 
+  // 笔记管理
+  const fileUuid = data?.meta_info?.uuid || null;
+  const [notes, setNotes] = useState({});
+  useEffect(() => {
+    if (fileUuid) {
+      setNotes(StorageManager.getNotes(fileUuid));
+    } else {
+      setNotes({});
+    }
+  }, [fileUuid]);
+
+  const handleNoteChange = useCallback((messageIndex, text) => {
+    setNotes(prev => {
+      const next = { ...prev };
+      if (text.trim()) {
+        next[messageIndex] = text;
+      } else {
+        delete next[messageIndex];
+      }
+      if (fileUuid) StorageManager.setNotes(fileUuid, next);
+      return next;
+    });
+  }, [fileUuid]);
+
   // 切换到桌面端时自动关闭移动抽屉
   useEffect(() => {
     if (!isMobile) setMobileDetailOpen(false);
   }, [isMobile]);
 
-  // 移动端详情打开时锁住外部滚动、隐藏 FAB
+  // 移动端详情打开时锁住外部滚动、隐藏 FAB、管理浏览器历史
+  const savedScrollYRef = useRef(0);
   useEffect(() => {
     if (mobileDetailOpen) {
+      // 保存当前滚动位置，防止 iOS Safari 关闭后跳回顶部
+      savedScrollYRef.current = window.scrollY;
       document.body.style.overflow = 'hidden';
       document.body.classList.add('mobile-detail-open');
+      // 推入历史记录，允许浏览器返回手势关闭详情
+      window.history.pushState({ loominaryDetail: true }, '');
+      const handlePopState = () => {
+        setMobileDetailOpen(false);
+      };
+      window.addEventListener('popstate', handlePopState);
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+      };
     } else {
       document.body.style.overflow = '';
       document.body.classList.remove('mobile-detail-open');
+      // 恢复滚动位置，避免 iOS Safari 将页面滚回顶部
+      window.scrollTo(0, savedScrollYRef.current);
     }
     return () => {
       document.body.style.overflow = '';
@@ -287,18 +330,22 @@ const ConversationTimeline = ({
   // 移动端：计算当前消息的可用 tabs（用于 toolbar 内联显示）
   const mobileTabs = useMemo(() => {
     if (!isMobile || isSystemContextSelected) return [];
-    const msg = data?.messages?.[selectedMessageIndex];
+    // MessageDetail 使用 chat_history.find 查找消息，此处保持一致
+    const msg = data?.chat_history?.find(m => m.index === selectedMessageIndex);
     if (!msg) return [];
     const tabs = [{ id: 'content', label: t('messageDetail.tabs.content') }];
     if (msg.sender !== 'human') {
       if (msg.thinking) tabs.push({ id: 'thinking', label: t('messageDetail.tabs.thinking') });
       if (msg.artifacts?.length > 0) tabs.push({ id: 'artifacts', label: 'Artifacts' });
+      if (format === 'gemini_notebooklm' && msg.canvas) tabs.push({ id: 'canvas', label: 'Canvas' });
     } else {
       const attachments = msg.attachments?.filter(a => !a.is_embedded_image && !(a.file_type?.startsWith('image/'))) || [];
       if (attachments.length > 0) tabs.push({ id: 'attachments', label: t('messageDetail.tabs.attachments') });
+      if (format === 'gemini_notebooklm' && msg.canvas) tabs.push({ id: 'canvas', label: 'Canvas' });
     }
+    tabs.push({ id: 'notes', label: t('messageDetail.tabs.notes') });
     return tabs;
-  }, [isMobile, isSystemContextSelected, data, selectedMessageIndex, t]);
+  }, [isMobile, isSystemContextSelected, data, selectedMessageIndex, format, t]);
 
   // 重命名相关状态
   const [showRenameDialog, setShowRenameDialog] = useState(false);
@@ -308,6 +355,8 @@ const ConversationTimeline = ({
   // 滚动相关状态
   const leftPanelRef = React.useRef(null);
   const lastScrollTopRef = useRef(0);
+  const rightPanelRef = useRef(null);
+  const lastResetUuidRef = useRef(null); // 防止相同 uuid 重复触发分支重置
 
   // 消息定位相关
   const messageRefs = useRef({});
@@ -397,6 +446,10 @@ const ConversationTimeline = ({
 
   // 重置分支状态 - 当对话切换时，立即隐藏
   useEffect(() => {
+    const uuid = conversation?.uuid;
+    // 相同 uuid 不重置（防止同一文件重复加载时清空分支状态）
+    if (uuid === lastResetUuidRef.current) return;
+    lastResetUuidRef.current = uuid;
     setIsTransitioning(true);
     setBranchFilters(new Map());
     setShowAllBranches(false);
@@ -628,13 +681,15 @@ const ConversationTimeline = ({
 
   useEffect(() => {
     if (branchAnalysis.branchPoints.size > 0 && branchFilters.size === 0 && !showAllBranches) {
+      // 父组件已有分支状态时不用 defaults 覆盖（防止 branchState-sync 与 init 的竞态）
+      if (branchState?.currentBranchIndexes?.size > 0) return;
       const initialFilters = new Map();
       branchAnalysis.branchPoints.forEach((branchData, branchPointUuid) => {
         initialFilters.set(branchPointUuid, 0);
       });
       setBranchFilters(initialFilters);
     }
-  }, [branchAnalysis.branchPoints, branchFilters.size, showAllBranches]);
+  }, [branchAnalysis.branchPoints, branchFilters.size, showAllBranches, branchState]);
 
   useEffect(() => {
     if (messages.length > 0 && !selectedMessageIndex) {
@@ -652,15 +707,18 @@ const ConversationTimeline = ({
     lastScrollTopRef.current = 0;
   }, [conversation?.uuid]);
 
-  // 自动隐藏顶栏：检测左面板滚动方向
+  // 自动隐藏顶栏：检测滚动方向
+  // 桌面端：监听左面板内部滚动；移动端：左面板 overflow:visible，监听 window 滚动
   useEffect(() => {
     const panel = leftPanelRef.current;
     if (!panel) return;
 
+    const getScrollTop = () => isMobile ? window.scrollY : panel.scrollTop;
+
     const handleNavbarScroll = () => {
-      const currentScrollTop = panel.scrollTop;
+      const currentScrollTop = getScrollTop();
       const delta = currentScrollTop - lastScrollTopRef.current;
-      // 忽略微小抖动和初始重置后的第一帧
+      // 忽略微小抖动
       if (Math.abs(delta) > 2) {
         if (delta > 0 && currentScrollTop > 80) {
           document.documentElement.classList.add('navbar-hidden');
@@ -671,12 +729,13 @@ const ConversationTimeline = ({
       lastScrollTopRef.current = currentScrollTop;
     };
 
-    panel.addEventListener('scroll', handleNavbarScroll, { passive: true });
+    const target = isMobile ? window : panel;
+    target.addEventListener('scroll', handleNavbarScroll, { passive: true });
     return () => {
-      panel.removeEventListener('scroll', handleNavbarScroll);
+      target.removeEventListener('scroll', handleNavbarScroll);
       document.documentElement.classList.remove('navbar-hidden');
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isMobile]);
 
   const handleMessageSelect = (messageIndex) => {
     setSelectedMessageIndex(messageIndex);
@@ -1210,9 +1269,9 @@ const ConversationTimeline = ({
         </div>
 
         {/* 右侧消息详情 */}
-        <div className={`timeline-right-panel ${mobileDetailOpen ? 'mobile-open' : ''}`}>
+        <div ref={rightPanelRef} className={`timeline-right-panel ${mobileDetailOpen ? 'mobile-open' : ''}`}>
           <div className="mobile-detail-toolbar">
-            <button className="mobile-detail-back" onClick={() => setMobileDetailOpen(false)}>
+            <button className="mobile-detail-back" onClick={() => window.history.back()}>
               <ChevronLeft size={20} />
             </button>
             <div className="mobile-msg-tabs">
@@ -1288,6 +1347,8 @@ const ConversationTimeline = ({
                 onCopyMessage={handleCopyMessage}
                 t={t}
                 systemContext={isSystemContextSelected ? exportContext : null}
+                notes={notes}
+                onNoteChange={handleNoteChange}
               />
           ) : (
             <div className="message-detail-container">
@@ -1304,6 +1365,8 @@ const ConversationTimeline = ({
                 onCopyMessage={handleCopyMessage}
                 t={t}
                 systemContext={isSystemContextSelected ? exportContext : null}
+                notes={notes}
+                onNoteChange={handleNoteChange}
               />
             </div>
           )}

@@ -435,7 +435,7 @@
   box-shadow: var(--shadow-lg);
   margin-top: 8px;
   padding: 8px;
-  z-index: 10000;
+  z-index: 500;
   max-height: 300px;
   overflow-y: auto;
   animation: branchListSlideIn 0.2s ease-out;
@@ -1042,7 +1042,7 @@
 .timeline-branch-switcher {
   margin: 16px 0;
   position: relative;
-  z-index: 9999;
+  z-index: 10;
   overflow: visible !important;
 }
 
@@ -1054,7 +1054,7 @@
 .root-branch-container {
   margin: 16px 0;
   position: relative;
-  z-index: 9999;
+  z-index: 10;
   overflow: visible !important;
 }
 

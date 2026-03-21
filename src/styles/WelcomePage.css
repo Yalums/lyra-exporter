@@ -131,12 +131,26 @@
   color: var(--text-primary);
 }
 
-/* SVG monochrome rendering via mask-image */
+/* Platform icon image */
+.wp-platform-img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  display: block;
+  transition: filter 0.3s;
+}
+
+/* Dark/eink theme: invert monochrome (black) icons to white */
+[data-theme="dark"] .wp-platform-img-mono,
+[data-theme="eink"] .wp-platform-img-mono {
+  filter: invert(1);
+}
+
+/* SVG monochrome rendering via mask-image (legacy, unused) */
 .wp-platform-svg {
   width: 1.25rem;
   height: 1.25rem;
   display: block;
-  /* Hide the original image colors, show as mask with currentColor-like bg */
   -webkit-mask-size: contain;
   mask-size: contain;
   -webkit-mask-repeat: no-repeat;
@@ -317,6 +331,20 @@
   font-size: 0.6rem;
   font-weight: 200;
   color: var(--text-tertiary);
+}
+
+.wp-footer-attribution {
+  margin-top: 0.75rem;
+  font-size: 0.55rem;
+  font-weight: 200;
+  color: var(--text-tertiary);
+  opacity: 0.7;
+}
+
+.wp-footer-attribution a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 /* ── Asymmetric grid ── */

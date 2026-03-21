@@ -98,7 +98,8 @@
       "tabs": {
         "content": "内容",
         "thinking": "思考过程",
-        "artifacts": "Artifacts"
+        "artifacts": "Artifacts",
+        "notes": "笔记"
       },
       "actions": {
         "markCompleted": "标记完成",
@@ -487,10 +488,12 @@
     "tabs": {
       "content": "内容",
       "thinking": "思考过程",
-      "attachments": "附件"
+      "attachments": "附件",
+      "notes": "笔记"
     },
     "placeholder": {
       "selectMessage": "选择一条消息以查看详情",
+      "notesPlaceholder": "在此处添加笔记...",
       "noArtifacts": "此消息未使用Artifacts",
       "noAttachments": "此消息没有附件",
       "noThinking": "此消息没有记录思考过程",
@@ -550,7 +553,9 @@
       "exportProject": "导出项目",
       "exportProjectTitle": "保存当前文件列表为项目配置",
       "importProject": "导入项目",
-      "importProjectTitle": "从项目配置文件加载文件列表"
+      "importProjectTitle": "从项目配置文件加载文件列表",
+      "importFolder": "导入文件夹",
+      "importFolderTitle": "导入文件夹，子文件夹名作为项目名"
     },
     "search": {
       "label": "搜索对话",
@@ -632,6 +637,15 @@
     }
   },
   "exportManager": {
+    "progress": {
+      "initPdf": "初始化 PDF...",
+      "loadingFonts": "加载字体（首次约 30s）...",
+      "renderingDoc": "渲染文档结构...",
+      "renderingMessage": "渲染消息 {{current}} / {{total}}",
+      "generatingToc": "生成目录...",
+      "addingFooter": "添加页脚...",
+      "savingFile": "保存文件..."
+    },
     "metadata": {
       "defaultTitle": "对话记录",
       "created": "创建时间",

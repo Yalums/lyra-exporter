@@ -199,6 +199,26 @@ class StorageManager {
   }
 
   /**
+   * 专用方法：获取笔记数据
+   * @param {string} fileUuid - 文件 UUID
+   * @returns {Object} 笔记数据 { messageIndex: "note text", ... }
+   */
+  static getNotes(fileUuid) {
+    const key = `notes_${fileUuid}`;
+    return this.get(key, {});
+  }
+
+  /**
+   * 专用方法：保存笔记数据
+   * @param {string} fileUuid - 文件 UUID
+   * @param {Object} notes - 笔记数据
+   */
+  static setNotes(fileUuid, notes) {
+    const key = `notes_${fileUuid}`;
+    return this.set(key, notes);
+  }
+
+  /**
    * 专用方法：获取配置
    * @param {string} configKey - 配置键
    * @param {Object} defaultValue - 默认配置

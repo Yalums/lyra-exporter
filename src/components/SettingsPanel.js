@@ -25,6 +25,7 @@ const DEFAULTS = {
   includeTools: false,
   includeCitations: false,
   includeAttachments: true,
+  includeNotes: true,
   // Claude extras
   includeProjectInfo: false,
   includeUserMemory: false,
@@ -64,6 +65,7 @@ export default function SettingsPanel({ onClose, exportOptions, setExportOptions
         includeTimestamps: cfg.includeTimestamps,
         includeThinking: cfg.includeThinking,
         includeArtifacts: cfg.includeArtifacts,
+        includeNotes: cfg.includeNotes,
         includeTools: cfg.includeTools,
         includeCitations: cfg.includeCitations,
         includeAttachments: cfg.includeAttachments,
@@ -130,6 +132,7 @@ export default function SettingsPanel({ onClose, exportOptions, setExportOptions
     tools: '工具使用', toolsDesc: '搜索、计算等工具调用',
     citations: '引用来源', citationsDesc: '网页链接等引用',
     attachments: '附件', attachmentsDesc: '用户上传的文件',
+    notes: '笔记', notesDesc: '用户添加的笔记',
     branchMarkers: '分支标识符', branchMarkersDesc: '导出时包含分支标记',
     claudeExtras: 'Claude 附加信息',
     projectInfo: '项目信息', projectInfoDesc: '对话所属项目',
@@ -151,6 +154,7 @@ export default function SettingsPanel({ onClose, exportOptions, setExportOptions
     tools: 'Tool Use', toolsDesc: 'Search, compute, and other tool calls',
     citations: 'Citations', citationsDesc: 'Web links and references',
     attachments: 'Attachments', attachmentsDesc: 'User-uploaded files',
+    notes: 'Notes', notesDesc: 'User-added notes',
     branchMarkers: 'Branch Markers', branchMarkersDesc: 'Include branch markers in export',
     claudeExtras: 'Claude Extras',
     projectInfo: 'Project Info', projectInfoDesc: 'Conversation project context',
@@ -257,6 +261,7 @@ export default function SettingsPanel({ onClose, exportOptions, setExportOptions
               <Toggle label={s.tools} desc={s.toolsDesc} cfgKey="includeTools" />
               <Toggle label={s.citations} desc={s.citationsDesc} cfgKey="includeCitations" />
               <Toggle label={s.attachments} desc={s.attachmentsDesc} cfgKey="includeAttachments" />
+              <Toggle label={s.notes} desc={s.notesDesc} cfgKey="includeNotes" />
             </div>
 
           </div>
