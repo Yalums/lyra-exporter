@@ -1,0 +1,88 @@
+{
+  "schemaVersion": "loominary.conversation/v1",
+  "conversation": {
+    "id": "conv-alpha",
+    "title": "Sprint architecture notes",
+    "platform": "claude",
+    "provider": "anthropic",
+    "providerConversationId": "provider-alpha",
+    "createdAt": "2026-05-07T12:00:00.000Z",
+    "updatedAt": "2026-05-08T02:00:00.000Z",
+    "favorite": true
+  },
+  "branches": [
+    {
+      "id": "main",
+      "rootMessageId": "msg-1",
+      "leafMessageIds": [
+        "msg-3",
+        "msg-4"
+      ]
+    },
+    {
+      "id": "branch-a",
+      "parentBranchId": "main",
+      "rootMessageId": "msg-4",
+      "leafMessageIds": [
+        "msg-4"
+      ]
+    }
+  ],
+  "messages": [
+    {
+      "id": "msg-1",
+      "role": "user",
+      "branchId": "main",
+      "createdAt": "2026-05-07T12:00:00.000Z",
+      "text": "Summarize the local archive shape for Loominary.",
+      "content": [
+        {
+          "type": "text",
+          "text": "Summarize the local archive shape for Loominary."
+        }
+      ]
+    },
+    {
+      "id": "msg-2",
+      "parentId": "msg-1",
+      "role": "assistant",
+      "branchId": "main",
+      "createdAt": "2026-05-07T12:01:00.000Z",
+      "text": "Use a narrow, provider-agnostic archive contract.",
+      "content": [
+        {
+          "type": "text",
+          "text": "Use a narrow, provider-agnostic archive contract."
+        }
+      ]
+    },
+    {
+      "id": "msg-3",
+      "parentId": "msg-2",
+      "role": "user",
+      "branchId": "main",
+      "createdAt": "2026-05-07T12:02:00.000Z",
+      "text": "What about project memories?",
+      "content": [
+        {
+          "type": "text",
+          "text": "What about project memories?"
+        }
+      ]
+    },
+    {
+      "id": "msg-4",
+      "parentId": "msg-2",
+      "role": "assistant",
+      "branchId": "branch-a",
+      "createdAt": "2026-05-07T12:03:00.000Z",
+      "text": "Store project and saved memories in a dedicated context record.",
+      "content": [
+        {
+          "type": "text",
+          "text": "Store project and saved memories in a dedicated context record."
+        }
+      ]
+    }
+  ]
+}

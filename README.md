@@ -82,6 +82,14 @@ Tags, memories, project instructions, conversation history—anything Loominary 
 
 This is still taking shape. While the architecture supports it, the integration surface is still in its early stages. If you're interested in building on top of this—or have ideas about how to bridge Loominary with other AI clients—[open an issue](https://github.com/Laumss/Loominary/issues) and let's figure it out together.
 
+Sprint 2 adds the first concrete version of that surface:
+
+  * a versioned local archive contract for conversations, branches, tags, favorites, and captured context
+  * a small local HTTP service with MCP-style tool calls for listing, searching, and fetching archive data
+  * consumer docs and example query flows for other local AI tools
+
+See [docs/local-archive-contract.md](docs/local-archive-contract.md) and [docs/local-service-consumer-guide.md](docs/local-service-consumer-guide.md).
+
 -----
 
 ## Privacy

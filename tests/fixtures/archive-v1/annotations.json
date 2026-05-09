@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "loominary.annotations/v1",
+  "favorites": [
+    "conv-alpha"
+  ],
+  "tags": [
+    {
+      "tag": "important",
+      "conversationId": "conv-alpha",
+      "messageId": "msg-2",
+      "createdAt": "2026-05-08T00:00:00.000Z",
+      "source": "loominary"
+    },
+    {
+      "tag": "research",
+      "conversationId": "conv-alpha",
+      "createdAt": "2026-05-08T00:00:00.000Z",
+      "source": "loominary"
+    },
+    {
+      "tag": "follow-up",
+      "conversationId": "conv-beta",
+      "createdAt": "2026-05-08T00:00:00.000Z",
+      "source": "loominary"
+    }
+  ]
+}

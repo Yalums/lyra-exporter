@@ -30,6 +30,8 @@
     "start": "cross-env HOST=0.0.0.0 PORT=3789 PUBLIC_URL=/lyra-exporter react-scripts start",
     "start:local": "cross-env PORT=3789 react-scripts start",
     "start:network": "cross-env HOST=0.0.0.0 PORT=3789 react-scripts start",
+    "local-service": "node server/loominary-local-service.mjs",
+    "test:local-service": "node --test tests/*.test.mjs",
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=4096 react-scripts build",
     "postbuild": "node -e \"const fs=require('fs');fs.mkdirSync('build/welcome',{recursive:true});let h=fs.readFileSync('build/index.html','utf8');h=h.replace(/\\.\\//g,'../');fs.writeFileSync('build/welcome/index.html',h)\"",
     "build:extension": "cross-env NODE_OPTIONS=--max-old-space-size=4096 react-scripts build",
