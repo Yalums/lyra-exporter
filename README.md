@@ -82,6 +82,12 @@ Tags, memories, project instructions, conversation history—anything Loominary 
 
 This is still taking shape. While the architecture supports it, the integration surface is still in its early stages. If you're interested in building on top of this—or have ideas about how to bridge Loominary with other AI clients—[open an issue](https://github.com/Laumss/Loominary/issues) and let's figure it out together.
 
+### Test Commands
+
+- `npm test` runs the Jest suite locally.
+- `npm run test:ci` runs the CI-ready, non-watch test command with coverage.
+- [`docs/sprint-1-architecture.md`](C:/Users/pmacl/.codex/worktrees/6c61/loominary/docs/sprint-1-architecture.md) summarizes the Sprint 1 module boundaries.
+
 -----
 
 ## Privacy
