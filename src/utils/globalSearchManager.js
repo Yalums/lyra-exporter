@@ -2,14 +2,14 @@
 // 全局搜索管理器 - 支持跨文件搜索消息内容
 
 import { generateConversationCardUuid, generateFileCardUuid } from './data/uuidManager';
-import { extractChatData, detectBranches } from './fileParser';
-import { parseJSONL } from './fileParser/helpers';
+import { processImportFile } from '../services/import/fileImportService';
 
 export class GlobalSearchManager {
   constructor() {
     this.messageIndex = new Map();
     this.fileData = new Map();
     this.fileCache = new Map(); // 文件内容的缓存 { fileName: { lastModified: timestamp, data: parsedData } }
+    this.searchCache = new Map();
   }
 
   /**
@@ -61,14 +61,7 @@ export class GlobalSearchManager {
         } else {
             // 否则需要读取并解析文件
             try {
-            // console.log(`[GlobalSearch] 解析文件: ${file.name}`);
-            const text = await file.text();
-            // 智能解析：检测是 JSON 还是 JSONL 格式
-            const isJSONL = file.name.endsWith('.jsonl') || (text.includes('\n{') && !text.trim().startsWith('['));
-            const jsonData = isJSONL ? parseJSONL(text) : JSON.parse(text);
-            data = extractChatData(jsonData, file.name);
-            // 检测分支结构（与 App.js 保持一致）
-            data = detectBranches(data);
+            ({ processedData: data } = await processImportFile(file));
             } catch (error) {
             console.error(`[GlobalSearch] 解析文件 ${file.name} 失败:`, error);
             continue;
@@ -505,6 +498,7 @@ export class GlobalSearchManager {
   clear() {
     this.messageIndex.clear();
     this.fileData.clear();
+    this.fileCache.clear();
     this.searchCache.clear();
   }
 

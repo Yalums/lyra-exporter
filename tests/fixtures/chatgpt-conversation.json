@@ -1,0 +1,76 @@
+{
+  "title": "Search branch fixture",
+  "conversation_id": "chatgpt-conv-001",
+  "create_time": 1776160800,
+  "update_time": 1776161100,
+  "current_node": "assistant-2",
+  "mapping": {
+    "root": {
+      "id": "root",
+      "parent": null,
+      "children": [
+        "user-1"
+      ]
+    },
+    "user-1": {
+      "id": "user-1",
+      "parent": "root",
+      "children": [
+        "assistant-1",
+        "assistant-2"
+      ],
+      "message": {
+        "id": "user-1",
+        "author": {
+          "role": "user"
+        },
+        "create_time": 1776160801,
+        "content": {
+          "content_type": "text",
+          "parts": [
+            "Find regressions in the export flow."
+          ]
+        },
+        "metadata": {}
+      }
+    },
+    "assistant-1": {
+      "id": "assistant-1",
+      "parent": "user-1",
+      "children": [],
+      "message": {
+        "id": "assistant-1",
+        "author": {
+          "role": "assistant"
+        },
+        "create_time": 1776160810,
+        "content": {
+          "content_type": "text",
+          "parts": [
+            "First branch response"
+          ]
+        },
+        "metadata": {}
+      }
+    },
+    "assistant-2": {
+      "id": "assistant-2",
+      "parent": "user-1",
+      "children": [],
+      "message": {
+        "id": "assistant-2",
+        "author": {
+          "role": "assistant"
+        },
+        "create_time": 1776160820,
+        "content": {
+          "content_type": "text",
+          "parts": [
+            "Second branch response"
+          ]
+        },
+        "metadata": {}
+      }
+    }
+  }
+}

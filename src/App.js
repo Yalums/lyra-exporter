@@ -13,7 +13,7 @@ import SettingsPanel from './components/SettingsPanel';
 // 工具函数导入
 import { ThemeUtils } from './utils/themeManager';
 import { DataProcessor } from './utils/data';
-import { extractChatData, detectBranches, parseJSONL, extractMergedJSONLData } from './utils/fileParser';
+import { extractChatData, parseJSONL } from './utils/fileParser';
 import {
   generateFileCardUuid,
   getCurrentFileUuid,
@@ -21,12 +21,13 @@ import {
 import { MarkManager } from './utils/data/markManager';
 import { StarManager } from './utils/data/starManager';
 import StorageManager from './utils/data/storageManager.js';
-
-import { getGlobalSearchManager } from './utils/globalSearchManager';
 import { getRenameManager } from './utils/data/renameManager.js';
-import { prepareMarkdownExport, downloadMarkdownExport } from './utils/markdownExporter';
-import { pdfExportManager } from './utils/export/pdfExportManager';
-import { useI18n, setResolvedLang } from './index.js';
+import { useI18n } from './index.js';
+import { useFileManager } from './hooks/useFileManager';
+import { useGlobalSearchIndex } from './hooks/useGlobalSearchIndex';
+import { exportConversationAsMarkdown, exportConversationAsPdf, exportPendingMarkdownPayload } from './services/export/exportOrchestrator';
+import { buildBrowseAllRuntimeState, createRuntimeFilesFromPayload, persistExtensionSession, persistSingleFileSession, restoreExtensionSession, applyRuntimeAppearance } from './services/runtime/runtimeAdapterService';
+import { importConversationsFromZipFile, syncZipConversationCards } from './services/zip/zipConversationService';
 
 
 // ==================== 筛选 Hook ====================
@@ -254,441 +255,6 @@ function NavSearchBox({ onSearch, onExpand, onGlobalSearch, disabled = false }) 
 }
 
 
-/**
- * useFileManager - 文件管理Hook
- */
-const useFileManager = () => {
-  const [files, setFiles] = useState([]);
-  const [currentFileIndex, setCurrentFileIndex] = useState(0);
-  const [processedData, setProcessedData] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [showTypeConflictModal, setShowTypeConflictModal] = useState(false);
-  const [pendingFiles, setPendingFiles] = useState([]);
-  const [fileMetadata, setFileMetadata] = useState({});
-  const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0 });
-
-  // 智能解析文件（JSON或JSONL）
-  const parseFile = useCallback(async (file) => {
-    const text = await file.text();
-    const isJSONL = file.name.endsWith('.jsonl') || (text.includes('\n{') && !text.trim().startsWith('['));
-    return isJSONL ? parseJSONL(text) : JSON.parse(text);
-  }, []);
-
-  // 处理当前文件
-  const processCurrentFile = useCallback(async () => {
-    if (!files.length || currentFileIndex >= files.length) {
-      setProcessedData(null);
-      return;
-    }
-    setIsLoading(true);
-    setError(null);
-    try {
-      const file = files[currentFileIndex];
-
-      // 检查是否有预处理的合并数据
-      if (file._mergedProcessedData) {
-        console.log('[Loominary] 使用预处理的合并数据');
-        setProcessedData(file._mergedProcessedData);
-      } else {
-        console.log('[Loominary processCurrentFile] parsing file:', file.name, file.size, 'bytes');
-        const jsonData = await parseFile(file);
-        console.log('[Loominary processCurrentFile] parseFile OK - top-level keys:', Array.isArray(jsonData) ? `Array[${jsonData.length}]` : Object.keys(jsonData));
-        let data = extractChatData(jsonData, file.name);
-        console.log('[Loominary processCurrentFile] extractChatData OK - format:', data?.format, 'chat_history length:', data?.chat_history?.length);
-        data = detectBranches(data);
-        console.log('[Loominary processCurrentFile] detectBranches OK');
-        setProcessedData(data);
-      }
-    } catch (err) {
-      console.error('[Loominary processCurrentFile] 处理文件出错:', err);
-      setError(err.message);
-      setProcessedData(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [files, currentFileIndex, parseFile]);
-
-  useEffect(() => {
-    processCurrentFile();
-  }, [processCurrentFile]);
-
-  // 检查文件兼容性 - 简化版本，所有格式都兼容
-  const checkCompatibility = useCallback(async () => {
-    return true;
-  }, []);
-
-  // 加载文件
-  const loadFiles = useCallback(async (fileList, { replace = false } = {}) => {
-    const validFiles = fileList.filter(f =>
-      f.name.endsWith('.json') || f.name.endsWith('.jsonl') || f.type === 'application/json'
-    );
-    if (!validFiles.length) {
-      setError('未找到有效的JSON/JSONL文件');
-      return;
-    }
-    const newFiles = replace ? validFiles : validFiles.filter(nf =>
-      !files.some(ef => ef.name === nf.name && ef.lastModified === nf.lastModified)
-    );
-    if (!newFiles.length) {
-      setError('文件已加载');
-      return;
-    }
-    const isCompatible = await checkCompatibility(newFiles);
-    if (!isCompatible) {
-      setPendingFiles(newFiles);
-      setShowTypeConflictModal(true);
-      return;
-    }
-    // 并行批量提取元数据（每批20个文件，兼顾速度与内存）
-    const BATCH_SIZE = 20;
-    const newMeta = {};
-    let completed = 0;
-    setLoadingProgress({ current: 0, total: newFiles.length });
-    for (let i = 0; i < newFiles.length; i += BATCH_SIZE) {
-      const batch = newFiles.slice(i, i + BATCH_SIZE);
-      const results = await Promise.all(batch.map(async (file) => {
-        try {
-          const data = extractChatData(await parseFile(file), file.name);
-          return [file.name, {
-            format: data.format,
-            platform: data.platform || data.format,
-            messageCount: data.chat_history?.length || 0,
-            conversationCount: 1,
-            title: data.meta_info?.title || file.name,
-            model: data.meta_info?.model || '',
-            created_at: data.meta_info?.created_at,
-            updated_at: data.meta_info?.updated_at,
-            project: data.meta_info?.project || null,
-            project_uuid: data.meta_info?.project_uuid || null,
-            organization_id: data.meta_info?.organization_id || null,
-            is_starred: data.meta_info?.is_starred || false
-          }];
-        } catch (err) {
-          console.warn(`提取元数据失败 ${file.name}:`, err);
-          return [file.name, { format: 'unknown', messageCount: 0, title: file.name }];
-        }
-      }));
-      results.forEach(([name, meta]) => { newMeta[name] = meta; });
-      completed += batch.length;
-      setLoadingProgress({ current: completed, total: newFiles.length });
-    }
-    setLoadingProgress({ current: 0, total: 0 });
-    // 恢复项目配置中的元数据和文件顺序
-    const pendingConfig = StorageManager.get('pending_project_config');
-    if (pendingConfig?.files) {
-      const configMap = {};
-      pendingConfig.files.forEach(f => { configMap[f.name] = f; });
-      Object.keys(newMeta).forEach(name => {
-        if (configMap[name]?.metadata) {
-          newMeta[name] = { ...newMeta[name], ...configMap[name].metadata };
-        }
-      });
-      newFiles.sort((a, b) => {
-        const idxA = configMap[a.name]?.index ?? Infinity;
-        const idxB = configMap[b.name]?.index ?? Infinity;
-        return idxA - idxB;
-      });
-      StorageManager.remove('pending_project_config');
-    }
-    setFileMetadata(replace ? newMeta : (prev => ({ ...prev, ...newMeta })));
-    setFiles(replace ? newFiles : (prev => [...prev, ...newFiles]));
-    if (replace) setCurrentFileIndex(0);
-    setError(null);
-  }, [files, checkCompatibility, parseFile]);
-
-  // 按对话分组（基于 integrity, main_chat, 或 chat_id_hash）
-  const groupByConversation = useCallback((filesData) => {
-    const groups = new Map();
-
-    // 建立多种映射，用于分支文件查找主文件
-    const fileNameToIntegrity = new Map();      // 文件名 -> integrity
-    const integrityToGroup = new Map();         // integrity -> groupKey
-    const chatIdHashToGroup = new Map();        // chat_id_hash -> groupKey
-    const mainChatToGroup = new Map();          // main_chat 值 -> groupKey
-
-    console.log('[Loominary] 开始分组，共', filesData.length, '个文件');
-
-    // 第一遍：收集所有主文件的信息
-    filesData.forEach(fd => {
-      const metadata = fd.data[0]?.chat_metadata;
-      const integrity = metadata?.integrity;
-      const mainChat = metadata?.main_chat;
-      const chatIdHash = metadata?.chat_id_hash;
-
-      console.log('[Loominary] 文件:', fd.fileName, {
-        integrity: integrity?.substring(0, 16) + '...',
-        mainChat,
-        chatIdHash
-      });
-
-      // 如果没有 main_chat，说明是主文件
-      if (!mainChat) {
-        // 使用文件名（不含扩展名）作为键
-        const baseName = fd.fileName.replace(/\.(jsonl|json)$/i, '');
-
-        // 为主文件创建分组键（优先使用 integrity）
-        const groupKey = integrity || chatIdHash?.toString() || fd.fileName;
-
-        if (integrity) {
-          fileNameToIntegrity.set(baseName, integrity);
-          fileNameToIntegrity.set(fd.fileName, integrity);
-          integrityToGroup.set(integrity, groupKey);
-        }
-
-        if (chatIdHash) {
-          chatIdHashToGroup.set(chatIdHash, groupKey);
-        }
-
-        // 记录文件名到分组的映射（用于 main_chat 查找）
-        mainChatToGroup.set(baseName, groupKey);
-        mainChatToGroup.set(fd.fileName, groupKey);
-      }
-    });
-
-    console.log('[Loominary] 主文件映射:', {
-      fileNameToIntegrity: Array.from(fileNameToIntegrity.keys()),
-      mainChatToGroup: Array.from(mainChatToGroup.keys())
-    });
-
-    // 第二遍：分组
-    filesData.forEach(fd => {
-      const metadata = fd.data[0]?.chat_metadata;
-      const integrity = metadata?.integrity;
-      const mainChat = metadata?.main_chat;
-      const chatIdHash = metadata?.chat_id_hash;
-
-      let groupKey = null;
-      let matchMethod = '';
-
-      if (mainChat) {
-        // 分支文件：尝试多种方式查找主文件
-
-        // 方法1：直接通过 main_chat 查找
-        if (mainChatToGroup.has(mainChat)) {
-          groupKey = mainChatToGroup.get(mainChat);
-          matchMethod = 'main_chat直接匹配';
-        }
-        // 方法2：main_chat + .jsonl 扩展名
-        else if (mainChatToGroup.has(mainChat + '.jsonl')) {
-          groupKey = mainChatToGroup.get(mainChat + '.jsonl');
-          matchMethod = 'main_chat+.jsonl';
-        }
-        // 方法3：通过 integrity 查找（分支文件可能有相同的 integrity）
-        else if (integrity && integrityToGroup.has(integrity)) {
-          groupKey = integrityToGroup.get(integrity);
-          matchMethod = 'integrity匹配';
-        }
-        // 方法4：通过 chat_id_hash 查找
-        else if (chatIdHash && chatIdHashToGroup.has(chatIdHash)) {
-          groupKey = chatIdHashToGroup.get(chatIdHash);
-          matchMethod = 'chat_id_hash匹配';
-        }
-        // 方法5：如果都找不到，使用 main_chat 本身作为分组键
-        else {
-          groupKey = mainChat;
-          matchMethod = 'main_chat作为新组';
-          // 同时注册这个分组，以便后续分支文件可以找到
-          mainChatToGroup.set(mainChat, groupKey);
-          if (integrity) integrityToGroup.set(integrity, groupKey);
-          if (chatIdHash) chatIdHashToGroup.set(chatIdHash, groupKey);
-        }
-      } else {
-        // 主文件
-        if (integrity && integrityToGroup.has(integrity)) {
-          groupKey = integrityToGroup.get(integrity);
-          matchMethod = '主文件-integrity';
-        } else if (chatIdHash && chatIdHashToGroup.has(chatIdHash)) {
-          groupKey = chatIdHashToGroup.get(chatIdHash);
-          matchMethod = '主文件-chat_id_hash';
-        } else {
-          groupKey = integrity || chatIdHash?.toString() || fd.fileName;
-          matchMethod = '主文件-新组';
-        }
-      }
-
-      console.log('[Loominary] 分组:', fd.fileName, '->', groupKey?.substring?.(0, 20) || groupKey, `(${matchMethod})`);
-
-      if (!groups.has(groupKey)) {
-        groups.set(groupKey, []);
-      }
-      groups.get(groupKey).push(fd);
-    });
-
-    const result = Array.from(groups.values());
-    console.log('[Loominary] 分组结果:', result.map(g => ({
-      count: g.length,
-      files: g.map(f => f.fileName)
-    })));
-
-    return result;
-  }, []);
-
-  // 加载并合并 JSONL 文件夹
-  const loadMergedJSONLFiles = useCallback(async (fileList) => {
-    const jsonlFiles = fileList.filter(f =>
-      f.name.endsWith('.jsonl') || f.name.endsWith('.json')
-    );
-
-    if (jsonlFiles.length === 0) {
-      setError('未找到 JSONL/JSON 文件');
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      // 读取所有文件内容
-      const filesData = await Promise.all(
-        jsonlFiles.map(async (file) => ({
-          file,
-          fileName: file.name,
-          data: await parseFile(file)
-        }))
-      );
-
-      // 按对话分组
-      const grouped = groupByConversation(filesData);
-
-      // 处理每组文件
-      for (const group of grouped) {
-        if (group.length === 1) {
-          // 单文件：使用普通加载
-          await loadFiles([group[0].file]);
-        } else {
-          // 多文件：使用合并加载
-          try {
-            const mergedData = extractMergedJSONLData(group);
-            const processedMergedData = detectBranches(mergedData);
-
-            // 创建一个虚拟文件对象来表示合并后的数据
-            const mergedFileName = `[合并] ${mergedData.meta_info?.title || '对话'}`;
-            const virtualFile = new File(
-              [JSON.stringify(mergedData.raw_data)],
-              mergedFileName,
-              { type: 'application/json' }
-            );
-
-            // 添加元数据
-            const newMeta = {
-              [mergedFileName]: {
-                format: mergedData.format,
-                platform: mergedData.platform || mergedData.format,
-                messageCount: mergedData.chat_history?.length || 0,
-                conversationCount: 1,
-                title: mergedData.meta_info?.title || mergedFileName,
-                model: mergedData.meta_info?.model || '',
-                created_at: mergedData.meta_info?.created_at,
-                updated_at: mergedData.meta_info?.updated_at,
-                isMerged: true,
-                mergeInfo: mergedData.meta_info?.merge_info
-              }
-            };
-
-            setFileMetadata(prev => ({ ...prev, ...newMeta }));
-
-            // 存储预处理的数据，避免重复解析
-            virtualFile._mergedProcessedData = processedMergedData;
-
-            setFiles(prev => [...prev, virtualFile]);
-          } catch (err) {
-            console.error('合并文件失败:', err);
-            // 如果合并失败，回退到单独加载
-            for (const fd of group) {
-              await loadFiles([fd.file]);
-            }
-          }
-        }
-      }
-
-      setError(null);
-    } catch (err) {
-      console.error('加载文件夹失败:', err);
-      setError(`加载文件夹失败: ${err.message}`);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [parseFile, groupByConversation, loadFiles]);
-
-  const confirmReplaceFiles = useCallback(() => {
-    setFiles(pendingFiles);
-    setCurrentFileIndex(0);
-    setPendingFiles([]);
-    setShowTypeConflictModal(false);
-    setError(null);
-  }, [pendingFiles]);
-
-  const cancelReplaceFiles = useCallback(() => {
-    setPendingFiles([]);
-    setShowTypeConflictModal(false);
-  }, []);
-
-  const removeFile = useCallback((index) => {
-    const toRemove = files[index];
-    if (toRemove) {
-      setFileMetadata(prev => {
-        const { [toRemove.name]: _, ...rest } = prev;
-        return rest;
-      });
-    }
-    setFiles(prev => {
-      const newFiles = prev.filter((_, i) => i !== index);
-      if (!newFiles.length) setCurrentFileIndex(0);
-      else if (index <= currentFileIndex && currentFileIndex > 0) {
-        setCurrentFileIndex(currentFileIndex - 1);
-      }
-      return newFiles;
-    });
-  }, [currentFileIndex, files]);
-
-  const switchFile = useCallback((index) => {
-    if (index >= 0 && index < files.length) {
-      setCurrentFileIndex(index);
-    }
-  }, [files.length]);
-
-  const reorderFiles = useCallback((fromIdx, toIdx) => {
-    if (fromIdx === toIdx) return;
-    setFiles(prev => {
-      const newFiles = [...prev];
-      const [moved] = newFiles.splice(fromIdx, 1);
-      newFiles.splice(toIdx, 0, moved);
-      if (fromIdx === currentFileIndex) setCurrentFileIndex(toIdx);
-      else if (fromIdx < currentFileIndex && toIdx >= currentFileIndex) {
-        setCurrentFileIndex(currentFileIndex - 1);
-      } else if (fromIdx > currentFileIndex && toIdx <= currentFileIndex) {
-        setCurrentFileIndex(currentFileIndex + 1);
-      }
-      return newFiles;
-    });
-  }, [currentFileIndex]);
-
-  const actions = useMemo(() => ({
-    loadFiles,
-    loadMergedJSONLFiles,
-    removeFile,
-    switchFile,
-    reorderFiles,
-    confirmReplaceFiles,
-    cancelReplaceFiles
-  }), [loadFiles, loadMergedJSONLFiles, removeFile, switchFile, reorderFiles, confirmReplaceFiles, cancelReplaceFiles]);
-
-  return {
-    files,
-    currentFile: files[currentFileIndex] || null,
-    currentFileIndex,
-    processedData,
-    isLoading,
-    error,
-    showTypeConflictModal,
-    pendingFiles,
-    fileMetadata,
-    loadingProgress,
-    actions
-  };
-};
-
 function App() {
   // ==================== Hooks和状态管理 ====================
   // 检测是否在 Chrome 扩展环境中
@@ -700,7 +266,6 @@ function App() {
 
   const {
     files,
-    currentFile,
     currentFileIndex,
     processedData,
     fileMetadata,
@@ -889,28 +454,8 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredConversations, cardSortField, cardSortOrder, hasZipData, renameVersion]);
 
-  // 集中化构建全局搜索索引（仅在全部文件加载完成后执行）
-  useEffect(() => {
-    if (files.length > 0 && allFilesLoaded) {
-      // 使用 setTimeout 来避免阻塞主线程
-      const timer = setTimeout(() => {
-        console.log('[App] 正在构建全局搜索索引...');
-        const globalSearchManager = getGlobalSearchManager();
-        const renameManager = getRenameManager();
-        const customNames = renameManager.getAllRenames();
-
-        globalSearchManager.buildGlobalIndex(files, processedData, currentFileIndex, customNames)
-          .then(() => {
-            console.log('[App] 全局搜索索引已更新');
-          })
-          .catch(err => {
-            console.error('[App] 构建全局搜索索引失败:', err);
-          });
-      }, 300); // 延迟执行，等待状态稳定
-
-      return () => clearTimeout(timer);
-    }
-  }, [files, processedData, currentFileIndex, allFilesLoaded]);
+  const customNames = useMemo(() => getRenameManager().getAllRenames(), [renameVersion]);
+  useGlobalSearchIndex({ files, processedData, currentFileIndex, allFilesLoaded, customNames });
 
 
   // ==================== History API 导航管理 ====================
@@ -1107,11 +652,7 @@ function App() {
       if (!file) return;
       try {
         const content = await file.text();
-        try {
-          StorageManager.set('singlefile_session', { content, filename: file.name });
-        } catch (se) {
-          console.warn('[SingleFile] Failed to save session:', se);
-        }
+        persistSingleFileSession(file.name, content);
         const newFileIdx = fileActionsRef.current ? files.length : 0;
         pendingSelectIndexRef.current = newFileIdx;
         fileActionsRef.current.loadFiles([file]);
@@ -1506,101 +1047,33 @@ function App() {
       const file = e.target.files?.[0];
       if (!file) return;
       try {
-        const { unzipSync, strFromU8 } = await import('fflate');
-        const arrayBuffer = await file.arrayBuffer();
-        const unzipped = unzipSync(new Uint8Array(arrayBuffer));
-
-        // 匹配 export 生成的 projects 元数据文件名：<UUID>_projects.json 或 projects/<UUID>_projects.json
-        const isProjectsMetaFile = (name) =>
-          /^(?:projects\/)?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_projects\.json$/i.test(name);
-
-        const cards = [];
-        for (const [filename, data] of Object.entries(unzipped)) {
-          const isJson = filename.endsWith('.json');
-          const isJsonl = filename.endsWith('.jsonl');
-          if ((!isJson && !isJsonl) || isProjectsMetaFile(filename) || filename === '_renames.json') continue;
-          try {
-            const jsonStr = strFromU8(data);
-            const jsonData = isJsonl ? parseJSONL(jsonStr) : JSON.parse(jsonStr);
-            const parsed = extractChatData(jsonData, filename);
-            const meta = parsed.meta_info || {};
-            const baseName = filename.replace(/\.(json|jsonl)$/, '').split('/').pop();
-            // 从文件路径的文件夹名推断 project（仅当 JSON 本身没有 project 信息时）
-            const folderProject = (() => {
-              const slashIdx = filename.lastIndexOf('/');
-              if (slashIdx > 0) {
-                const folderName = filename.slice(0, slashIdx).split('/').pop();
-                if (folderName) return { uuid: `folder:${folderName}`, name: folderName };
-              }
-              return null;
-            })();
-            cards.push({
-              type: 'conversation',
-              uuid: meta.uuid || jsonData.uuid || filename,
-              name: meta.title || jsonData.name || baseName,
-              format: parsed.format || 'claude',
-              created_at: meta.created_at || jsonData.created_at || null,
-              updated_at: meta.updated_at || jsonData.updated_at || null,
-              project: meta.project || jsonData.project || folderProject,
-              project_uuid: meta.project_uuid || jsonData.project_uuid || null,
-              organization_id: meta.organization_id || null,
-              platform: parsed.platform || 'claude',
-              messageCount: parsed.chat_history?.length || 0,
-              size: data.length,
-              _zipData: jsonStr
-            });
-          } catch (parseErr) {
-            console.warn('[ZipImport] 跳过无法解析的文件:', filename, parseErr);
-          }
-        }
+        const { cards, renames, exportContext, organizationId, zipFiles } = await importConversationsFromZipFile(file);
 
         if (cards.length === 0) {
           console.warn('[ZipImport] zip 中未找到有效的对话 JSON');
           return;
         }
 
-        // 导入重命名信息
-        if (unzipped['_renames.json']) {
-          try {
-            const renames = JSON.parse(strFromU8(unzipped['_renames.json']));
-            const rm = getRenameManager();
-            for (const [uuid, name] of Object.entries(renames)) {
-              if (!rm.hasRename(uuid)) {
-                rm.setRename(uuid, name);
-              }
+        if (renames) {
+          const renameManager = getRenameManager();
+          Object.entries(renames).forEach(([uuid, name]) => {
+            if (!renameManager.hasRename(uuid)) {
+              renameManager.setRename(uuid, name);
             }
-          } catch (e) {
-            console.warn('[ZipImport] _renames.json 解析失败:', e);
-          }
+          });
         }
 
-        // 检查是否有 projects 元数据文件
-        const projectsFile = Object.entries(unzipped).find(([name]) => isProjectsMetaFile(name));
-        if (projectsFile) {
-          try {
-            const projectsData = JSON.parse(strFromU8(projectsFile[1]));
-            // 存储 exportContext 以便后续使用
-            if (projectsData.projects || projectsData.global_memory || projectsData.user_instructions) {
-              setPendingExportContext({
-                projectInfo: projectsData.projects || [],
-                userMemory: {
-                  preferences: projectsData.user_instructions || '',
-                  memories: projectsData.global_memory?.memory || ''
-                }
-              });
-            }
-            // 用 userId 初始化星标管理器
-            if (projectsData.organization_id) {
-              browseAllContextRef.current = {
-                ...(browseAllContextRef.current || {}),
-                userId: projectsData.organization_id
-              };
-              starManagerRef.current = new StarManager(true, projectsData.organization_id);
-              setStarredConversations(new Map(starManagerRef.current.getStarredConversations()));
-            }
-          } catch (e) {
-            console.warn('[ZipImport] projects.json 解析失败:', e);
-          }
+        if (exportContext) {
+          setPendingExportContext(exportContext);
+        }
+
+        if (organizationId) {
+          browseAllContextRef.current = {
+            ...(browseAllContextRef.current || {}),
+            userId: organizationId,
+          };
+          starManagerRef.current = new StarManager(true, organizationId);
+          setStarredConversations(new Map(starManagerRef.current.getStarredConversations()));
         }
 
         // 重新导入时清空映射，避免旧 fileIndex 失效引起切换错乱
@@ -1613,12 +1086,6 @@ function App() {
         setBrowseAllCards(cards);
         setHasZipData(true);
 
-        // 将 zip 中的 JSON 转为 File 对象加载，以支持全局搜索索引
-        const zipFiles = cards.map(card => {
-          const blob = new Blob([card._zipData], { type: 'application/json' });
-          const safeName = (card.name || card.uuid).replace(/[<>:"\/\\|?*\x00-\x1F]/g, '') + '.json';
-          return new File([blob], safeName, { type: 'application/json', lastModified: Date.now() });
-        });
         if (zipFiles.length > 0) {
           fileActionsRef.current.loadFiles(zipFiles);
         }
@@ -1650,70 +1117,20 @@ function App() {
     };
 
     try {
-      // 1. 获取远端对话列表
-      const listResp = await fetchViaProxy(`${ctx.baseUrl}/api/organizations/${ctx.userId}/chat_conversations`);
-      if (!listResp?.success || !Array.isArray(listResp.data)) {
-        console.error('[Sync] 获取对话列表失败');
-        return;
-      }
-      const remoteConvs = listResp.data;
-      const localMap = new Map(browseAllCards.map(c => [c.uuid, c]));
-
-      // 2. 找出需要更新的对话（远端 updated_at 更新 或 本地不存在）
-      const toUpdate = remoteConvs.filter(remote => {
-        const local = localMap.get(remote.uuid);
-        if (!local) return true; // 新对话
-        if (!local.updated_at || !remote.updated_at) return true;
-        return new Date(remote.updated_at) > new Date(local.updated_at);
+      const fetchJson = async (url) => {
+        const response = await fetchViaProxy(url);
+        if (!response?.success) {
+          throw new Error(`Failed to fetch ${url}`);
+        }
+        return response.data;
+      };
+      const { updatedCards, localMap, remoteConversations } = await syncZipConversationCards({
+        browseAllCards,
+        context: ctx,
+        fetchJson,
       });
 
-      console.log(`[Sync] 远端 ${remoteConvs.length} 个对话，本地 ${browseAllCards.length} 个，需更新 ${toUpdate.length} 个`);
-
-      if (toUpdate.length === 0) {
-        console.log('[Sync] 所有对话已是最新');
-        return;
-      }
-
-      // 3. 批量拉取需要更新的对话全文
-      const { strToU8 } = await import('fflate');
-      const BATCH = 25;
-      const updatedCards = new Map();
-
-      for (let i = 0; i < toUpdate.length; i += BATCH) {
-        const batch = toUpdate.slice(i, i + BATCH);
-        await Promise.allSettled(batch.map(async (conv) => {
-          try {
-            const resp = await fetchViaProxy(`${ctx.baseUrl}/api/organizations/${ctx.userId}/chat_conversations/${conv.uuid}`);
-            if (!resp?.success) return;
-            const data = resp.data;
-            if (conv.project_uuid) data.project_uuid = conv.project_uuid;
-            if (conv.project) data.project = conv.project;
-            const jsonStr = JSON.stringify(data, null, 2);
-            const parsed = extractChatData(data, conv.name || conv.uuid);
-            const meta = parsed.meta_info || {};
-            updatedCards.set(conv.uuid, {
-              type: 'conversation',
-              uuid: conv.uuid,
-              name: meta.title || data.name || conv.name || conv.uuid,
-              format: parsed.format || 'claude',
-              created_at: meta.created_at || data.created_at || conv.created_at || null,
-              updated_at: meta.updated_at || data.updated_at || conv.updated_at || null,
-              project: meta.project || data.project || conv.project || null,
-              project_uuid: meta.project_uuid || data.project_uuid || conv.project_uuid || null,
-              organization_id: ctx.userId,
-              platform: parsed.platform || 'claude',
-              messageCount: parsed.chat_history?.length || 0,
-              size: strToU8(jsonStr).length,
-              _zipData: jsonStr
-            });
-          } catch (e) {
-            console.warn('[Sync] 拉取对话失败:', conv.uuid, e);
-          }
-        }));
-        if (i + BATCH < toUpdate.length) {
-          await new Promise(r => setTimeout(r, 200));
-        }
-      }
+      console.log(`[Sync] 远端 ${remoteConversations.length} 个对话，本地 ${browseAllCards.length} 个，更新 ${updatedCards.size} 个`);
 
       // 4. 合并：更新已有卡片 + 新增卡片
       setBrowseAllCards(prev => {
@@ -1743,29 +1160,21 @@ function App() {
   const handleExportClick = async () => {
     if (!processedData) return;
     try {
-      let exportCfg;
-      if (isExtension) {
-        exportCfg = await new Promise(resolve =>
-          chrome.storage.local.get(['loominary_export_config'], r => resolve(r.loominary_export_config || {}))
-        );
-      } else {
-        exportCfg = StorageManager.get('export-config', {});
-      }
       const currentFile = files[currentFileIndex];
       const originalBaseName = (currentFile?.name || 'conversation').replace(/\.json$/, '');
       const renameManager = getRenameManager();
       const renameKey = (hasZipData && openedCardUuidRef.current) ? openedCardUuidRef.current : currentFileUuid;
       const baseName = renameKey ? renameManager.getRename(renameKey, originalBaseName) : originalBaseName;
-      const exportResult = prepareMarkdownExport(
+      await exportConversationAsMarkdown({
         processedData,
         baseName,
-        { ...exportCfg, conversationUuid: currentFileUuid },
+        currentFileUuid,
         pendingExportContext,
         exportOptions,
         timelineDisplayMessages,
-        markManagerRef
-      );
-      await downloadMarkdownExport(exportResult);
+        markManagerRef,
+        isExtension,
+      });
     } catch (err) {
       console.error('[Loominary] Export failed:', err);
     }
@@ -1774,23 +1183,12 @@ function App() {
   const handlePdfExportClick = async () => {
     if (!processedData || pdfProgress !== null) return;
     try {
-      const messages = exportOptions.scope !== 'currentBranch'
-        ? (processedData.chat_history || [])
-        : timelineDisplayMessages.length > 0
-          ? timelineDisplayMessages
-          : (processedData.chat_history || []);
-      const meta = {
-        name: processedData.meta_info?.title || processedData.meta_info?.name || 'Conversation',
-        platform: processedData.meta_info?.platform || 'claude',
-        created_at: processedData.meta_info?.created_at || '',
-        updated_at: processedData.meta_info?.updated_at || '',
-      };
-      await pdfExportManager.exportToPDF(messages, meta, {
-        includeThinking: exportOptions.includeThinking ?? false,
-        includeArtifacts: exportOptions.includeArtifacts ?? true,
-        includeTimestamps: exportOptions.includeTimestamps ?? false,
-        includeTools: exportOptions.includeTools ?? true,
-      }, setPdfProgress);
+      await exportConversationAsPdf({
+        processedData,
+        exportOptions,
+        timelineDisplayMessages,
+        onProgress: setPdfProgress,
+      });
     } catch (err) {
       console.error('[Loominary] PDF export failed:', err);
       setPdfProgress(null);
@@ -1942,12 +1340,7 @@ function App() {
         const payload = data.data;
         if (!payload) return;
 
-        // Apply lang and theme from payload
-        if (payload.lang) setResolvedLang(payload.lang);
-        if (payload.theme) {
-          document.documentElement.setAttribute('data-theme', payload.theme);
-          StorageManager.set('app-theme', payload.theme);
-        }
+        applyRuntimeAppearance({ lang: payload.lang, theme: payload.theme });
 
         // Reset previously loaded state so new data replaces old
         setBrowseAllCardsRef.current([]);
@@ -1956,21 +1349,15 @@ function App() {
         try {
           if (payload.files && Array.isArray(payload.files)) {
             // 多文件（ST 分支模式）
-            const fileObjs = payload.files.map(({ content, filename }) => {
-              const blob = new Blob([typeof content === 'string' ? content : JSON.stringify(content)], { type: 'application/jsonl' });
-              return new File([blob], filename, { type: 'application/jsonl', lastModified: Date.now() });
-            });
+            const fileObjs = createRuntimeFilesFromPayload(payload);
             pendingSelectIndexRef.current = 0;
             fileActionsRef.current.loadMergedJSONLFiles(fileObjs);
           } else {
             // 单文件
-            const { content, filename } = payload;
-            const jsonData = typeof content === 'string' ? content : JSON.stringify(content);
-            const blob = new Blob([jsonData], { type: 'application/json' });
-            const file = new File([blob], filename, { type: 'application/json', lastModified: Date.now() });
+            const { file, jsonData } = createRuntimeFilesFromPayload(payload);
             pendingSelectIndexRef.current = 0;
             fileActionsRef.current.loadFiles([file], { replace: true });
-            try { StorageManager.set('singlefile_session', { content: jsonData, filename }); } catch (_) {}
+            persistSingleFileSession(payload.filename, jsonData);
           }
           switchToTimelineRef.current(0, null);
           if (payload.exportContext) {
@@ -2002,21 +1389,14 @@ function App() {
       try {
         if (pendingData.files && Array.isArray(pendingData.files)) {
           // Multi-file: ST branches — use merged JSONL loading pipeline
-          const fileObjs = pendingData.files.map(({ content, filename }) => {
-            const data = typeof content === 'string' ? content : JSON.stringify(content);
-            const blob = new Blob([data], { type: 'application/jsonl' });
-            return new File([blob], filename, { type: 'application/jsonl', lastModified: Date.now() });
-          });
+          const fileObjs = createRuntimeFilesFromPayload(pendingData);
           console.log('[Loominary] Loading', fileObjs.length, 'ST branch files:', fileObjs.map(f => f.name));
           fileActionsRef.current.loadMergedJSONLFiles(fileObjs);
         } else {
           // Single file: existing path
-          const { content, filename } = pendingData;
-          const jsonData = typeof content === 'string' ? content : JSON.stringify(content);
-          const blob = new Blob([jsonData], { type: 'application/json' });
-          const file = new File([blob], filename, { type: 'application/json', lastModified: Date.now() });
+          const { file } = createRuntimeFilesFromPayload(pendingData);
           fileActionsRef.current.loadFiles([file]);
-          console.log('[Loominary] Data loaded successfully:', filename);
+          console.log('[Loominary] Data loaded successfully:', pendingData.filename);
         }
       } catch (error) {
         console.error('[Loominary] Error loading data from extension:', error);
@@ -2030,11 +1410,7 @@ function App() {
       applyExtensionConfig(result.loominary_export_config);
 
       // 应用语言和页面主题
-      if (result.loominary_lang) setResolvedLang(result.loominary_lang);
-      if (result.loominary_page_theme) {
-        document.documentElement.setAttribute('data-theme', result.loominary_page_theme);
-        StorageManager.set('app-theme', result.loominary_page_theme);
-      }
+      applyRuntimeAppearance({ lang: result.loominary_lang, theme: result.loominary_page_theme });
 
       if (result.loominary_pending_data) {
         const pendingData = result.loominary_pending_data;
@@ -2042,9 +1418,7 @@ function App() {
 
         // sessionStorage restore: only for single-file (multi-file may exceed 5MB limit)
         if (!pendingData.files && !pendingData.action) {
-          try {
-            sessionStorage.setItem('loominary_session_data', JSON.stringify({ content: pendingData.content, filename: pendingData.filename }));
-          } catch (e) { /* sessionStorage 写入失败忽略 */ }
+          persistExtensionSession(pendingData.filename, pendingData.content);
         }
 
         // 清除已处理的数据
@@ -2053,43 +1427,12 @@ function App() {
         // 根据 action 分发
         if (pendingData.action === 'export_markdown') {
           // 静默导出 Markdown，不进入 timeline 视图
-          (async () => {
-            try {
-              const exportConfig = result.loominary_export_config || {};
-              const baseFilename = (pendingData.filename || 'conversation').replace(/\.json$/, '');
-              const exportResult = prepareMarkdownExport(
-                pendingData.content,
-                baseFilename,
-                exportConfig,
-                pendingData.exportContext || null
-              );
-              await downloadMarkdownExport(exportResult);
-              // 等待浏览器处理下载后再关闭 Tab
-              setTimeout(() => {
-                try { window.close(); } catch (_) { /* Firefox 可能阻止 window.close() */ }
-              }, 800);
-            } catch (err) {
-              console.error('[Loominary] Markdown export failed:', err);
-              setErrorRef.current('Markdown export failed: ' + err.message);
-            }
-          })();
+          exportPendingMarkdownPayload(pendingData, result.loominary_export_config || {}, setErrorRef.current);
         } else if (pendingData.action === 'browse_all') {
           // 浏览全部对话：将对话列表元数据转为卡片格式
-          const conversations = pendingData.conversations || [];
-          const cards = conversations.map(conv => ({
-            type: 'conversation',
-            uuid: conv.uuid,
-            name: conv.name || conv.uuid,
-            format: 'claude',
-            created_at: conv.created_at || null,
-            updated_at: conv.updated_at || null,
-            project: conv.project || null,
-            project_uuid: conv.project_uuid || null,
-            organization_id: pendingData.userId || null,
-            platform: 'claude'
-          }));
+          const { cards, context } = buildBrowseAllRuntimeState(pendingData);
           setBrowseAllCards(cards);
-          browseAllContextRef.current = { userId: pendingData.userId, baseUrl: pendingData.baseUrl };
+          browseAllContextRef.current = context;
           // 初始化星标管理器（按账号隔离）
           starManagerRef.current = new StarManager(true, pendingData.userId);
           setStarredConversations(new Map(starManagerRef.current.getStarredConversations()));
@@ -2105,9 +1448,8 @@ function App() {
       } else {
         // 尝试从 sessionStorage 恢复（刷新场景）
         try {
-          const sessionRaw = sessionStorage.getItem('loominary_session_data');
-          if (sessionRaw) {
-            const sessionData = JSON.parse(sessionRaw);
+          const sessionData = restoreExtensionSession();
+          if (sessionData) {
             console.log('[Loominary] Restoring data from sessionStorage:', sessionData.filename);
             loadFromData(sessionData);
           } else {
