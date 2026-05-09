@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "loominary.archive/v1",
+  "archiveId": "fixture-archive",
+  "createdAt": "2026-05-08T00:00:00.000Z",
+  "updatedAt": "2026-05-08T00:00:00.000Z",
+  "layout": {
+    "conversationsDir": "conversations",
+    "contextsDir": "contexts",
+    "annotationsFile": "annotations.json"
+  },
+  "lifecycle": {
+    "sourceOfTruth": [
+      "manifest.json",
+      "conversations/*.json",
+      "contexts/*.json",
+      "annotations.json"
+    ],
+    "derivedIndexes": [
+      "rebuild-in-memory"
+    ]
+  },
+  "trust": {
+    "defaultBind": "127.0.0.1",
+    "authMode": "loopback-or-token"
+  }
+}

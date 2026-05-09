@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "loominary.context/v1",
+  "conversationId": "conv-alpha",
+  "project": {
+    "id": "project-1",
+    "name": "Loominary Sprint 2",
+    "description": "First local integration surface.",
+    "instructions": "Keep outputs provider-agnostic and durable.",
+    "knowledgeFiles": [
+      {
+        "id": "kf-1",
+        "name": "README.md",
+        "summary": "Product promise and archive framing."
+      }
+    ]
+  },
+  "memories": {
+    "global": [
+      {
+        "id": "memory-global-1",
+        "title": "User preference",
+        "content": "Favor local-first storage."
+      }
+    ],
+    "project": [
+      {
+        "id": "memory-project-1",
+        "title": "Sprint constraint",
+        "content": "Keep the protocol narrow."
+      }
+    ],
+    "saved": [
+      {
+        "id": "memory-saved-1",
+        "title": "Named memory",
+        "content": "Project memories should be queryable beside the chat."
+      }
+    ]
+  }
+}

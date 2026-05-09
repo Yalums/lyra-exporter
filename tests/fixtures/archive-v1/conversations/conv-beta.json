@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "loominary.conversation/v1",
+  "conversation": {
+    "id": "conv-beta",
+    "title": "Search quality backlog",
+    "platform": "chatgpt",
+    "provider": "openai",
+    "providerConversationId": "provider-beta",
+    "createdAt": "2026-05-06T12:00:00.000Z",
+    "updatedAt": "2026-05-07T16:00:00.000Z",
+    "favorite": false
+  },
+  "branches": [
+    {
+      "id": "main",
+      "rootMessageId": "beta-1",
+      "leafMessageIds": [
+        "beta-2"
+      ]
+    }
+  ],
+  "messages": [
+    {
+      "id": "beta-1",
+      "role": "user",
+      "branchId": "main",
+      "createdAt": "2026-05-06T12:00:00.000Z",
+      "text": "Find a better excerpting strategy for conversation search.",
+      "content": [
+        {
+          "type": "text",
+          "text": "Find a better excerpting strategy for conversation search."
+        }
+      ]
+    },
+    {
+      "id": "beta-2",
+      "parentId": "beta-1",
+      "role": "assistant",
+      "branchId": "main",
+      "createdAt": "2026-05-06T12:01:00.000Z",
+      "text": "Weight title matches and tags higher than raw body hits.",
+      "content": [
+        {
+          "type": "text",
+          "text": "Weight title matches and tags higher than raw body hits."
+        }
+      ]
+    }
+  ]
+}
